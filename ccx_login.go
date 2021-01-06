@@ -3,11 +3,9 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 )
 
 type LoginError struct {
@@ -38,8 +36,8 @@ type LoginResponse struct {
 func (c *CCXLogin) GetUserId() (id string, seessionId *http.Cookie) {
 	BaseURLV1 := "https://auth-api.s9s-dev.net/login"
 	body := &CCXLogin{
-		Login:    os.Getenv("CCX_USERNAME"),
-		Password: os.Getenv("CCX_PASSWORD"),
+		Login:    "simon+ccx@s9s.io",
+		Password: "Severalnines141$?",
 	}
 	jsonAuth := new(bytes.Buffer)
 	json.NewEncoder(jsonAuth).Encode(body)
@@ -51,13 +49,12 @@ func (c *CCXLogin) GetUserId() (id string, seessionId *http.Cookie) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	if res.StatusCode != 200 {
+		log.Fatal(res.StatusCode)
+	}
 	defer res.Body.Close()
 	responseBody, _ := ioutil.ReadAll(res.Body)
 	cookie := res.Cookies()[0]
-	token := cookie.Value
-	fmt.Println(cookie.RawExpires)
-	log.Println("response:", res.StatusCode)
-	log.Println("token:", token)
 	if res.StatusCode == 500 {
 		var LoginErrorResponse LoginError
 		json.Unmarshal(responseBody, &LoginErrorResponse)
@@ -66,7 +63,6 @@ func (c *CCXLogin) GetUserId() (id string, seessionId *http.Cookie) {
 
 	var CCXAuthResponse LoginResponse
 	json.Unmarshal(responseBody, &CCXAuthResponse)
-	log.Printf("id: %v\n", CCXAuthResponse.ID)
 	return CCXAuthResponse.ID, cookie
 
 }
