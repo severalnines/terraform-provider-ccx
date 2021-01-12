@@ -1,5 +1,5 @@
 provider "ccx" {
-    address = "https://auth-api.s9s-dev.net/login"
+    auth_service_url = "https://auth-api.s9s-dev.net"
     username = "simon+ccx@s9s.io"
     password = "Severalnines141$?"
 }
@@ -10,7 +10,7 @@ resource "ccx_cluster" "spaceforce" {
     region = "eu-west-2"
     db_vendor = "mariadb"
     instance_size = "t3.medium"
-    instance_iops = "100"
+    instance_iops = 100
     db_username = "milen"
     db_password = "hristov"
     db_host = "10.11.12.13"

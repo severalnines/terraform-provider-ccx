@@ -64,5 +64,4 @@ func GetUserId(address string, username string, password string) (id string, see
 	var CCXAuthResponse LoginResponse
 	json.Unmarshal(responseBody, &CCXAuthResponse)
 	return CCXAuthResponse.ID, cookie
-
 }

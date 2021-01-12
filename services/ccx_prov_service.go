@@ -33,13 +33,13 @@ type (
 	}
 )
 
-func CreateCluster(AccountID string, ClusterName string,
+func (c *Client) CreateCluster(ClusterName string,
 	ClusterType string, CloudProvider string,
 	Region string, DbVendor string,
 	InstanceSize string, InstanceIops int,
 	DbUsername string, DbPassword string,
-	DbHost string, cookie *http.Cookie) error {
-
+	DbHost string) error {
+	AccountID := c.userId
 	NewCluster := ClusterSpec{}
 	NewCluster.AccountID = AccountID
 	NewCluster.ClusterName = ClusterName
@@ -56,9 +56,8 @@ func CreateCluster(AccountID string, ClusterName string,
 	json.NewEncoder(clusterJSON).Encode(NewCluster)
 	req, _ := http.NewRequest("POST", ProvServiceUrl, clusterJSON)
 
-	req.AddCookie(cookie)
-	client := &http.Client{}
-	res, err := client.Do(req)
+	req.AddCookie(c.httpCookie)
+	res, err := c.httpClient.Do(req)
 	if err != nil {
 		log.Fatal(err.Error())
 	}

@@ -2,6 +2,7 @@ package provider
 
 import (
 	"fmt"
+	"log"
 	"regexp"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -34,32 +35,32 @@ func resourceItem() *schema.Resource {
 				Description: "An optional list of tags, represented as a key, value pair",
 			},
 			"db_vendor": {
-				Type:        schema.TypeSet,
+				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "An optional list of tags, represented as a key, value pair",
 			},
 			"instance_size": {
-				Type:        schema.TypeSet,
+				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "An optional list of tags, represented as a key, value pair",
 			},
 			"instance_iops": {
-				Type:        schema.TypeSet,
+				Type:        schema.TypeInt,
 				Optional:    true,
 				Description: "An optional list of tags, represented as a key, value pair",
 			},
 			"db_username": {
-				Type:        schema.TypeSet,
+				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "An optional list of tags, represented as a key, value pair",
 			},
 			"db_password": {
-				Type:        schema.TypeSet,
+				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "An optional list of tags, represented as a key, value pair",
 			},
 			"db_host": {
-				Type:        schema.TypeSet,
+				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "An optional list of tags, represented as a key, value pair",
 			},
@@ -89,13 +90,9 @@ func validateName(v interface{}, k string) (ws []string, es []error) {
 	return warns, errs
 }
 func resourceCreateItem(d *schema.ResourceData, m interface{}) error {
-
-	address := d.Get("address").(string)
-	username := d.Get("username").(string)
-	password := d.Get("password").(string)
 	clusterName := d.Get("cluster_name").(string)
 	clusterType := d.Get("cluster_type").(string)
-	clusterProvider := d.Get("cluster_provider").(string)
+	clusterProvider := d.Get("cloud_provider").(string)
 	region := d.Get("region").(string)
 	dbVendor := d.Get("db_vendor").(string)
 	instanceSize := d.Get("instance_size").(string)
@@ -103,25 +100,20 @@ func resourceCreateItem(d *schema.ResourceData, m interface{}) error {
 	dbUsername := d.Get("db_username").(string)
 	dbPassword := d.Get("db_password").(string)
 	dbHost := d.Get("db_host").(string)
-	userID, cookie := services.GetUserId(address, username, password)
-	err := services.CreateCluster(userID, clusterName, clusterType,
+	client := m.(*services.Client)
+	log.Println(client)
+	err := client.CreateCluster(clusterName, clusterType,
 		clusterProvider, region, dbVendor, instanceSize, instanceIops, dbUsername, dbPassword,
-		dbHost, cookie)
-	pendingClusterID := services.GetClusters(userID, cookie)
-	for i := range pendingClusterID {
-		if pendingClusterID[i].ClusterStatus == "CREATING_CLUSTER" {
-			d.SetId(pendingClusterID[i].UUID)
-		}
-
-	}
+		dbHost)
 
 	if err != nil {
 		return err
 	}
 	return nil
 }
+
 func resourceReadItem(d *schema.ResourceData, m interface{}) error {
-	address := d.Get("address").(string)
+	address := d.Get("auth_service_url").(string)
 	username := d.Get("username").(string)
 	password := d.Get("password").(string)
 	clusterID := d.Id()
