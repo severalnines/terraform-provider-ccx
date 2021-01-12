@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	ProvServiceUrl = "https://ccx-prov-service.s9s-dev.net/api/v1/cluster/"
+	ProvServiceUrl = "https://ccx-prov-service.s9s-dev.net/api/v1/cluster"
 )
 
 type (
@@ -38,7 +38,7 @@ func CreateCluster(AccountID string, ClusterName string,
 	Region string, DbVendor string,
 	InstanceSize string, InstanceIops int,
 	DbUsername string, DbPassword string,
-	DbHost string, cookie *http.Cookie) {
+	DbHost string, cookie *http.Cookie) error {
 
 	NewCluster := ClusterSpec{}
 	NewCluster.AccountID = AccountID
@@ -81,4 +81,5 @@ func CreateCluster(AccountID string, ClusterName string,
 				ServiceResponse[i].DatabaseEndpoint})
 	}
 	printer.Print(table)
+	return nil
 }

@@ -5,10 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"time"
-
-	"github.com/lensesio/tableprinter"
 )
 
 type DeploymentServiceResponse []struct {
@@ -153,7 +150,7 @@ type ClusterDetailHeaders struct {
 	NodeType  string      `header:"Type"`
 }
 
-func GetClusters(userId string, cookie *http.Cookie) {
+func GetClusters(userId string, cookie *http.Cookie) DeploymentServiceResponse {
 	BaseURLV1 := "https://ccx-deployment-service.s9s-dev.net/api/v1/deployments"
 	req, _ := http.NewRequest("GET", BaseURLV1, nil)
 	req.AddCookie(cookie)
@@ -166,24 +163,13 @@ func GetClusters(userId string, cookie *http.Cookie) {
 		log.Fatal(res.Status)
 	}
 	defer res.Body.Close()
-	printer := tableprinter.New(os.Stdout)
 	responseBody, _ := ioutil.ReadAll(res.Body)
 	var ServiceResponse DeploymentServiceResponse
-	var table []ClusterTableHeaders
 	json.Unmarshal(responseBody, &ServiceResponse)
-	for i := range ServiceResponse {
-		table = append(table,
-			ClusterTableHeaders{ServiceResponse[i].ClusterName,
-				ServiceResponse[i].ClusterStatus,
-				ServiceResponse[i].UUID,
-				ServiceResponse[i].DatabaseVendor,
-				ServiceResponse[i].DatabaseVersion,
-				ServiceResponse[i].DatabaseEndpoint})
-	}
-	printer.Print(table)
+	return ServiceResponse
 }
 
-func GetClusterByID(uuid string, cookie *http.Cookie) {
+func GetClusterByID(uuid string, cookie *http.Cookie) ClusterDetailResponse {
 	BaseURLV1 := "https://ccx-deployment-service.s9s-dev.net/api/v1/deployment/" + uuid
 	req, _ := http.NewRequest("GET", BaseURLV1, nil)
 	req.AddCookie(cookie)
@@ -196,23 +182,8 @@ func GetClusterByID(uuid string, cookie *http.Cookie) {
 		log.Fatal(res.Status)
 	}
 	defer res.Body.Close()
-	printer := tableprinter.New(os.Stdout)
 	responseBody, _ := ioutil.ReadAll(res.Body)
 	var ServiceResponse ClusterDetailResponse
-	var table []ClusterDetailHeaders
 	json.Unmarshal(responseBody, &ServiceResponse)
-	for i := range ServiceResponse.DatabaseNodes {
-		table = append(table,
-			ClusterDetailHeaders{ServiceResponse.UUID,
-				ServiceResponse.DatabaseNodes[i].Hostname,
-				ServiceResponse.DatabaseNodes[i].Vpc,
-				ServiceResponse.DatabaseNodes[i].PublicIP,
-				ServiceResponse.DatabaseNodes[i].PrivateIP,
-				ServiceResponse.DatabaseNodes[i].HostStatus,
-				ServiceResponse.DatabaseNodes[i].Port,
-				ServiceResponse.DatabaseNodes[i].Role,
-				ServiceResponse.DatabaseNodes[i].NodeType,
-			})
-	}
-	printer.Print(table)
+	return ServiceResponse
 }
