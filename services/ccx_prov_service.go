@@ -6,9 +6,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
-
-	"github.com/lensesio/tableprinter"
 )
 
 const (
@@ -59,26 +56,15 @@ func (c *Client) CreateCluster(ClusterName string,
 	req.AddCookie(c.httpCookie)
 	res, err := c.httpClient.Do(req)
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Println(err.Error())
 	}
-	if res.StatusCode != 200 {
-		log.Fatal(res.Status)
+	if res.StatusCode != 201 {
+		log.Println(res.Status)
 	}
 	defer res.Body.Close()
-	printer := tableprinter.New(os.Stdout)
 	responseBody, _ := ioutil.ReadAll(res.Body)
 	var ServiceResponse DeploymentServiceResponse
-	var table []ClusterTableHeaders
 	json.Unmarshal(responseBody, &ServiceResponse)
-	for i := range ServiceResponse {
-		table = append(table,
-			ClusterTableHeaders{ServiceResponse[i].ClusterName,
-				ServiceResponse[i].ClusterStatus,
-				ServiceResponse[i].UUID,
-				ServiceResponse[i].DatabaseVendor,
-				ServiceResponse[i].DatabaseVersion,
-				ServiceResponse[i].DatabaseEndpoint})
-	}
-	printer.Print(table)
+	log.Println(ServiceResponse)
 	return nil
 }
