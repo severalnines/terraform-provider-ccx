@@ -102,7 +102,7 @@ func resourceCreateItem(d *schema.ResourceData, m interface{}) error {
 	dbHost := d.Get("db_host").(string)
 	client := m.(*services.Client)
 	log.Println(client)
-	err := client.CreateCluster(clusterName, clusterType,
+	serviceResponse, err := client.CreateCluster(clusterName, clusterType,
 		clusterProvider, region, dbVendor, instanceSize, instanceIops, dbUsername, dbPassword,
 		dbHost)
 
@@ -111,16 +111,19 @@ func resourceCreateItem(d *schema.ResourceData, m interface{}) error {
 		log.Println(err)
 		return err
 	}
+	d.SetId(serviceResponse.ClusterUUID)
 	return nil
 }
 
 func resourceReadItem(d *schema.ResourceData, m interface{}) error {
-	address := d.Get("auth_service_url").(string)
-	username := d.Get("username").(string)
-	password := d.Get("password").(string)
-	clusterID := d.Id()
-	_, cookie := services.GetUserId(address, username, password)
-	clusterInfo := services.GetClusterByID(clusterID, cookie)
-	d.SetId(clusterInfo.UUID)
+	client := m.(*services.Client)
+	client.GetClusterByID(d.Id())
+	d.SetId(d.Id())
+	return nil
+}
+func resourceDeleteItem(d *schema.ResourceData, m interface{}) error {
+	client := m.(*services.Client)
+	client.DeleteClusterByID(d.Id())
+	d.SetId(d.Id())
 	return nil
 }

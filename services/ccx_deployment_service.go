@@ -150,40 +150,23 @@ type ClusterDetailHeaders struct {
 	NodeType  string      `header:"Type"`
 }
 
-func GetClusters(userId string, cookie *http.Cookie) DeploymentServiceResponse {
-	BaseURLV1 := "https://ccx-deployment-service.s9s-dev.net/api/v1/deployments"
-	req, _ := http.NewRequest("GET", BaseURLV1, nil)
-	req.AddCookie(cookie)
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-	if res.StatusCode != 200 {
-		log.Fatal(res.Status)
-	}
-	defer res.Body.Close()
-	responseBody, _ := ioutil.ReadAll(res.Body)
-	var ServiceResponse DeploymentServiceResponse
-	json.Unmarshal(responseBody, &ServiceResponse)
-	return ServiceResponse
-}
-
-func GetClusterByID(uuid string, cookie *http.Cookie) ClusterDetailResponse {
+func (c *Client) GetClusterByID(uuid string) error {
 	BaseURLV1 := "https://ccx-deployment-service.s9s-dev.net/api/v1/deployment/" + uuid
 	req, _ := http.NewRequest("GET", BaseURLV1, nil)
-	req.AddCookie(cookie)
-	client := &http.Client{}
-	res, err := client.Do(req)
+	req.AddCookie(c.httpCookie)
+	log.Println("CCX_DEPLOYMENT_SERVICE: req: %s", req)
+	res, err := c.httpClient.Do(req)
+	log.Println("CCX_DEPLOYMENT_SERVICE: Sent request")
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Println("CCX_DEPLOYMENT_SERVICE: Error!")
 	}
 	if res.StatusCode != 200 {
-		log.Fatal(res.Status)
+		log.Println("CCX_DEPLOYMENT_SERVICE: Error! %s", res.StatusCode)
 	}
 	defer res.Body.Close()
 	responseBody, _ := ioutil.ReadAll(res.Body)
 	var ServiceResponse ClusterDetailResponse
 	json.Unmarshal(responseBody, &ServiceResponse)
-	return ServiceResponse
+	log.Println(ServiceResponse)
+	return nil
 }
