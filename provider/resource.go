@@ -107,6 +107,7 @@ func resourceCreateItem(d *schema.ResourceData, m interface{}) error {
 		dbHost)
 
 	if err != nil {
+		log.Println("ERROR")
 		log.Println(err)
 		return err
 	}

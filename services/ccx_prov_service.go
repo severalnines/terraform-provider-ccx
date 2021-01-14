@@ -56,15 +56,15 @@ func (c *Client) CreateCluster(ClusterName string,
 	req.AddCookie(c.httpCookie)
 	res, err := c.httpClient.Do(req)
 	if err != nil {
-		log.Println(err.Error())
+		return err
 	}
 	if res.StatusCode != 201 {
-		log.Println(res.Status)
+		log.Fatalln(res.Status)
 	}
 	defer res.Body.Close()
 	responseBody, _ := ioutil.ReadAll(res.Body)
 	var ServiceResponse DeploymentServiceResponse
 	json.Unmarshal(responseBody, &ServiceResponse)
-	log.Println(ServiceResponse)
+	log.Print(ServiceResponse)
 	return nil
 }
