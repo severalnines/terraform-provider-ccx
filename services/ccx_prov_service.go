@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	ProvServiceUrl = "https://ccx-prov-service.s9s-dev.net/api/v1/cluster/"
+	ProvServiceUrl = "https://ccx-prov-service.s9s-dev.net/api/v2/cluster/"
 )
 
 type (
@@ -61,27 +61,58 @@ type (
 		VpcUUID              *string    `json:"vpc_uuid" reform:"vpc_uuid"`
 		SubnetUUID           *string    `json:"subnet_uuid" reform:"subnet_uuid"`
 	}
+
+	CreateClusterRequestV2 struct {
+		General struct {
+			ClusterName string   `json:"cluster_name"`
+			ClusterSize int      `json:"cluster_size"`
+			DBVendor    string   `json:"db_vendor"`
+			Tags        []string `json:"tags"`
+		} `json:"general"`
+		Cloud struct {
+			CloudProvider string `json:"cloud_provider"`
+			CloudRegion   string `json:"cloud_region"`
+		} `json:"cloud"`
+		Instance struct {
+			InstanceSize string `json:"instance_size"` // "Tiny" ... "2X-Large"
+			VolumeType   string `json:"volume_type"`
+			VolumeSize   int    `json:"volume_size"`
+			VolumeIOPS   int    `json:"volume_iops"`
+		} `json:"instance"`
+		Network struct {
+			NetworkType       string   `json:"network_type"` // public/private
+			HAEnabled         bool     `json:"ha_enabled"`
+			VpcUUID           string   `json:"vpc_uuid"`
+			AvailabilityZones []string `json:"availability_zones"`
+		} `json:"network"`
+	}
 )
 
-func (c *Client) CreateCluster(ClusterName string,
-	ClusterType string, CloudProvider string,
-	Region string, DbVendor string,
-	InstanceSize string, InstanceIops int,
-	DbUsername string, DbPassword string,
-	DbHost string) (Cluster, error) {
-	AccountID := c.userId
-	NewCluster := ClusterSpec{}
-	NewCluster.AccountID = AccountID
-	NewCluster.ClusterName = ClusterName
-	NewCluster.ClusterType = ClusterType
-	NewCluster.CloudProvider = CloudProvider
-	NewCluster.Region = Region
-	NewCluster.DbVendor = DbVendor
-	NewCluster.InstanceSize = InstanceSize
-	NewCluster.InstanceIops = InstanceIops
-	NewCluster.DbAccount.DbUsername = DbUsername
-	NewCluster.DbAccount.DbPassword = DbPassword
-	NewCluster.DbAccount.DbHost = DbHost
+func (c *Client) CreateCluster(
+	ClusterName string, ClusterSize int, DbVendor string, tags []string,
+	CloudRegion string, CloudProvider string, InstanceSize string, volumeType string, volumeSize int,
+	volumeIops int, networkType string, networkHAEnabled bool, VPCUuid string,
+	vpcAz []string) (Cluster, error) {
+	NewCluster := CreateClusterRequestV2{}
+	//general settings
+	NewCluster.General.ClusterName = ClusterName
+	NewCluster.General.ClusterSize = ClusterSize
+	NewCluster.General.DBVendor = DbVendor
+	NewCluster.General.Tags = tags
+	//Cloud Settings
+	NewCluster.Cloud.CloudProvider = CloudProvider
+	NewCluster.Cloud.CloudRegion = CloudRegion
+	//Instance Settings
+	NewCluster.Instance.InstanceSize = InstanceSize
+	NewCluster.Instance.VolumeType = volumeType
+	NewCluster.Instance.VolumeSize = volumeSize
+	NewCluster.Instance.VolumeIOPS = volumeIops
+	//Network Settings
+	NewCluster.Network.NetworkType = networkType
+	NewCluster.Network.HAEnabled = networkHAEnabled
+	NewCluster.Network.VpcUUID = VPCUuid
+	NewCluster.Network.AvailabilityZones = vpcAz
+
 	clusterJSON := new(bytes.Buffer)
 	json.NewEncoder(clusterJSON).Encode(NewCluster)
 	req, _ := http.NewRequest("POST", ProvServiceUrl, clusterJSON)

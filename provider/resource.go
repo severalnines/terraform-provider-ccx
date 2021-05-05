@@ -19,10 +19,21 @@ func resourceItem() *schema.Resource {
 				ForceNew:     true,
 				ValidateFunc: validateName,
 			},
-			"cluster_type": {
-				Type:        schema.TypeString,
+			"cluster_size": {
+				Type:        schema.TypeInt,
 				Required:    true,
-				Description: "A description of an item",
+				Description: "The size of the cluster ( int64 )",
+			},
+			"db_vendor": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "An optional list of tags, represented as a key, value pair",
+			},
+			"tags": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "An optional list of tags, represented as a key, value pair",
+				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 			"cloud_provider": {
 				Type:        schema.TypeString,
@@ -34,41 +45,53 @@ func resourceItem() *schema.Resource {
 				Optional:    true,
 				Description: "An optional list of tags, represented as a key, value pair",
 			},
-			"db_vendor": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "An optional list of tags, represented as a key, value pair",
-			},
+
 			"instance_size": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "An optional list of tags, represented as a key, value pair",
 			},
-			"instance_iops": {
+			"volume_iops": {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Description: "An optional list of tags, represented as a key, value pair",
 			},
-			"db_username": {
+			"volume_size": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "An optional list of tags, represented as a key, value pair",
+			},
+			"volume_type": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "An optional list of tags, represented as a key, value pair",
 			},
-			"db_password": {
+			"network_type": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "An optional list of tags, represented as a key, value pair",
 			},
-			"db_host": {
+			"network_ha_enabled": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "An optional list of tags, represented as a key, value pair",
+			},
+			"network_vpc_uuid": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "An optional list of tags, represented as a key, value pair",
+			},
+			"network_az": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "An optional list of tags, represented as a key, value pair",
+				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 		},
 		Create: resourceCreateItem,
 		Read:   resourceReadItem,
 		Update: resourceCreateItem,
-		Delete: resourceCreateItem,
+		Delete: resourceDeleteItem,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -90,21 +113,37 @@ func validateName(v interface{}, k string) (ws []string, es []error) {
 	return warns, errs
 }
 func resourceCreateItem(d *schema.ResourceData, m interface{}) error {
+	//General Settings
 	clusterName := d.Get("cluster_name").(string)
-	clusterType := d.Get("cluster_type").(string)
-	clusterProvider := d.Get("cloud_provider").(string)
-	region := d.Get("region").(string)
+	clusterSize := d.Get("cluster_size").(int)
 	dbVendor := d.Get("db_vendor").(string)
+	objectTags := []string{}
+	for _, tag := range d.Get("tags").([]interface{}) {
+		objectTags = append(objectTags, tag.(string))
+	}
+
+	//Cloud Settings
+	cloudProvider := d.Get("cloud_provider").(string)
+	cloudRegion := d.Get("region").(string)
+	//Instance Settings
 	instanceSize := d.Get("instance_size").(string)
-	instanceIops := d.Get("instance_iops").(int)
-	dbUsername := d.Get("db_username").(string)
-	dbPassword := d.Get("db_password").(string)
-	dbHost := d.Get("db_host").(string)
+	volumeType := d.Get("volume_type").(string)
+	volumeIops := d.Get("volume_iops").(int)
+	volumeSize := d.Get("volume_size").(int)
+	//Network
+	networkType := d.Get("network_type").(string)
+	networkHAenabled := d.Get("network_ha_enabled").(bool)
+	networkVPCUuid := d.Get("network_vpc_uuid").(string)
+	networkVPCAz := []string{}
+	for _, tag := range d.Get("network_az").([]interface{}) {
+		objectTags = append(objectTags, tag.(string))
+	}
+
 	client := m.(*services.Client)
 	log.Println(client)
-	serviceResponse, err := client.CreateCluster(clusterName, clusterType,
-		clusterProvider, region, dbVendor, instanceSize, instanceIops, dbUsername, dbPassword,
-		dbHost)
+	serviceResponse, err := client.CreateCluster(
+		clusterName, clusterSize, dbVendor, objectTags, cloudProvider, cloudRegion, instanceSize,
+		volumeType, volumeIops, volumeSize, networkType, networkHAenabled, networkVPCUuid, networkVPCAz)
 
 	if err != nil {
 		log.Println("ERROR")
@@ -123,7 +162,7 @@ func resourceReadItem(d *schema.ResourceData, m interface{}) error {
 }
 func resourceDeleteItem(d *schema.ResourceData, m interface{}) error {
 	client := m.(*services.Client)
-	client.DeleteClusterByID(d.Id())
+	client.DeleteCluster(d.Id())
 	d.SetId(d.Id())
 	return nil
 }
