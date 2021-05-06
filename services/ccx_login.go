@@ -3,9 +3,8 @@ package services
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io/ioutil"
-	"log"
 	"net/http"
 )
 
@@ -34,37 +33,49 @@ type LoginResponse struct {
 	Tasks        []int       `json:"tasks"`
 }
 
-func GetUserId(address string, username string, password string) (id string, seessionId *http.Cookie) {
+func GetUserId(address, username, password string) (string, *http.Cookie, error) {
 	BaseURLV1 := address + "/login"
 	body := &CCXLogin{
 		Login:    username,
 		Password: password,
 	}
-	log.Println(BaseURLV1)
-	jsonAuth := new(bytes.Buffer)
-	json.NewEncoder(jsonAuth).Encode(body)
-	req, _ := http.NewRequest("POST", BaseURLV1, jsonAuth)
-	//req.Header.Set("Content-Type", "application/json; charset=utf-8")
-	req.Header.Set("Accept", "application/json; charset=utf-8")
-	authClient := &http.Client{}
-	res, err := authClient.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if res.StatusCode != 200 {
-		log.Fatal(res.StatusCode)
-	}
-	defer res.Body.Close()
-	responseBody, _ := ioutil.ReadAll(res.Body)
-	cookie := res.Cookies()[0]
-	fmt.Println(body)
-	if res.StatusCode == 500 {
-		var LoginErrorResponse LoginError
-		json.Unmarshal(responseBody, &LoginErrorResponse)
-		log.Fatal(LoginErrorResponse.Error)
-	}
+	jsonAuth := bytes.NewBuffer([]byte{})
 
-	var CCXAuthResponse LoginResponse
-	json.Unmarshal(responseBody, &CCXAuthResponse)
-	return CCXAuthResponse.ID, cookie
+	if err := json.NewEncoder(jsonAuth).Encode(body); err != nil {
+		return "", nil, err
+	}
+	req, err := http.NewRequest("POST", BaseURLV1, jsonAuth)
+	if err != nil {
+		return "", nil, err
+	}
+	req.Header.Set("Accept", "application/json; charset=utf-8")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", nil, err
+	}
+	defer func() {
+		_ = res.Body.Close()
+	}()
+	if res.StatusCode != 200 {
+		le := &LoginError{}
+		if err := json.NewDecoder(res.Body).Decode(le); err != nil {
+			return "", nil, err
+		}
+		return "", nil, fmt.Errorf("service returned non 200 status code: %s", le.Error)
+	}
+	var cookie *http.Cookie
+	for _, c := range res.Cookies() {
+		if c.Name == "sid" {
+			cookie = c
+			break
+		}
+	}
+	if cookie == nil {
+		return "", nil, errors.New("session cookie not found")
+	}
+	rb := &LoginResponse{}
+	if err := json.NewDecoder(res.Body).Decode(rb); err != nil {
+		return "", nil, err
+	}
+	return rb.ID, cookie, nil
 }
