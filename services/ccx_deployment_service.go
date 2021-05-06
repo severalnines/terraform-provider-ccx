@@ -151,7 +151,7 @@ type ClusterDetailHeaders struct {
 }
 
 func (c *Client) GetClusterByID(uuid string) error {
-	BaseURLV1 := "https://ccx-deployment-service.s9s-dev.net/api/v1/deployment/" + uuid
+	BaseURLV1 := "https://ccx.s9s-dev.net/api/deployment/v1/deployment/" + uuid
 	req, _ := http.NewRequest("GET", BaseURLV1, nil)
 	req.AddCookie(c.httpCookie)
 	log.Println("CCX_DEPLOYMENT_SERVICE: req: %s", req)

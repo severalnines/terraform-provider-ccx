@@ -3,6 +3,7 @@ package services
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -39,10 +40,11 @@ func GetUserId(address string, username string, password string) (id string, see
 		Login:    username,
 		Password: password,
 	}
+	log.Println(BaseURLV1)
 	jsonAuth := new(bytes.Buffer)
 	json.NewEncoder(jsonAuth).Encode(body)
 	req, _ := http.NewRequest("POST", BaseURLV1, jsonAuth)
-	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	//req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	req.Header.Set("Accept", "application/json; charset=utf-8")
 	authClient := &http.Client{}
 	res, err := authClient.Do(req)
@@ -55,6 +57,7 @@ func GetUserId(address string, username string, password string) (id string, see
 	defer res.Body.Close()
 	responseBody, _ := ioutil.ReadAll(res.Body)
 	cookie := res.Cookies()[0]
+	fmt.Println(body)
 	if res.StatusCode == 500 {
 		var LoginErrorResponse LoginError
 		json.Unmarshal(responseBody, &LoginErrorResponse)

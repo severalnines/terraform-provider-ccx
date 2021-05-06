@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -44,5 +45,6 @@ func configureProvider(d *schema.ResourceData) (interface{}, error) {
 	username := d.Get("username").(string)
 	password := d.Get("password").(string)
 	userID, httpCookie := services.GetUserId(address, username, password)
+	fmt.Println(userID, httpCookie)
 	return services.NewClient(address, userID, httpCookie), nil
 }

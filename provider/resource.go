@@ -132,18 +132,12 @@ func resourceCreateItem(d *schema.ResourceData, m interface{}) error {
 	volumeSize := d.Get("volume_size").(int)
 	//Network
 	networkType := d.Get("network_type").(string)
-	networkHAenabled := d.Get("network_ha_enabled").(bool)
-	networkVPCUuid := d.Get("network_vpc_uuid").(string)
-	networkVPCAz := []string{}
-	for _, tag := range d.Get("network_az").([]interface{}) {
-		objectTags = append(objectTags, tag.(string))
-	}
 
 	client := m.(*services.Client)
 	log.Println(client)
 	serviceResponse, err := client.CreateCluster(
-		clusterName, clusterSize, dbVendor, objectTags, cloudProvider, cloudRegion, instanceSize,
-		volumeType, volumeIops, volumeSize, networkType, networkHAenabled, networkVPCUuid, networkVPCAz)
+		clusterName, clusterSize, dbVendor, objectTags, cloudRegion, cloudProvider, instanceSize,
+		volumeType, volumeIops, volumeSize, networkType)
 
 	if err != nil {
 		log.Println("ERROR")

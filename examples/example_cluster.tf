@@ -1,5 +1,5 @@
 provider "ccx" {
-    auth_service_url = "https://auth-api.s9s-dev.net"
+    auth_service_url = "https://ccx.s9s-dev.net/api/auth"
     username = "simon+ccx@s9s.io"
     password = "Severalnines141$?"
 }
@@ -9,13 +9,10 @@ resource "ccx_cluster" "spaceforce" {
     db_vendor = "mariadb"
     tags = ["new", "test"]
     cloud_provider = "aws"
-    region = "eu-west-2"
-    instance_size = "t3.medium"
+    region = "eu-north-1"
+    instance_size = "tiny"
     volume_iops = 100
     volume_size = 40
     volume_type = "gp2"
     network_type = "public"
-    network_ha_enabled = false
-    network_vpc_uuid = "231321321321"
-    network_az = ["a","b"]
 }
