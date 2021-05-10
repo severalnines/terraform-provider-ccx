@@ -44,7 +44,7 @@ func configureProvider(d *schema.ResourceData) (interface{}, error) {
 	address := d.Get("auth_service_url").(string)
 	username := d.Get("username").(string)
 	password := d.Get("password").(string)
-	userID, httpCookie := services.GetUserId(address, username, password)
+	userID, httpCookie, _ := services.GetUserId(address, username, password)
 	fmt.Println(userID, httpCookie)
 	return services.NewClient(address, userID, httpCookie), nil
 }
