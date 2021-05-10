@@ -12,8 +12,8 @@
 `mkdir -p ~/.terraform.d/plugins/ && cp terraform-provider-ccx ~/.terraform.d/plugins/`
 - If using terraform > 14.0
 This is complex to setup. 
-- Step 1: Create the directory required for setup: `mkdir -p examples/.terraform.d/registry.terraform.io/hashicorp/ccx/1.1.0/linux_amd64/`
-- Step 2: Execute the following command(s): `go build -o examples/.terraform.d/registry.terraform.io/hashicorp/ccx/0.1.0/linux_amd64/terraform-provider-ccx_v0.1.0 && rm -f examples/.terraform.lock.hcl && cd examples/  && terraform init -plugin-dir .terraform.d/`
+- Step 1: Create the directory required for setup: `mkdir -p examples/.terraform.d/plugins/registry.terraform.io/hashicorp/ccx/1.1.0/linux_amd64/`
+- Step 2: Execute the following command(s): `go build -o examples/.terraform.d/plugins/registry.terraform.io/hashicorp/ccx/0.1.0/linux_amd64/terraform-provider-ccx_v0.1.0 && rm -f examples/.terraform.lock.hcl && cd examples/  && terraform init -plugin-dir .terraform.d/plugins`
 This will build the provider and place it in the correct directory. The provider will be available under the directory tree of examples only. If you wish to use the provider globaly , replace examples/ with your home dir (~).
 `mkdir -p ~/.terraform.d/plugins/severalnines/ccx/1.0/amd64/ && cp terraform-provider-ccx ~/.terraform.d/plugins/severalnines/ccx/1.0/amd64/`
 
