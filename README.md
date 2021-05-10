@@ -8,6 +8,7 @@
  - Build the terraform provider
 - If using terraform < 14.0
 `go build -o terraform-provider-ccx .`
+
 `mkdir -p ~/.terraform.d/plugins/ && cp terraform-provider-ccx ~/.terraform.d/plugins/`
 - If using terraform > 14.0
 This is complex to setup. 
