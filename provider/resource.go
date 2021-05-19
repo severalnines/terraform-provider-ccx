@@ -52,7 +52,7 @@ func resourceItem() *schema.Resource {
 				Description: "An optional list of tags, represented as a key, value pair",
 			},
 			"volume_iops": {
-				Type:        schema.TypeInt,
+				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "An optional list of tags, represented as a key, value pair",
 			},
@@ -112,6 +112,19 @@ func validateName(v interface{}, k string) (ws []string, es []error) {
 	}
 	return warns, errs
 }
+func validateDisk(v interface{}, k string) (ws []string, es []error) {
+	var errs []error
+	var warns []string
+	value, ok := v.(string)
+	if !ok {
+		errs = append(errs, fmt.Errorf("Expected value to be string"))
+		return warns, errs
+	}
+	if value == "gp2" || value == "gp3" {
+		warns = append(warns, "Disk type of GP2/GP3 can not have IOPS Parameter set.")
+	}
+	return warns, errs
+}
 func resourceCreateItem(d *schema.ResourceData, m interface{}) error {
 	//General Settings
 	clusterName := d.Get("cluster_name").(string)
@@ -121,26 +134,23 @@ func resourceCreateItem(d *schema.ResourceData, m interface{}) error {
 	for _, tag := range d.Get("tags").([]interface{}) {
 		objectTags = append(objectTags, tag.(string))
 	}
-
 	//Cloud Settings
 	cloudProvider := d.Get("cloud_provider").(string)
 	cloudRegion := d.Get("region").(string)
 	//Instance Settings
 	instanceSize := d.Get("instance_size").(string)
 	volumeType := d.Get("volume_type").(string)
-	volumeIops := d.Get("volume_iops").(int)
+	volumeIops := d.Get("volume_iops").(string)
 	volumeSize := d.Get("volume_size").(int)
 	//Network
 	networkType := d.Get("network_type").(string)
-
+	//
 	client := m.(*services.Client)
-	log.Println(client)
 	serviceResponse, err := client.CreateCluster(
 		clusterName, clusterSize, dbVendor, objectTags, cloudRegion, cloudProvider, instanceSize,
-		volumeType, volumeIops, volumeSize, networkType)
+		volumeType, volumeSize, volumeIops, networkType)
 
 	if err != nil {
-		log.Println("ERROR")
 		log.Println(err)
 		return err
 	}

@@ -154,14 +154,14 @@ func (c *Client) GetClusterByID(uuid string) error {
 	BaseURLV1 := "https://ccx.s9s-dev.net/api/deployment/v1/deployment/" + uuid
 	req, _ := http.NewRequest("GET", BaseURLV1, nil)
 	req.AddCookie(c.httpCookie)
-	log.Println("CCX_DEPLOYMENT_SERVICE: req: %s", req)
+	log.Printf("CCX_DEPLOYMENT_SERVICE: req: %s", req)
 	res, err := c.httpClient.Do(req)
-	log.Println("CCX_DEPLOYMENT_SERVICE: Sent request")
+	log.Printf("CCX_DEPLOYMENT_SERVICE: Sent request")
 	if err != nil {
-		log.Println("CCX_DEPLOYMENT_SERVICE: Error!")
+		log.Printf("CCX_DEPLOYMENT_SERVICE: Error!")
 	}
 	if res.StatusCode != 200 {
-		log.Println("CCX_DEPLOYMENT_SERVICE: Error! %s", res.StatusCode)
+		log.Printf("CCX_DEPLOYMENT_SERVICE: Error! %s", res.StatusCode)
 	}
 	defer res.Body.Close()
 	responseBody, _ := ioutil.ReadAll(res.Body)

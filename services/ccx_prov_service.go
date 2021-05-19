@@ -3,6 +3,7 @@ package services
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -80,9 +81,9 @@ type (
 		} `json:"cloud"`
 		Instance struct {
 			InstanceSize string `json:"instance_size"` // "Tiny" ... "2X-Large"
-			VolumeType   string `json:"volume_type"`
-			VolumeSize   int    `json:"volume_size"`
-			VolumeIOPS   int    `json:"volume_iops"`
+			VolumeType   string `json:"volume_type,omitempty"`
+			VolumeSize   int    `json:"volume_size,omitempty"`
+			VolumeIOPS   string `json:"volume_iops,omitempty"`
 		} `json:"instance"`
 		Network struct {
 			NetworkType string `json:"network_type"` // public/private
@@ -93,7 +94,7 @@ type (
 func (c *Client) CreateCluster(
 	ClusterName string, ClusterSize int, DbVendor string, tags []string,
 	CloudRegion string, CloudProvider string, InstanceSize string, volumeType string, volumeSize int,
-	volumeIops int, networkType string) (Cluster, error) {
+	volumeIops string, networkType string) (Cluster, error) {
 	NewCluster := CreateClusterRequestV2{}
 	//general settings
 	NewCluster.General.ClusterName = ClusterName
@@ -107,10 +108,20 @@ func (c *Client) CreateCluster(
 	NewCluster.Instance.InstanceSize = InstanceSize
 	NewCluster.Instance.VolumeType = volumeType
 	NewCluster.Instance.VolumeSize = volumeSize
-	NewCluster.Instance.VolumeIOPS = volumeIops
 	//Network Settings
 	NewCluster.Network.NetworkType = networkType
 
+	if volumeType == "gp2" || volumeType == "gp3" {
+		if volumeIops != "" {
+			tempCluster := Cluster{}
+			log.Println(volumeIops, volumeType)
+			return tempCluster, errors.New("Cannot set iops for volume type gp2|gp3. Please delete the iops parameter and try again")
+		}
+		NewCluster.Instance.VolumeIOPS = ""
+	} else {
+		NewCluster.Instance.VolumeIOPS = volumeIops
+	}
+	log.Println(NewCluster)
 	clusterJSON := new(bytes.Buffer)
 	json.NewEncoder(clusterJSON).Encode(NewCluster)
 	req, _ := http.NewRequest("POST", ProvServiceUrl, clusterJSON)
