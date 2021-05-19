@@ -23,7 +23,10 @@ This will build the provider and place it in the correct directory. The provider
 `mkdir -p ~/.terraform.d/plugins/severalnines/ccx/1.0/amd64/ && cp terraform-provider-ccx ~/.terraform.d/plugins/severalnines/ccx/1.0/amd64/`
 
 ## Using the provider
-- Create a provider and a resource file. The provider and resource sections may be in one file, see https://github.com/severalnines/terraform-provider-ccx/examples/example_cluster.tf
+
+Create a provider and a resource file and specify account settings and cluster properties. The provider and resource sections may be located in one file, see https://github.com/severalnines/terraform-provider-ccx/examples/example_cluster.tf
+
+### Create an terraform provider file
 ```
 provider  "ccx" {
 	auth_service_url  =  "https://auth-api.s9s.io" 
@@ -31,7 +34,7 @@ provider  "ccx" {
 	password  =  "your_ccx_password"
 }
 ```
-- Create an terraform resource file
+### Create an terraform resource file
 ```
 resource "ccx_cluster" "spaceforce" {
     cluster_name = "spaceforce"
@@ -47,7 +50,7 @@ resource "ccx_cluster" "spaceforce" {
     network_type = "public"
 }
 ```
-- Apply the created file
+### Apply the created file
 `terraform apply`
 
 ## Issues
