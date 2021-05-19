@@ -22,7 +22,7 @@ func resourceItem() *schema.Resource {
 			"cluster_size": {
 				Type:        schema.TypeInt,
 				Required:    true,
-				Description: "The size of the cluster ( int64 )",
+				Description: "The size of the cluster ( int64 ). 1 or 3 nodes.",
 			},
 			"db_vendor": {
 				Type:        schema.TypeString,
