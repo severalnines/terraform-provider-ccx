@@ -35,8 +35,8 @@ resource "ccx_cluster" "spaceforce" {
 }
 ```
 3. Run:
-  *`terraform init`
-  *`terraform appy`
+  * `terraform init`
+  * `terraform appy`
 
 4. Login to CCX and watch the cluster being deployed :)
 
