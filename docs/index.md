@@ -11,11 +11,20 @@ description: |-
 Warning! Be careful when recreating servics using Terraform. Terraform may delete services / instances before creating them. Ensure you do not have an existing .tfstate file before you run terrafom.
 
 ## Limitations
-Authentication is limited to username/password
+- Authentication is limited to username/password
+- Only 1 or 3 nodes are supported
 
 ## Example Usage
 
 ```hcl
+terraform {
+  required_providers {
+    ccx = {
+      source  = "severalnines/ccx"
+      version = "~> 0.0.1"
+    }
+  }
+}
 provider "ccx" {
     auth_service_url = "https://ccx.s9s-dev.net/api/auth"
     username = "USERNAME"
