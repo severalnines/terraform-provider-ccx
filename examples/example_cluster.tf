@@ -1,3 +1,11 @@
+terraform {
+  required_providers {
+    ccx = {
+      source  = "severalnines/ccx"
+      version = "~> 0.0.1"
+    }
+  }
+}
 provider "ccx" {
     auth_service_url = "https://ccx.s9s-dev.net/api/auth"
     username = "please_enter_your_username_here"
