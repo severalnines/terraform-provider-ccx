@@ -1,7 +1,12 @@
 
 # terraform-provider-ccx
+
+This is the Terraform Provider for the Severalnines CCX Database as a service platform.
+- CCX Website: https://ccx.severalnines.com/
+- Documentation: https://docs.severalnines.com/docs/ccx/
+- Support: https://support.severalnines.com/hc/en-us/requests/new (sign up before you create the request).
+
 ## Requirement
-- go 1.14 or later
 - Terraform 0.13.x or later
 
 ## Quick Start
@@ -41,8 +46,13 @@ resource "ccx_cluster" "spaceforce" {
 4. Login to CCX and watch the cluster being deployed :)
 
 ## Installing the provider from source
- - Clone the master branch of the current repository
- `git clone https://github.com/severalnines/terraform-provider-ccx`
+### Requirement
+- go 1.14 or later
+- Terraform 0.13.x or later
+
+### Clone the master branch of the current repository
+ - `git clone https://github.com/severalnines/terraform-provider-ccx`
+ 
 ### If using terraform <= 0.14.0
 
  - Build the terraform provider
