@@ -25,7 +25,17 @@ This will build the provider and place it in the correct directory. The provider
 ## Using the provider
 
 Create a provider and a resource file and specify account settings and cluster properties. The provider and resource sections may be located in one file, see https://github.com/severalnines/terraform-provider-ccx/examples/example_cluster.tf
-
+### Create a terraform provider configuration
+```
+terraform {
+  required_providers {
+    ccx = {
+      source  = "severalnines/ccx"
+      version = "~> 0.0.1"
+    }
+  }
+}
+```
 ### Create an terraform provider file
 ```
 provider  "ccx" {
