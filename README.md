@@ -4,7 +4,43 @@
 - go 1.14 or later
 - Terraform 0.13.x or later
 
-## Installing the provider
+## Quick Start
+- Sign up for CCX at https://ccx.severalnines.com/
+- Create a Terraform file called datastore.tf with the content below, change usernamepassword,cluster_name, region as you see fit:
+```
+terraform {
+  required_providers {
+    ccx = {
+      source  = "severalnines/ccx"
+      version = "~> 0.0.1"
+    }
+  }
+}
+provider "ccx" {
+    auth_service_url = "https://ccx.s9s-dev.net/api/auth"
+    username = "please_enter_your_username_here"
+    password = "please_enter_your_password_here"
+}
+resource "ccx_cluster" "spaceforce" {
+    cluster_name = "spaceforce"
+    cluster_size = 1
+    db_vendor = "mariadb"
+    tags = ["new", "test"]
+    cloud_provider = "aws"
+    region = "eu-north-1"
+    instance_size = "tiny"
+    volume_size = 40
+    volume_type = "gp2"
+    network_type = "public"
+}
+```
+- Run:
+`terraform init`
+`terraform appy`
+
+- Login to CCX and watch the cluster being deployed.
+
+## Installing the provider from source
  - Clone the master branch of the current repository
  `git clone https://github.com/severalnines/terraform-provider-ccx`
 ### If using terraform <= 0.14.0
