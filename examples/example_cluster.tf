@@ -1,7 +1,7 @@
 provider "ccx" {
     auth_service_url = "https://ccx.s9s-dev.net/api/auth"
-    username = "please_enter_your_username_here"
-    password = "please_enter_your_password_here"
+    username = "simon+ccx@s9s.io"
+    password = "Severalnines141$?"
 }
 resource "ccx_cluster" "spaceforce" {
     cluster_name = "spaceforce"
@@ -14,4 +14,11 @@ resource "ccx_cluster" "spaceforce" {
     volume_size = 40
     volume_type = "gp2"
     network_type = "public"
+}
+
+resource "ccx_vpc" "newVpc" {
+    vpc_name = "spaceforce_vpc"
+    vpc_cloud_provider = "aws"
+    vpc_cloud_region = "eu-north-1"
+    vpc_ipv4_cidr = "10.10.0.0/16"
 }

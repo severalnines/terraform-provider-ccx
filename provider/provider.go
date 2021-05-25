@@ -2,7 +2,6 @@ package provider
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -34,13 +33,13 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"ccx_cluster": resourceItem(),
+			"ccx_cluster": clusterResource(),
+			"ccx_vpc":     vpcResource(),
 		},
 		ConfigureFunc: configureProvider,
 	}
 }
 func configureProvider(d *schema.ResourceData) (interface{}, error) {
-	log.Println("Entered configure provider sequence")
 	address := d.Get("auth_service_url").(string)
 	username := d.Get("username").(string)
 	password := d.Get("password").(string)

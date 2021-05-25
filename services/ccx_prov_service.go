@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"time"
 )
@@ -94,7 +94,7 @@ type (
 func (c *Client) CreateCluster(
 	ClusterName string, ClusterSize int, DbVendor string, tags []string,
 	CloudRegion string, CloudProvider string, InstanceSize string, volumeType string, volumeSize int,
-	volumeIops string, networkType string) (Cluster, error) {
+	volumeIops string, networkType string) (*Cluster, error) {
 	NewCluster := CreateClusterRequestV2{}
 	//general settings
 	NewCluster.General.ClusterName = ClusterName
@@ -113,44 +113,36 @@ func (c *Client) CreateCluster(
 
 	if volumeType == "gp2" || volumeType == "gp3" {
 		if volumeIops != "" {
-			tempCluster := Cluster{}
-			log.Println(volumeIops, volumeType)
-			return tempCluster, errors.New("Cannot set iops for volume type gp2|gp3. Please delete the iops parameter and try again")
+			return nil, errors.New("Cannot set iops for volume type gp2|gp3. Please delete the iops parameter and try again")
 		}
 		NewCluster.Instance.VolumeIOPS = ""
 	} else {
 		NewCluster.Instance.VolumeIOPS = volumeIops
 	}
-	log.Println(NewCluster)
+	if ClusterSize%2 == 0 {
+		return nil, fmt.Errorf("Cluster size is invalid. Please enter a valid size ( 1 node , 3 nodes , 5 nodes )")
+	}
 	clusterJSON := new(bytes.Buffer)
-	json.NewEncoder(clusterJSON).Encode(NewCluster)
-	req, _ := http.NewRequest("POST", ProvServiceUrl, clusterJSON)
+	err := json.NewEncoder(clusterJSON).Encode(NewCluster)
+	req, err := http.NewRequest("POST", ProvServiceUrl, clusterJSON)
 	req.AddCookie(c.httpCookie)
 	res, err := c.httpClient.Do(req)
-	log.Printf("Connection to %v successful", ProvServiceUrl)
-	if err != nil {
-		log.Println(err)
-	}
-	if res.StatusCode != 201 {
-		log.Fatalf("Error when processing create request:\t %v", res.Status)
+	if err != nil || res.StatusCode != 201 {
+		return nil, fmt.Errorf("service returned non 200 status code: %s", err)
 	}
 	defer res.Body.Close()
 	responseBody, _ := ioutil.ReadAll(res.Body)
+
 	var ServiceResponse Cluster
 	json.Unmarshal(responseBody, &ServiceResponse)
-	log.Printf("Service responded with:\t %v", ServiceResponse)
-	return ServiceResponse, nil
+	return &ServiceResponse, nil
 }
 func (c *Client) DeleteCluster(clusterUUID string) error {
 	req, _ := http.NewRequest("DELETE", ProvServiceUrl+"/"+clusterUUID, nil)
 	req.AddCookie(c.httpCookie)
 	res, err := c.httpClient.Do(req)
-	if err != nil {
-		log.Fatalf("Error when processing delete request:\t %v", err)
-	}
-
-	if res.StatusCode != 200 {
-		log.Printf("Error when processing delete request! Please retry!:\t %v", res.Status)
+	if err != nil || res.StatusCode != 200 {
+		return fmt.Errorf("Error when processing delete request! Please retry!:\t %v", res.Status)
 	}
 	defer res.Body.Close()
 	return nil
