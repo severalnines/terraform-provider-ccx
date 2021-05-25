@@ -8,8 +8,8 @@ terraform {
 }
 provider "ccx" {
     auth_service_url = "https://ccx.s9s-dev.net/api/auth"
-    username = "simon+ccx@s9s.io"
-    password = "Severalnines141$?"
+    username = "insert_username_here"
+    password = "insert_password_here"
 }
 resource "ccx_cluster" "spaceforce" {
     cluster_name = "spaceforce"
