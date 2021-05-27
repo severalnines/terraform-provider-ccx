@@ -139,7 +139,12 @@ resource "ccx_cluster" "spaceforce" {
     volume_size = 40
     volume_type = "gp2"
     network_type = "public"
+    network_vpc_uuid = ccx_vpc.newVpc.id
 }
+```
+Resource can be referenced in the network_vpc_uuid field in the following format:
+```
+<resource_type>.<resource_name>.<id>
 ```
 ## Issues
 If you have issues, please report them under Issues.
