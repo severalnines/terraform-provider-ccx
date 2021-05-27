@@ -38,6 +38,9 @@ resource "ccx_cluster" "spaceforce" {
     volume_type = "gp2"
     network_type = "public"
 }
+```
+Optionally you can create a VPC (supported by GCP, AWS)
+```
 resource "ccx_vpc" "newVpc" {
     vpc_name = "spaceforce_vpc"
     vpc_cloud_provider = "aws"
@@ -45,6 +48,13 @@ resource "ccx_vpc" "newVpc" {
     vpc_ipv4_cidr = "10.10.0.0/16"
 }
 ```
+In that case set:
+```
+    network_type = "private"
+    network_vpc_uuid =ccx_vpc.newVpc.id
+```
+in the resource "ccx_cluster" section, see also example_cluster_vpc.tf
+
 3. Run:
   * `terraform init`
   * `terraform appy`
