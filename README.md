@@ -38,6 +38,12 @@ resource "ccx_cluster" "spaceforce" {
     volume_type = "gp2"
     network_type = "public"
 }
+resource "ccx_vpc" "newVpc" {
+    vpc_name = "spaceforce_vpc"
+    vpc_cloud_provider = "aws"
+    vpc_cloud_region = "eu-north-1"
+    vpc_ipv4_cidr = "10.10.0.0/16"
+}
 ```
 3. Run:
   * `terraform init`
@@ -104,6 +110,15 @@ resource "ccx_cluster" "spaceforce" {
     volume_size = 40
     volume_type = "gp2"
     network_type = "public"
+}
+```
+### Create VPC ( Used for VPC Peering )
+```
+resource "ccx_vpc" "newVpc" {
+    vpc_name = "spaceforce_vpc"
+    vpc_cloud_provider = "aws"
+    vpc_cloud_region = "eu-north-1"
+    vpc_ipv4_cidr = "10.10.0.0/16"
 }
 ```
 ### Apply the created file
