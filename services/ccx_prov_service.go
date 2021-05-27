@@ -87,6 +87,7 @@ type (
 		} `json:"instance"`
 		Network struct {
 			NetworkType string `json:"network_type"` // public/private
+			VpcUUID     string `json:"vpc_uuid",omitempty`
 		} `json:"network"`
 	}
 )
@@ -94,7 +95,7 @@ type (
 func (c *Client) CreateCluster(
 	ClusterName string, ClusterSize int, DbVendor string, tags []string,
 	CloudRegion string, CloudProvider string, InstanceSize string, volumeType string, volumeSize int,
-	volumeIops string, networkType string) (*Cluster, error) {
+	volumeIops string, networkType string, vpcUUID string) (*Cluster, error) {
 	NewCluster := CreateClusterRequestV2{}
 	//general settings
 	NewCluster.General.ClusterName = ClusterName
@@ -110,7 +111,7 @@ func (c *Client) CreateCluster(
 	NewCluster.Instance.VolumeSize = volumeSize
 	//Network Settings
 	NewCluster.Network.NetworkType = networkType
-
+	NewCluster.Network.VpcUUID = vpcUUID
 	if volumeType == "gp2" || volumeType == "gp3" {
 		if volumeIops != "" {
 			return nil, errors.New("Cannot set iops for volume type gp2|gp3. Please delete the iops parameter and try again")
