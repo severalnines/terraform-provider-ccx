@@ -121,8 +121,25 @@ resource "ccx_vpc" "newVpc" {
     vpc_ipv4_cidr = "10.10.0.0/16"
 }
 ```
+
 ### Apply the created file
 `terraform apply`
 
+### Optional: You can use the VPC Created above to  deploy a cluster
+```
+resource "ccx_cluster" "spaceforce" {
+    cluster_name = "spaceforce"
+    cluster_size = 1
+    db_vendor = "mariadb"
+    tags = ["new", "test"]
+    cloud_provider = "aws"
+    region = "eu-north-1"
+    instance_size = "tiny"
+    volume_iops = 100
+    volume_size = 40
+    volume_type = "gp2"
+    network_type = "public"
+}
+```
 ## Issues
 If you have issues, please report them under Issues.
