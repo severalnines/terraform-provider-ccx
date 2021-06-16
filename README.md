@@ -22,7 +22,6 @@ terraform {
   }
 }
 provider "ccx" {
-    auth_service_url = "https://ccx.s9s-dev.net/api/auth"
     username = "please_enter_your_username_here"
     password = "please_enter_your_password_here"
 }
@@ -101,7 +100,6 @@ terraform {
 ### Create an terraform provider file
 ```
 provider  "ccx" {
-	auth_service_url  =  "https://auth-api.s9s.io" 
 	username  =  "your_ccx_email"
 	password  =  "your_ccx_password"
 }
