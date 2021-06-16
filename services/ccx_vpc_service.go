@@ -8,10 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httputil"
-)
-
-const (
-	VpcServiceUrl = "https://ccx.s9s-dev.net/api/vpc/api/v2/vpc"
+	"os"
 )
 
 // CreateVpcRequest struct.
@@ -41,8 +38,19 @@ func (c *Client) CreateVpc(VpcName string, VpcCloudProvider string, VpcRegion st
 	NewVPC.CidrIpv4Block = VpcCidrIpv4Block
 	vpcJSON := new(bytes.Buffer)
 	log.Printf("NewVPC")
+	var BaseURLV1 string
 	json.NewEncoder(vpcJSON).Encode(NewVPC)
-	req, _ := http.NewRequest("POST", VpcServiceUrl, vpcJSON)
+	if os.Getenv("ENVIRONMENT") == "dev" {
+		BaseURLV1 = VpcServiceUrlDev
+	} else if os.Getenv("ENVIRONMENT") == "test" {
+		BaseURLV1 = VpcServiceUrlTest
+	} else if os.Getenv("ENVIRONMENT") == "prod" {
+		BaseURLV1 = VpcServiceUrlProd
+	} else {
+		BaseURLV1 = VpcServiceUrlProd
+	}
+	log.Println(BaseURLV1)
+	req, _ := http.NewRequest("POST", BaseURLV1, vpcJSON)
 	req.AddCookie(c.httpCookie)
 	res, _ := c.httpClient.Do(req)
 	if res.StatusCode != 201 {
@@ -51,15 +59,23 @@ func (c *Client) CreateVpc(VpcName string, VpcCloudProvider string, VpcRegion st
 	}
 	defer res.Body.Close()
 	responseBody, _ := ioutil.ReadAll(res.Body)
-	log.Printf(string(responseBody))
 	var ServiceResponse CreateVpcResponse
 	dump, _ := httputil.DumpResponse(res, true)
-	log.Printf(string(dump))
+	log.Println(string(dump))
 	json.Unmarshal(responseBody, &ServiceResponse)
 	return &ServiceResponse, nil
 }
 func (c *Client) GetVPCbyUUID(uuid string) error {
-	BaseURLV1 := VpcServiceUrl + uuid
+	var BaseURLV1 string
+	if os.Getenv("ENVIRONMENT") == "dev" {
+		BaseURLV1 = VpcServiceUrlDev + "/" + uuid
+	} else if os.Getenv("ENVIRONMENT") == "test" {
+		BaseURLV1 = VpcServiceUrlTest + "/" + uuid
+	} else if os.Getenv("ENVIRONMENT") == "prod" {
+		BaseURLV1 = VpcServiceUrlProd + "/" + uuid
+	} else {
+		BaseURLV1 = VpcServiceUrlProd + "/" + uuid
+	}
 	req, _ := http.NewRequest("GET", BaseURLV1, nil)
 	req.AddCookie(c.httpCookie)
 	res, err := c.httpClient.Do(req)
@@ -79,7 +95,16 @@ func (c *Client) GetVPCbyUUID(uuid string) error {
 	return nil
 }
 func (c *Client) DeleteVPCbyUUID(uuid string) error {
-	BaseURLV1 := VpcServiceUrl + uuid
+	var BaseURLV1 string
+	if os.Getenv("ENVIRONMENT") == "dev" {
+		BaseURLV1 = VpcServiceUrlDev + "/" + uuid
+	} else if os.Getenv("ENVIRONMENT") == "test" {
+		BaseURLV1 = VpcServiceUrlTest + "/" + uuid
+	} else if os.Getenv("ENVIRONMENT") == "prod" {
+		BaseURLV1 = VpcServiceUrlProd + "/" + uuid
+	} else {
+		BaseURLV1 = VpcServiceUrlProd + "/" + uuid
+	}
 	req, _ := http.NewRequest("GET", BaseURLV1, nil)
 	req.AddCookie(c.httpCookie)
 	res, err := c.httpClient.Do(req)

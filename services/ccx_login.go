@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
+	"net/http/httputil"
+	"os"
 )
 
 type LoginError struct {
@@ -56,6 +59,10 @@ func GetUserId(address, username, password string) (string, *http.Cookie, error)
 	defer func() {
 		_ = res.Body.Close()
 	}()
+	log.Println(res.StatusCode)
+	dump, _ := httputil.DumpResponse(res, true)
+	log.Printf(string(dump))
+	log.Printf(os.Getenv("ENVIRONMENT"))
 	if res.StatusCode != 200 {
 		le := &LoginError{}
 		if err := json.NewDecoder(res.Body).Decode(le); err != nil {

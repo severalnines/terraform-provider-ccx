@@ -1,7 +1,6 @@
 provider "ccx" {
-    auth_service_url = "https://ccx.s9s-dev.net/api/auth"
-    username = "insert_username_here"
-    password = "insert_password_here"
+    username = "bob@severalnines.com"
+    password = "H0hhw51@"
 }
 resource "ccx_cluster" "spaceforce" {
     cluster_name = "spaceforce"

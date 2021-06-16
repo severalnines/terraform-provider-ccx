@@ -6,12 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"net/http/httputil"
+	"os"
 	"time"
-)
-
-const (
-	ProvServiceUrl = "https://ccx.s9s-dev.net/api/prov/api/v2/cluster"
 )
 
 type (
@@ -112,6 +111,16 @@ func (c *Client) CreateCluster(
 	//Network Settings
 	NewCluster.Network.NetworkType = networkType
 	NewCluster.Network.VpcUUID = vpcUUID
+	var BaseURLV1 string
+	if os.Getenv("ENVIRONMENT") == "dev" {
+		BaseURLV1 = ProvServiceUrlDev
+	} else if os.Getenv("ENVIRONMENT") == "test" {
+		BaseURLV1 = ProvServiceUrlTest
+	} else if os.Getenv("ENVIRONMENT") == "prod" {
+		BaseURLV1 = ProvServiceUrlProd
+	} else {
+		BaseURLV1 = ProvServiceUrlProd
+	}
 	if volumeType == "gp2" || volumeType == "gp3" {
 		if volumeIops != "" {
 			return nil, errors.New("Cannot set iops for volume type gp2|gp3. Please delete the iops parameter and try again")
@@ -125,10 +134,18 @@ func (c *Client) CreateCluster(
 	}
 	clusterJSON := new(bytes.Buffer)
 	err := json.NewEncoder(clusterJSON).Encode(NewCluster)
-	req, err := http.NewRequest("POST", ProvServiceUrl, clusterJSON)
+	if err != nil {
+		return nil, fmt.Errorf("error: %s", err)
+	}
+	req, err := http.NewRequest("POST", BaseURLV1, clusterJSON)
+	if err != nil {
+		return nil, fmt.Errorf("error: %s", err)
+	}
 	req.AddCookie(c.httpCookie)
 	res, err := c.httpClient.Do(req)
 	if err != nil || res.StatusCode != 201 {
+		dump, _ := httputil.DumpResponse(res, true)
+		log.Println(string(dump))
 		return nil, fmt.Errorf("service returned non 200 status code: %s", err)
 	}
 	defer res.Body.Close()
@@ -139,7 +156,17 @@ func (c *Client) CreateCluster(
 	return &ServiceResponse, nil
 }
 func (c *Client) DeleteCluster(clusterUUID string) error {
-	req, _ := http.NewRequest("DELETE", ProvServiceUrl+"/"+clusterUUID, nil)
+	var BaseURLV1 string
+	if os.Getenv("ENVIRONMENT") == "dev" {
+		BaseURLV1 = ProvServiceUrlDev + "/" + clusterUUID
+	} else if os.Getenv("ENVIRONMENT") == "test" {
+		BaseURLV1 = ProvServiceUrlTest + "/" + clusterUUID
+	} else if os.Getenv("ENVIRONMENT") == "prod" {
+		BaseURLV1 = ProvServiceUrlProd + "/" + clusterUUID
+	} else {
+		BaseURLV1 = ProvServiceUrlProd + "/" + clusterUUID
+	}
+	req, _ := http.NewRequest("DELETE", BaseURLV1, nil)
 	req.AddCookie(c.httpCookie)
 	res, err := c.httpClient.Do(req)
 	if err != nil || res.StatusCode != 200 {

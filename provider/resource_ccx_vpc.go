@@ -44,7 +44,6 @@ func createVpc(d *schema.ResourceData, m interface{}) error {
 	vpcCloudProviderName := d.Get("vpc_cloud_provider").(string)
 	vpcCloudRegion := d.Get("vpc_cloud_region").(string)
 	vpcCidr := d.Get("vpc_ipv4_cidr").(string)
-
 	client := m.(*services.Client)
 	serviceResponse, err := client.CreateVpc(vpcName, vpcCloudProviderName, vpcCloudRegion, vpcCidr)
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httputil"
+	"os"
 	"time"
 )
 
@@ -152,7 +153,16 @@ type ClusterDetailHeaders struct {
 }
 
 func (c *Client) GetClusterByID(uuid string) error {
-	BaseURLV1 := "https://ccx.s9s-dev.net/api/deployment/v1/deployment/" + uuid
+	var BaseURLV1 string
+	if os.Getenv("ENVIRONMENT") == "dev" {
+		BaseURLV1 = DeploymentServiceUrlDev + uuid
+	} else if os.Getenv("ENVIRONMENT") == "test" {
+		BaseURLV1 = DeploymentServiceUrlTest + uuid
+	} else if os.Getenv("ENVIRONMENT") == "prod" {
+		BaseURLV1 = DeploymentServiceUrlProd + uuid
+	} else {
+		BaseURLV1 = ProvServiceUrlProd + uuid
+	}
 	req, _ := http.NewRequest("GET", BaseURLV1, nil)
 	req.AddCookie(c.httpCookie)
 	log.Printf("CCX_DEPLOYMENT_SERVICE: req: %v", req)
