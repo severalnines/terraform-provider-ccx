@@ -38,6 +38,7 @@ type LoginResponse struct {
 
 func GetUserId(address, username, password string) (string, *http.Cookie, error) {
 	BaseURLV1 := address + "/login"
+	log.Println(BaseURLV1)
 	body := &CCXLogin{
 		Login:    username,
 		Password: password,
@@ -59,10 +60,9 @@ func GetUserId(address, username, password string) (string, *http.Cookie, error)
 	defer func() {
 		_ = res.Body.Close()
 	}()
-	log.Println(res.StatusCode)
 	dump, _ := httputil.DumpResponse(res, true)
-	log.Printf(string(dump))
-	log.Printf(os.Getenv("ENVIRONMENT"))
+	log.Printf("Response is %s ", string(dump))
+	log.Printf("Environment is %s ", os.Getenv("ENVIRONMENT"))
 	if res.StatusCode != 200 {
 		le := &LoginError{}
 		if err := json.NewDecoder(res.Body).Decode(le); err != nil {

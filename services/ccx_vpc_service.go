@@ -30,14 +30,12 @@ type (
 )
 
 func (c *Client) CreateVpc(VpcName string, VpcCloudProvider string, VpcRegion string, VpcCidrIpv4Block string) (*CreateVpcResponse, error) {
-	log.Printf("Start create vpc")
 	NewVPC := &CreateVpcRequest{}
 	NewVPC.VpcName = VpcName
 	NewVPC.CloudProvider = VpcCloudProvider
 	NewVPC.Region = VpcRegion
 	NewVPC.CidrIpv4Block = VpcCidrIpv4Block
 	vpcJSON := new(bytes.Buffer)
-	log.Printf("NewVPC")
 	var BaseURLV1 string
 	json.NewEncoder(vpcJSON).Encode(NewVPC)
 	if os.Getenv("ENVIRONMENT") == "dev" {
@@ -49,7 +47,6 @@ func (c *Client) CreateVpc(VpcName string, VpcCloudProvider string, VpcRegion st
 	} else {
 		BaseURLV1 = VpcServiceUrlProd
 	}
-	log.Println(BaseURLV1)
 	req, _ := http.NewRequest("POST", BaseURLV1, vpcJSON)
 	req.AddCookie(c.httpCookie)
 	res, _ := c.httpClient.Do(req)
@@ -58,10 +55,11 @@ func (c *Client) CreateVpc(VpcName string, VpcCloudProvider string, VpcRegion st
 		return nil, fmt.Errorf("service returned non 200 status code: %s", string(dump))
 	}
 	defer res.Body.Close()
+	dump, _ := httputil.DumpResponse(res, true)
+	log.Printf("Response from srvice is %s", string(dump))
 	responseBody, _ := ioutil.ReadAll(res.Body)
 	var ServiceResponse CreateVpcResponse
-	dump, _ := httputil.DumpResponse(res, true)
-	log.Println(string(dump))
+
 	json.Unmarshal(responseBody, &ServiceResponse)
 	return &ServiceResponse, nil
 }
@@ -79,8 +77,6 @@ func (c *Client) GetVPCbyUUID(uuid string) error {
 	req, _ := http.NewRequest("GET", BaseURLV1, nil)
 	req.AddCookie(c.httpCookie)
 	res, err := c.httpClient.Do(req)
-	dump, _ := httputil.DumpResponse(res, true)
-	log.Printf(string(dump))
 	if err != nil {
 		log.Fatal("CCX_VPC_SERVICE: Error!")
 	}
@@ -108,8 +104,6 @@ func (c *Client) DeleteVPCbyUUID(uuid string) error {
 	req, _ := http.NewRequest("GET", BaseURLV1, nil)
 	req.AddCookie(c.httpCookie)
 	res, err := c.httpClient.Do(req)
-	dump, _ := httputil.DumpResponse(res, true)
-	log.Printf(string(dump))
 	if err != nil {
 		log.Fatal("CCX_VPC_SERVICE: Error!")
 	}

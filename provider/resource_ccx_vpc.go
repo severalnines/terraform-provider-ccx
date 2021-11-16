@@ -1,8 +1,6 @@
 package provider
 
 import (
-	"log"
-
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/severalnines/terraform-provider-ccx/services"
 )
@@ -38,8 +36,6 @@ func vpcResource() *schema.Resource {
 	}
 }
 func createVpc(d *schema.ResourceData, m interface{}) error {
-	//General Settings
-	log.Printf(d.Get("vpc_name").(string))
 	vpcName := d.Get("vpc_name").(string)
 	vpcCloudProviderName := d.Get("vpc_cloud_provider").(string)
 	vpcCloudRegion := d.Get("vpc_cloud_region").(string)

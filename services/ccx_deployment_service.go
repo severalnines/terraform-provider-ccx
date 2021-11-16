@@ -169,7 +169,7 @@ func (c *Client) GetClusterByID(uuid string) error {
 	res, err := c.httpClient.Do(req)
 	log.Printf("CCX_DEPLOYMENT_SERVICE: Sent request")
 	dump, _ := httputil.DumpResponse(res, true)
-	log.Printf(string(dump))
+	log.Printf("Response is %s", string(dump))
 	if err != nil {
 		log.Fatal("CCX_DEPLOYMENT_SERVICE: Error!")
 	}

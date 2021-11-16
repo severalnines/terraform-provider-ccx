@@ -1,6 +1,6 @@
 provider "ccx" {
-    username = "insert_username_here"
-    password = "insert_password_here"
+    username = "-"
+    password = ""
 }
 resource "ccx_cluster" "spaceforce" {
     cluster_name = "spaceforce"
@@ -8,7 +8,7 @@ resource "ccx_cluster" "spaceforce" {
     db_vendor = "mariadb"
     tags = ["new", "test"]
     cloud_provider = "aws"
-    region = "eu-north-1"
+    region = "eu-west-1"
     instance_size = "tiny"
     volume_size = 40
     volume_type = "gp2"
@@ -16,10 +16,11 @@ resource "ccx_cluster" "spaceforce" {
     network_vpc_uuid =ccx_vpc.newVpc.id
 }
 
+
 resource "ccx_vpc" "newVpc" {
     vpc_name = "spaceforce_vpc"
     vpc_cloud_provider = "aws"
-    vpc_cloud_region = "eu-north-1"
+    vpc_cloud_region = "eu-west-1"
     vpc_ipv4_cidr = "10.10.0.0/16"
 }
 output "MOTD" {
@@ -29,3 +30,4 @@ output "MOTD" {
   ### Please visit: https://ccx.s9s-dev.net to view the status of this deployment
   EOF
 }
+

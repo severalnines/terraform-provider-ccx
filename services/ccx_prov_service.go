@@ -123,14 +123,14 @@ func (c *Client) CreateCluster(
 	}
 	if volumeType == "gp2" || volumeType == "gp3" {
 		if volumeIops != "" {
-			return nil, errors.New("Cannot set iops for volume type gp2|gp3. Please delete the iops parameter and try again")
+			return nil, errors.New("cannot set iops for volume type gp2|gp3. Please delete the iops parameter and try again")
 		}
 		NewCluster.Instance.VolumeIOPS = ""
 	} else {
 		NewCluster.Instance.VolumeIOPS = volumeIops
 	}
 	if ClusterSize%2 == 0 {
-		return nil, fmt.Errorf("Cluster size is invalid. Please enter a valid size ( 1 node , 3 nodes , 5 nodes )")
+		return nil, fmt.Errorf("cluster size is invalid. Please enter a valid size ( 1 node , 3 nodes , 5 nodes )")
 	}
 	clusterJSON := new(bytes.Buffer)
 	err := json.NewEncoder(clusterJSON).Encode(NewCluster)
@@ -145,7 +145,7 @@ func (c *Client) CreateCluster(
 	res, err := c.httpClient.Do(req)
 	if err != nil || res.StatusCode != 201 {
 		dump, _ := httputil.DumpResponse(res, true)
-		log.Println(string(dump))
+		log.Printf("Received error response from service %s", string(dump))
 		return nil, fmt.Errorf("service returned non 200 status code: %s", err)
 	}
 	defer res.Body.Close()
@@ -170,7 +170,7 @@ func (c *Client) DeleteCluster(clusterUUID string) error {
 	req.AddCookie(c.httpCookie)
 	res, err := c.httpClient.Do(req)
 	if err != nil || res.StatusCode != 200 {
-		return fmt.Errorf("Error when processing delete request! Please retry!:\t %v", res.Status)
+		return fmt.Errorf("error when processing delete request! Please retry!:\t %v", res.Status)
 	}
 	defer res.Body.Close()
 	return nil
