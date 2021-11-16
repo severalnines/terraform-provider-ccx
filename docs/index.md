@@ -10,6 +10,12 @@ description: |-
 
 Warning! Be careful when recreating servics using Terraform. Terraform may delete services / instances before creating them. Ensure you do not have an existing .tfstate file before you run terrafom.
 
+Sign up for CCX at https://ccx.severalnines.com/ and use the username/password below,
+Create a Terraform file called datastore.tf with the content below (see Example Usage). You must set username,
+password and you may change cluster_name,db_vendor,region, and instance_size (tiny, small, medium, large).
+
+More documenation can be found at https://github.com/severalnines/terraform-provider-ccx.
+
 ## Limitations
 - Authentication is limited to username/password
 - Only 1 or 3 nodes are supported
@@ -26,14 +32,13 @@ terraform {
   }
 }
 provider "ccx" {
-    auth_service_url = "https://ccx.s9s-dev.net/api/auth"
     username = "USERNAME"
     password = "PASSWORD"
 }
-resource "ccx_cluster" "spaceforce" {
-    cluster_name = "spaceforce"
+resource "ccx_cluster" "CLUSTERNAME" {
+    cluster_name = "CLUSTERNAME"
     cluster_size = 1
-    db_vendor = "mariadb"
+    db_vendor = "percona"
     tags = ["production"]
     cloud_provider = "aws"
     region = "eu-west-1"
@@ -65,6 +70,8 @@ in the resource "ccx_cluster" section.
 
 ### Optional
 
-- **auth_service_url** (String)
+- **cluster_name** (String)
 - **password** (String)
 - **username** (String)
+- **db_vendor** (String)
+- **region** (String)
