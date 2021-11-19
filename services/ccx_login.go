@@ -60,7 +60,10 @@ func GetUserId(address, username, password string) (string, *http.Cookie, error)
 	defer func() {
 		_ = res.Body.Close()
 	}()
-	dump, _ := httputil.DumpResponse(res, true)
+	dump, err := httputil.DumpResponse(res, true)
+	if err != nil {
+		return "", nil, err
+	}
 	log.Printf("Response is %s ", string(dump))
 	log.Printf("Environment is %s ", os.Getenv("ENVIRONMENT"))
 	if res.StatusCode != 200 {
