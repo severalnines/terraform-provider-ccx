@@ -37,18 +37,22 @@ func Provider() terraform.ResourceProvider {
 }
 func configureProvider(d *schema.ResourceData) (interface{}, error) {
 	var BaseURLV1 string
-	if os.Getenv("ENVIRONMENT") == "dev" {
+	switch os.Getenv("ENVIRONMENT") {
+	case "dev":
 		BaseURLV1 = services.AuthServiceUrlDev
-	} else if os.Getenv("ENVIRONMENT") == "test" {
+	case "test":
 		BaseURLV1 = services.AuthServiceUrlTest
-	} else if os.Getenv("ENVIRONMENT") == "prod" {
+	case "prod":
 		BaseURLV1 = services.AuthServiceUrlProd
-	} else {
+	default:
 		BaseURLV1 = services.AuthServiceUrlProd
 	}
 	username := d.Get("username").(string)
 	password := d.Get("password").(string)
-	userID, httpCookie, _ := services.GetUserId(BaseURLV1, username, password)
+	userID, httpCookie, err := services.GetUserId(BaseURLV1, username, password)
+	if err != nil {
+		return nil, err
+	}
 	log.Println(userID, httpCookie)
 	return services.NewClient(BaseURLV1, userID, httpCookie), nil
 }
