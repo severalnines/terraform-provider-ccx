@@ -80,13 +80,14 @@ func getOAuth2Client(clientId, clientSecret, baseUrl string) (*http.Client, stri
 
 func configureProvider(d *schema.ResourceData) (interface{}, error) {
 	var BaseURLV1 string
-	if os.Getenv("ENVIRONMENT") == "dev" {
+	switch os.Getenv("ENVIRONMENT") {
+	case "dev":
 		BaseURLV1 = services.AuthServiceUrlDev
-	} else if os.Getenv("ENVIRONMENT") == "test" {
+	case "test":
 		BaseURLV1 = services.AuthServiceUrlTest
-	} else if os.Getenv("ENVIRONMENT") == "prod" {
+	case "prod":
 		BaseURLV1 = services.AuthServiceUrlProd
-	} else {
+	default:
 		BaseURLV1 = services.AuthServiceUrlProd
 	}
 	clientId := d.Get("client_id").(string)
