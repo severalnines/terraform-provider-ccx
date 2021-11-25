@@ -123,7 +123,10 @@ func (c *Client) DeleteVPCbyUUID(uuid string) error {
 		log.Printf("CCX_VPC_SERVICE: Error! %v", res.StatusCode)
 	}
 	defer res.Body.Close()
-	responseBody, _ := ioutil.ReadAll(res.Body)
+	responseBody, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
 	var ServiceResponse ClusterDetailResponse
 	json.Unmarshal(responseBody, &ServiceResponse)
 	log.Println(ServiceResponse)
