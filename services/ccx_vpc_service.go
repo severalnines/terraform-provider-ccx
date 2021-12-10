@@ -37,7 +37,9 @@ func (c *Client) CreateVpc(VpcName string, VpcCloudProvider string, VpcRegion st
 	NewVPC.CidrIpv4Block = VpcCidrIpv4Block
 	vpcJSON := new(bytes.Buffer)
 	var BaseURLV1 string
-	json.NewEncoder(vpcJSON).Encode(NewVPC)
+	if err := json.NewEncoder(vpcJSON).Encode(NewVPC); err != nil {
+		return nil, err
+	}
 	if os.Getenv("ENVIRONMENT") == "dev" {
 		BaseURLV1 = VpcServiceUrlDev
 	} else if os.Getenv("ENVIRONMENT") == "test" {
@@ -47,20 +49,34 @@ func (c *Client) CreateVpc(VpcName string, VpcCloudProvider string, VpcRegion st
 	} else {
 		BaseURLV1 = VpcServiceUrlProd
 	}
-	req, _ := http.NewRequest("POST", BaseURLV1, vpcJSON)
+	req, err := http.NewRequest("POST", BaseURLV1, vpcJSON)
+	if err != nil {
+		return nil, err
+	}
 	req.AddCookie(c.httpCookie)
-	res, _ := c.httpClient.Do(req)
+	res, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
 	if res.StatusCode != 201 {
 		dump, _ := httputil.DumpResponse(res, true)
 		return nil, fmt.Errorf("service returned non 200 status code: %s", string(dump))
 	}
 	defer res.Body.Close()
-	dump, _ := httputil.DumpResponse(res, true)
-	log.Printf("Response from srvice is %s", string(dump))
-	responseBody, _ := ioutil.ReadAll(res.Body)
+	dump, err := httputil.DumpResponse(res, true)
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("Response from service is %s", string(dump))
+	responseBody, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
 	var ServiceResponse CreateVpcResponse
 
-	json.Unmarshal(responseBody, &ServiceResponse)
+	if err := json.Unmarshal(responseBody, &ServiceResponse); err != nil {
+		return nil, err
+	}
 	return &ServiceResponse, nil
 }
 func (c *Client) GetVPCbyUUID(uuid string) error {
@@ -74,19 +90,27 @@ func (c *Client) GetVPCbyUUID(uuid string) error {
 	} else {
 		BaseURLV1 = VpcServiceUrlProd + "/" + uuid
 	}
-	req, _ := http.NewRequest("GET", BaseURLV1, nil)
+	req, err := http.NewRequest("GET", BaseURLV1, nil)
+	if err != nil {
+		return err
+	}
 	req.AddCookie(c.httpCookie)
 	res, err := c.httpClient.Do(req)
 	if err != nil {
-		log.Fatal("CCX_VPC_SERVICE: Error!")
+		return err
 	}
 	if res.StatusCode != 200 {
 		log.Printf("CCX_VPC_SERVICE: Error! %v", res.StatusCode)
 	}
 	defer res.Body.Close()
-	responseBody, _ := ioutil.ReadAll(res.Body)
+	responseBody, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
 	var ServiceResponse ClusterDetailResponse
-	json.Unmarshal(responseBody, &ServiceResponse)
+	if err := json.Unmarshal(responseBody, &ServiceResponse); err != nil {
+		return err
+	}
 	log.Println(ServiceResponse)
 	return nil
 }
@@ -101,7 +125,10 @@ func (c *Client) DeleteVPCbyUUID(uuid string) error {
 	} else {
 		BaseURLV1 = VpcServiceUrlProd + "/" + uuid
 	}
-	req, _ := http.NewRequest("GET", BaseURLV1, nil)
+	req, err := http.NewRequest("GET", BaseURLV1, nil)
+	if err != nil {
+		return err
+	}
 	req.AddCookie(c.httpCookie)
 	res, err := c.httpClient.Do(req)
 	if err != nil {
@@ -111,9 +138,14 @@ func (c *Client) DeleteVPCbyUUID(uuid string) error {
 		log.Printf("CCX_VPC_SERVICE: Error! %v", res.StatusCode)
 	}
 	defer res.Body.Close()
-	responseBody, _ := ioutil.ReadAll(res.Body)
+	responseBody, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
 	var ServiceResponse ClusterDetailResponse
-	json.Unmarshal(responseBody, &ServiceResponse)
+	if err := json.Unmarshal(responseBody, &ServiceResponse); err != nil {
+		return err
+	}
 	log.Println(ServiceResponse)
 	return nil
 }

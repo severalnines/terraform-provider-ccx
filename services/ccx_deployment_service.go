@@ -163,21 +163,33 @@ func (c *Client) GetClusterByID(uuid string) error {
 	} else {
 		BaseURLV1 = ProvServiceUrlProd + uuid
 	}
-	req, _ := http.NewRequest("GET", BaseURLV1, nil)
+	req, err := http.NewRequest("GET", BaseURLV1, nil)
+	if err != nil {
+		return err
+	}
 	req.AddCookie(c.httpCookie)
 	log.Printf("CCX_DEPLOYMENT_SERVICE: req: %v", req)
 	res, err := c.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
 	log.Printf("CCX_DEPLOYMENT_SERVICE: Sent request")
-	dump, _ := httputil.DumpResponse(res, true)
+	dump, err := httputil.DumpResponse(res, true)
+	if err != nil {
+		return err
+	}
 	log.Printf("Response is %s", string(dump))
 	if err != nil {
-		log.Fatal("CCX_DEPLOYMENT_SERVICE: Error!")
+		return err
 	}
 	if res.StatusCode != 200 {
 		log.Printf("CCX_DEPLOYMENT_SERVICE: Error! %v", res.StatusCode)
 	}
 	defer res.Body.Close()
-	responseBody, _ := ioutil.ReadAll(res.Body)
+	responseBody, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
 	var ServiceResponse ClusterDetailResponse
 	json.Unmarshal(responseBody, &ServiceResponse)
 	log.Println(ServiceResponse)
