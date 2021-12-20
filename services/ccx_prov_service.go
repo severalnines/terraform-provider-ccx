@@ -141,7 +141,6 @@ func (c *Client) CreateCluster(
 	if err != nil {
 		return nil, fmt.Errorf("error: %s", err)
 	}
-	req.AddCookie(c.httpCookie)
 	res, err := c.httpClient.Do(req)
 	if err != nil || res.StatusCode != 201 {
 		dump, _ := httputil.DumpResponse(res, true)
@@ -160,6 +159,7 @@ func (c *Client) CreateCluster(
 	}
 	return &ServiceResponse, nil
 }
+
 func (c *Client) DeleteCluster(clusterUUID string) error {
 	var BaseURLV1 string
 	if os.Getenv("ENVIRONMENT") == "dev" {
@@ -175,7 +175,6 @@ func (c *Client) DeleteCluster(clusterUUID string) error {
 	if err != nil {
 		return err
 	}
-	req.AddCookie(c.httpCookie)
 	res, err := c.httpClient.Do(req)
 	if err != nil || res.StatusCode != 200 {
 		return fmt.Errorf("error when processing delete request! Please retry!:\t %v", res.Status)

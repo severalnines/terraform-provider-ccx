@@ -167,7 +167,6 @@ func (c *Client) GetClusterByID(uuid string) error {
 	if err != nil {
 		return err
 	}
-	req.AddCookie(c.httpCookie)
 	log.Printf("CCX_DEPLOYMENT_SERVICE: req: %v", req)
 	res, err := c.httpClient.Do(req)
 	if err != nil {

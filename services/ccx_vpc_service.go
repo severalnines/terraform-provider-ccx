@@ -53,7 +53,6 @@ func (c *Client) CreateVpc(VpcName string, VpcCloudProvider string, VpcRegion st
 	if err != nil {
 		return nil, err
 	}
-	req.AddCookie(c.httpCookie)
 	res, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -94,7 +93,6 @@ func (c *Client) GetVPCbyUUID(uuid string) error {
 	if err != nil {
 		return err
 	}
-	req.AddCookie(c.httpCookie)
 	res, err := c.httpClient.Do(req)
 	if err != nil {
 		return err
@@ -129,7 +127,6 @@ func (c *Client) DeleteVPCbyUUID(uuid string) error {
 	if err != nil {
 		return err
 	}
-	req.AddCookie(c.httpCookie)
 	res, err := c.httpClient.Do(req)
 	if err != nil {
 		log.Fatal("CCX_VPC_SERVICE: Error!")
