@@ -169,6 +169,9 @@ func (c *Client) GetClusterByID(uuid string) error {
 	}
 	log.Printf("CCX_DEPLOYMENT_SERVICE: req: %v", req)
 	res, err := c.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
 	log.Printf("CCX_DEPLOYMENT_SERVICE: Sent request")
 	dump, err := httputil.DumpResponse(res, true)
 	if err != nil {
@@ -176,7 +179,7 @@ func (c *Client) GetClusterByID(uuid string) error {
 	}
 	log.Printf("Response is %s", string(dump))
 	if err != nil {
-		log.Fatal("CCX_DEPLOYMENT_SERVICE: Error!")
+		return err
 	}
 	if res.StatusCode != 200 {
 		log.Printf("CCX_DEPLOYMENT_SERVICE: Error! %v", res.StatusCode)

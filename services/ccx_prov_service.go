@@ -148,10 +148,15 @@ func (c *Client) CreateCluster(
 		return nil, fmt.Errorf("service returned non 200 status code: %s", err)
 	}
 	defer res.Body.Close()
-	responseBody, _ := ioutil.ReadAll(res.Body)
+	responseBody, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
 
 	var ServiceResponse Cluster
-	json.Unmarshal(responseBody, &ServiceResponse)
+	if err := json.Unmarshal(responseBody, &ServiceResponse); err != nil {
+		return nil, err
+	}
 	return &ServiceResponse, nil
 }
 

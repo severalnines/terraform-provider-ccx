@@ -37,7 +37,9 @@ func (c *Client) CreateVpc(VpcName string, VpcCloudProvider string, VpcRegion st
 	NewVPC.CidrIpv4Block = VpcCidrIpv4Block
 	vpcJSON := new(bytes.Buffer)
 	var BaseURLV1 string
-	json.NewEncoder(vpcJSON).Encode(NewVPC)
+	if err := json.NewEncoder(vpcJSON).Encode(NewVPC); err != nil {
+		return nil, err
+	}
 	if os.Getenv("ENVIRONMENT") == "dev" {
 		BaseURLV1 = VpcServiceUrlDev
 	} else if os.Getenv("ENVIRONMENT") == "test" {
@@ -64,11 +66,16 @@ func (c *Client) CreateVpc(VpcName string, VpcCloudProvider string, VpcRegion st
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("Response from srvice is %s", string(dump))
-	responseBody, _ := ioutil.ReadAll(res.Body)
+	log.Printf("Response from service is %s", string(dump))
+	responseBody, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
 	var ServiceResponse CreateVpcResponse
 
-	json.Unmarshal(responseBody, &ServiceResponse)
+	if err := json.Unmarshal(responseBody, &ServiceResponse); err != nil {
+		return nil, err
+	}
 	return &ServiceResponse, nil
 }
 func (c *Client) GetVPCbyUUID(uuid string) error {
@@ -88,15 +95,20 @@ func (c *Client) GetVPCbyUUID(uuid string) error {
 	}
 	res, err := c.httpClient.Do(req)
 	if err != nil {
-		log.Fatal("CCX_VPC_SERVICE: Error!")
+		return err
 	}
 	if res.StatusCode != 200 {
 		log.Printf("CCX_VPC_SERVICE: Error! %v", res.StatusCode)
 	}
 	defer res.Body.Close()
-	responseBody, _ := ioutil.ReadAll(res.Body)
+	responseBody, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
 	var ServiceResponse ClusterDetailResponse
-	json.Unmarshal(responseBody, &ServiceResponse)
+	if err := json.Unmarshal(responseBody, &ServiceResponse); err != nil {
+		return err
+	}
 	log.Println(ServiceResponse)
 	return nil
 }
@@ -128,7 +140,9 @@ func (c *Client) DeleteVPCbyUUID(uuid string) error {
 		return err
 	}
 	var ServiceResponse ClusterDetailResponse
-	json.Unmarshal(responseBody, &ServiceResponse)
+	if err := json.Unmarshal(responseBody, &ServiceResponse); err != nil {
+		return err
+	}
 	log.Println(ServiceResponse)
 	return nil
 }
