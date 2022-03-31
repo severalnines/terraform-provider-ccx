@@ -11,7 +11,7 @@ This is the Terraform Provider for the Severalnines CCX Database as a service pl
 
 ## Quick Start
 1. Sign up for CCX at https://ccx.severalnines.com/
-2. Create a Terraform file called datastore.tf with the content below. You must set username, password and you may change cluster_name,db_vendor,region, and instance_size (tiny, small, medium, large).
+2. Create a Terraform file called datastore.tf with the content below. You must set client_id, client_secret and you may change cluster_name,db_vendor,region, and instance_size (tiny, small, medium, large).
 ```
 terraform {
   required_providers {
@@ -22,8 +22,8 @@ terraform {
   }
 }
 provider "ccx" {
-    username = "please_enter_your_username_here"
-    password = "please_enter_your_password_here"
+    client_id = "please_enter_your_client_id_here"
+    client_secret = "please_enter_your_client_secret_here"
 }
 resource "ccx_cluster" "spaceforce" {
     cluster_name = "spaceforce"
@@ -100,8 +100,8 @@ terraform {
 ### Create an terraform provider file
 ```
 provider  "ccx" {
-	username  =  "your_ccx_email"
-	password  =  "your_ccx_password"
+	client_id  =  "your_ccx_client_id"
+	client_secret  =  "your_ccx_client_secret
 }
 ```
 ### Create an terraform resource file
