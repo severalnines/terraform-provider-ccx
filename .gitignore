@@ -25,9 +25,10 @@ callgrind.out.*
 compile
 Makefile
 missing
-*.deb
 nohup.out
 doc
 examples/terraform.tfstate
 examples/.terraform.d/
 examples/.terraform
+examples/.terraform.lock.hcl
+.idea

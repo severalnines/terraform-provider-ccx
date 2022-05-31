@@ -17,23 +17,26 @@ description: |-
 
 ### Required
 
-- **cluster_name** (String) The name of the resource, also acts as it's unique ID
-- **cluster_size** (Number) The size of the cluster ( int64 ). 1 or 3 nodes.
+- `cluster_name` (String) The name of the resource, also acts as it's unique ID
+- `cluster_size` (Number) The size of the cluster ( int64 ). 1 or 3 nodes.
 
 ### Optional
 
-- **cloud_provider** (String) An optional list of tags, represented as a key, value pair
-- **db_vendor** (String) An optional list of tags, represented as a key, value pair
-- **id** (String) The ID of this resource.
-- **instance_size** (String) An optional list of tags, represented as a key, value pair
-- **network_az** (List of String) An optional list of tags, represented as a key, value pair
-- **network_ha_enabled** (Boolean) An optional list of tags, represented as a key, value pair
-- **network_type** (String) An optional list of tags, represented as a key, value pair
-- **network_vpc_uuid** (String) An optional list of tags, represented as a key, value pair
-- **region** (String) An optional list of tags, represented as a key, value pair
-- **tags** (List of String) An optional list of tags, represented as a key, value pair
-- **volume_iops** (Number) An optional list of tags, represented as a key, value pair
-- **volume_size** (Number) An optional list of tags, represented as a key, value pair
-- **volume_type** (String) An optional list of tags, represented as a key, value pair
+- `cloud_provider` (String) An optional list of tags, represented as a key, value pair
+- `db_vendor` (String) An optional list of tags, represented as a key, value pair
+- `instance_size` (String) An optional list of tags, represented as a key, value pair
+- `network_az` (List of String) An optional list of tags, represented as a key, value pair
+- `network_ha_enabled` (Boolean) An optional list of tags, represented as a key, value pair
+- `network_type` (String) An optional list of tags, represented as a key, value pair
+- `network_vpc_uuid` (String) An optional list of tags, represented as a key, value pair
+- `region` (String) An optional list of tags, represented as a key, value pair
+- `tags` (List of String) An optional list of tags, represented as a key, value pair
+- `volume_iops` (String) An optional list of tags, represented as a key, value pair
+- `volume_size` (Number) An optional list of tags, represented as a key, value pair
+- `volume_type` (String) An optional list of tags, represented as a key, value pair
+
+### Read-Only
+
+- `id` (String) The ID of this resource.
 
 
