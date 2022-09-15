@@ -33,7 +33,7 @@ resource "ccx_cluster" "spaceforce" {
     cloud_provider = "aws"
     region = "eu-north-1"
     instance_size = "tiny"
-    volume_size = 40
+    volume_size = 80
     volume_type = "gp2"
     network_type = "public"
 }
@@ -115,7 +115,7 @@ resource "ccx_cluster" "spaceforce" {
     region = "eu-north-1"
     instance_size = "tiny"
     volume_iops = 100
-    volume_size = 40
+    volume_size = 80
     volume_type = "gp2"
     network_type = "public"
 }
@@ -144,7 +144,7 @@ resource "ccx_cluster" "spaceforce" {
     region = "eu-north-1"
     instance_size = "tiny"
     volume_iops = 100
-    volume_size = 40
+    volume_size = 80
     volume_type = "gp2"
     network_type = "public"
     network_vpc_uuid = ccx_vpc.newVpc.id

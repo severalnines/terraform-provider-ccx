@@ -132,6 +132,11 @@ func (c *Client) CreateCluster(
 	if ClusterSize%2 == 0 {
 		return nil, fmt.Errorf("cluster size is invalid. Please enter a valid size ( 1 node , 3 nodes , 5 nodes )")
 	}
+
+	if VolumeSize < 80 {
+		return nil, fmt.Errorf("volume_size is  invalid. Must be 80GiB or larger.")
+	}
+
 	clusterJSON := new(bytes.Buffer)
 	err := json.NewEncoder(clusterJSON).Encode(NewCluster)
 	if err != nil {
