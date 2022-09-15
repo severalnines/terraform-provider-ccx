@@ -133,7 +133,7 @@ func (c *Client) CreateCluster(
 		return nil, fmt.Errorf("cluster size is invalid. Please enter a valid size ( 1 node , 3 nodes , 5 nodes )")
 	}
 
-	if VolumeSize < 80 {
+	if volumeSize < 80 {
 		return nil, fmt.Errorf("volume_size is  invalid. Must be 80GiB or larger.")
 	}
 
