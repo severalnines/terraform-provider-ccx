@@ -56,7 +56,7 @@ in the resource "ccx_cluster" section, see also example_cluster_vpc.tf
 
 3. Run:
   * `terraform init`
-  * `terraform appy`
+  * `terraform apply `
 
 4. Login to CCX and watch the cluster being deployed :)
 
