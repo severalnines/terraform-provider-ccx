@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	ccxprov "github.com/severalnines/terraform-provider-ccx"
+	chttp "github.com/severalnines/terraform-provider-ccx/http"
 	ccxprovio "github.com/severalnines/terraform-provider-ccx/io"
 	"github.com/severalnines/terraform-provider-ccx/pointers"
 )
@@ -101,7 +102,7 @@ func (cli *Client) LoadAll(ctx context.Context) error {
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("%w: status = %d", ccxprov.ResponseStatusFailedErr, res.StatusCode)
+		return fmt.Errorf("%w: status = %d", chttp.ErrorFromErrorResponse(res.Body), res.StatusCode)
 	}
 
 	defer ccxprovio.Close(res.Body)
