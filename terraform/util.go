@@ -102,3 +102,8 @@ func ValidateName(v interface{}, k string) (ws []string, es []error) {
 	}
 	return warns, errs
 }
+
+// NonNewSuppressor suppresses diff for fields when the resource is not new
+func NonNewSuppressor(_, _, _ string, d *schema.ResourceData) bool {
+	return !d.IsNewResource()
+}

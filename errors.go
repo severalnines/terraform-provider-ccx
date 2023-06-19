@@ -36,7 +36,7 @@ var (
 	MockPathEmptyErr = errors.New("mockfile path is empty")
 
 	// UpdateNotSupportedErr occurs when trying to update a resource which might be destructive if attempted
-	UpdateNotSupportedErr = errors.New("updates for this resource are not supported yet")
+	UpdateNotSupportedErr = errors.New("updates for this resource are not supported")
 
 	// AuthenticationFailedErr indicates failure to authenticate with the api server
 	AuthenticationFailedErr = errors.New("authentication failed")

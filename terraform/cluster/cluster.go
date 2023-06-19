@@ -104,11 +104,12 @@ func (r *Resource) Schema() *schema.Resource {
 				Description: "Database Version",
 			},
 			"tags": {
-				Type:        schema.TypeList,
-				Optional:    true,
-				Computed:    true,
-				Description: "An optional list of tags, represented as a key, value pair",
-				Elem:        &schema.Schema{Type: schema.TypeString},
+				Type:             schema.TypeList,
+				Optional:         true,
+				Computed:         true,
+				Description:      "An optional list of tags, represented as a key, value pair",
+				Elem:             &schema.Schema{Type: schema.TypeString},
+				DiffSuppressFunc: terraform.NonNewSuppressor,
 			},
 			"cloud_provider": {
 				Type:        schema.TypeString,
@@ -146,9 +147,10 @@ func (r *Resource) Schema() *schema.Resource {
 				Description: "Volume IOPS",
 			},
 			"network_type": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Type of network: public/private",
+				Type:             schema.TypeString,
+				Optional:         true,
+				Description:      "Type of network: public/private",
+				DiffSuppressFunc: terraform.NonNewSuppressor,
 			},
 			"network_ha_enabled": {
 				Type:        schema.TypeBool,
@@ -158,12 +160,12 @@ func (r *Resource) Schema() *schema.Resource {
 			"network_vpc_uuid": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "An optional list of tags, represented as a key, value pair",
+				Description: "VPC to use if network_type is private",
 			},
 			"network_az": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				Description: "An optional list of tags, represented as a key, value pair",
+				Description: "Network availability zones",
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 		},

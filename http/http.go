@@ -1,6 +1,7 @@
 package http
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -121,8 +122,14 @@ func DecodeJsonInto(body io.ReadCloser, target any) error {
 func DumpRequest(method, url, token, body string) {
 	var authorization string
 	if token != "" {
-		authorization = "Authorization " + token + "\n"
+		authorization = "Authorization: " + token + "\n"
 	}
+
+	var b bytes.Buffer
+	if err := json.Indent(&b, []byte(body), "", "    "); err == nil {
+		body = b.String()
+	}
+
 	data := fmt.Sprintf("%s %s\n%s\n%s", method, url, authorization, body)
 	filename := "req_" + time.Now().Format("2006_01_02-15_04_05_999999999Z07_00") + ".http"
 	_ = os.WriteFile(filename, []byte(data), 0644)

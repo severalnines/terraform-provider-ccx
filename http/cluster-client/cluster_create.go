@@ -92,7 +92,7 @@ func CreateRequestFromCluster(c ccxprov.Cluster) CreateRequest {
 	}
 }
 
-type CreateResponse struct {
+type ClusterResponse struct {
 	ClusterUUID             string   `json:"uuid" reform:"cluster_uuid,pk"`
 	ClusterName             string   `json:"cluster_name" reform:"cluster_name"`
 	ClusterType             string   `json:"cluster_type" reform:"cluster_type"`
@@ -112,7 +112,7 @@ type CreateResponse struct {
 	UsePublicIPs            bool     `json:"use_public_ips" reform:"use_public_ips"`
 }
 
-func ClusterFromCreateResponse(r CreateResponse) ccxprov.Cluster {
+func ClusterFromResponse(r ClusterResponse) ccxprov.Cluster {
 	return ccxprov.Cluster{
 		ID:                r.ClusterUUID,
 		ClusterName:       r.ClusterName,
@@ -170,12 +170,12 @@ func (cli *Client) Create(ctx context.Context, c ccxprov.Cluster) (*ccxprov.Clus
 		return nil, fmt.Errorf("%w: status = %d", ccxprov.ResponseStatusFailedErr, res.StatusCode)
 	}
 
-	var rs CreateResponse
+	var rs ClusterResponse
 	if err := chttp.DecodeJsonInto(res.Body, &rs); err != nil {
 		return nil, err
 	}
 
-	newCluster := ClusterFromCreateResponse(rs)
+	newCluster := ClusterFromResponse(rs)
 
 	if err := cli.LoadAll(ctx); err != nil {
 		return nil, errors.Join(ccxprov.ResourcesLoadFailedErr, err)
