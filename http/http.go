@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	ccxprov "github.com/severalnines/terraform-provider-ccx"
@@ -56,7 +57,7 @@ func (f ParameterOptionFn) Set(p *ConnectionParameters) {
 // BaseURL to specify a different url for the provisioning services
 func BaseURL(url string) ParameterOptionFn {
 	return func(p *ConnectionParameters) {
-		p.BaseURL = url
+		p.BaseURL = strings.TrimSuffix(url, "/")
 	}
 }
 
@@ -81,7 +82,20 @@ type Authorizer interface {
 
 // ErrorResponse represents generic error responses from ccx api
 type ErrorResponse struct {
-	Error string `json:"err"`
+	Code    json.Number `json:"code"`
+	Err     string      `json:"err"`
+	ErrLong string      `json:"error"`
+}
+
+func (r ErrorResponse) Error() string {
+	prefix := r.Code.String()
+	if prefix != "" {
+		prefix += ": "
+	}
+	if r.Err != "" {
+		return prefix + r.Err
+	}
+	return prefix + r.ErrLong
 }
 
 // ErrorFromErrorResponse decodes the body of type ErrorResponse and returns an error
@@ -89,16 +103,16 @@ func ErrorFromErrorResponse(body io.ReadCloser) error {
 	defer cio.Close(body)
 	b, err := io.ReadAll(body)
 	if err != nil {
-		return fmt.Errorf("%w: reason could not be read", ccxprov.InvalidRequestErr)
+		return fmt.Errorf("%w: reason could not be read", err)
 	}
 
 	var r ErrorResponse
 	err = json.Unmarshal(b, &r)
 	if err != nil {
-		return fmt.Errorf("%w: reason could not be decoded", ccxprov.InvalidRequestErr)
+		return fmt.Errorf("%w: reason could not be decoded", err)
 	}
 
-	return fmt.Errorf("%w: %s", ccxprov.InvalidRequestErr, r.Error)
+	return r
 }
 
 // DecodeJsonInto is a helper to decode JSON body into a target type

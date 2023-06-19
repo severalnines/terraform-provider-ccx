@@ -62,7 +62,7 @@ func (p *Provider) Configure(d *schema.ResourceData) (interface{}, error) {
 
 	for i := range p.resources {
 		if err := p.resources[i].Configure(context.Background(), p.Config); err != nil {
-			return nil, nil
+			return nil, err
 		}
 	}
 

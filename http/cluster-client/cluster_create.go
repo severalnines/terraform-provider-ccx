@@ -93,23 +93,23 @@ func CreateRequestFromCluster(c ccxprov.Cluster) CreateRequest {
 }
 
 type ClusterResponse struct {
-	ClusterUUID             string   `json:"uuid" reform:"cluster_uuid,pk"`
-	ClusterName             string   `json:"cluster_name" reform:"cluster_name"`
-	ClusterType             string   `json:"cluster_type" reform:"cluster_type"`
-	ClusterRegion           string   `json:"region" reform:"cluster_region"`
-	CloudProvider           string   `json:"cloud_provider" reform:"cluster_cloud"`
-	ClusterSize             int64    `json:"cluster_size" reform:"cluster_size"`
-	ClusterDbVendor         string   `json:"database_vendor" reform:"cluster_db_vendor"`
-	ClusterDbVersion        string   `json:"database_version" reform:"cluster_db_version"`
-	ClusterInstanceSize     string   `json:"instance_size" reform:"cluster_instance_size"`
-	ClusterInstanceDiskType *string  `json:"cluster_instance_disk_type" reform:"cluster_instance_disk_type"`
-	ClusterInstanceIOPS     *uint64  `json:"iops" reform:"cluster_instance_iops"`
-	ClusterInstanceDiskSize *uint64  `json:"disk_size" reform:"cluster_instance_disk_size"`
-	HighAvailability        bool     `json:"high_availability" reform:"high_availability"`
-	VpcUUID                 *string  `json:"vpc_uuid" reform:"vpc_uuid"`
-	Tags                    []string `json:"tags" reform:"tags"`
-	AZS                     []string `json:"azs" reform:"azs"`
-	UsePublicIPs            bool     `json:"use_public_ips" reform:"use_public_ips"`
+	ClusterUUID             string   `json:"uuid"`
+	ClusterName             string   `json:"cluster_name"`
+	ClusterType             string   `json:"cluster_type"`
+	ClusterRegion           string   `json:"region"`
+	CloudProvider           string   `json:"cloud_provider"`
+	ClusterSize             int64    `json:"cluster_size"`
+	ClusterDbVendor         string   `json:"database_vendor"`
+	ClusterDbVersion        string   `json:"database_version"`
+	ClusterInstanceSize     string   `json:"instance_size"`
+	ClusterInstanceDiskType *string  `json:"cluster_instance_disk_type"`
+	ClusterInstanceIOPS     *uint64  `json:"iops"`
+	ClusterInstanceDiskSize *uint64  `json:"disk_size"`
+	HighAvailability        bool     `json:"high_availability"`
+	VpcUUID                 *string  `json:"vpc_uuid"`
+	Tags                    []string `json:"tags"`
+	AZS                     []string `json:"azs"`
+	UsePublicIPs            bool     `json:"use_public_ips"`
 }
 
 func ClusterFromResponse(r ClusterResponse) ccxprov.Cluster {
@@ -167,7 +167,7 @@ func (cli *Client) Create(ctx context.Context, c ccxprov.Cluster) (*ccxprov.Clus
 	}
 
 	if res.StatusCode != http.StatusCreated {
-		return nil, fmt.Errorf("%w: status = %d", ccxprov.ResponseStatusFailedErr, res.StatusCode)
+		return nil, fmt.Errorf("%w: status = %d", chttp.ErrorFromErrorResponse(res.Body), res.StatusCode)
 	}
 
 	var rs ClusterResponse
