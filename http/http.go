@@ -19,7 +19,7 @@ import (
 const DefaultBaseURL = "https://app.mydbservice.net"
 
 const (
-	DefaultTimeout = time.Second * 5
+	DefaultTimeout = time.Second * 30
 )
 
 type ConnectionParameters struct {
