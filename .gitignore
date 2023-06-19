@@ -32,3 +32,4 @@ examples/.terraform.d/
 examples/.terraform
 examples/.terraform.lock.hcl
 .idea
+bin/*
