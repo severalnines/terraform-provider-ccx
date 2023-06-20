@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	ccxprov "github.com/severalnines/terraform-provider-ccx"
 	chttp "github.com/severalnines/terraform-provider-ccx/http"
@@ -14,6 +15,7 @@ import (
 	"github.com/severalnines/terraform-provider-ccx/pointers"
 )
 
+// LoadAllResponse represents the expected http response body used by LoadAll
 type LoadAllResponse []struct {
 	UUID             string  `json:"uuid"`
 	Region           string  `json:"region"`
@@ -33,8 +35,11 @@ type LoadAllResponse []struct {
 	} `json:"vpc"`
 	Tags []string `json:"tags"`
 	AZS  []string `json:"azs"`
+
+	Status string `json:"cluster_status"`
 }
 
+// ClustersFromLoadAllResponse will return a map of cluster.ID => Cluster from LoadAllResponse
 func ClustersFromLoadAllResponse(r LoadAllResponse) map[string]ccxprov.Cluster {
 	c := make(map[string]ccxprov.Cluster)
 
@@ -62,12 +67,15 @@ func ClustersFromLoadAllResponse(r LoadAllResponse) map[string]ccxprov.Cluster {
 			HAEnabled:         info.HighAvailability,
 			VpcUUID:           vpcUUID,
 			AvailabilityZones: info.AZS,
+
+			Status: info.Status,
 		}
 	}
 
 	return c
 }
 
+// Read returns a Cluster by id, if present in memory
 func (cli *Client) Read(_ context.Context, id string) (*ccxprov.Cluster, error) {
 	defer cli.mut.Unlock()
 	cli.mut.Lock()
@@ -80,6 +88,7 @@ func (cli *Client) Read(_ context.Context, id string) (*ccxprov.Cluster, error) 
 	return nil, ccxprov.ResourceNotFoundErr
 }
 
+// LoadAll Cluster information in memory
 func (cli *Client) LoadAll(ctx context.Context) error {
 	url := cli.conn.BaseURL + "/api/deployment/api/v1/deployments"
 
@@ -118,6 +127,9 @@ func (cli *Client) LoadAll(ctx context.Context) error {
 	}
 
 	clusters := ClustersFromLoadAllResponse(rs)
+	for _, c := range clusters {
+		cli.onLoad.Publish(ctx, c.ID, c)
+	}
 
 	cli.mut.Lock()
 	defer cli.mut.Unlock()
@@ -125,4 +137,22 @@ func (cli *Client) LoadAll(ctx context.Context) error {
 	cli.clusters = clusters
 
 	return nil
+}
+
+// LoadAllUntilCtx will repeatedly call LoadAll until the passed Context is done
+func (cli *Client) LoadAllUntilCtx(ctx context.Context) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+			break
+		}
+
+		if err := cli.LoadAll(ctx); err != nil {
+			return err
+		}
+
+		time.Sleep(time.Second * 30)
+	}
 }

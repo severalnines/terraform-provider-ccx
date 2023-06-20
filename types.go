@@ -48,6 +48,8 @@ type Cluster struct {
 	HAEnabled         bool     `json:"ha_enabled"`
 	VpcUUID           string   `json:"vpc_uuid"`
 	AvailabilityZones []string `json:"availability_zones"`
+
+	Status string `json:"status"`
 }
 
 // String representation of the Cluster, useful for debugging

@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	ccxprov "github.com/severalnines/terraform-provider-ccx"
+	"github.com/severalnines/terraform-provider-ccx/events"
 	chttp "github.com/severalnines/terraform-provider-ccx/http"
 )
 
@@ -17,6 +18,7 @@ type Client struct {
 	conn     *chttp.ConnectionParameters
 	clusters map[string]ccxprov.Cluster
 	mut      sync.Mutex
+	onLoad   events.Subscribers[ccxprov.Cluster]
 }
 
 // New creates a new clusters Client

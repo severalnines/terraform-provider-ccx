@@ -13,6 +13,9 @@ import (
 	"github.com/severalnines/terraform-provider-ccx/pointers"
 )
 
+// StatusPending indicates that the Cluster is still being created
+const StatusPending = "PENDING"
+
 type CreateRequestGeneral struct {
 	ClusterName string   `json:"cluster_name"`
 	ClusterSize int64    `json:"cluster_size"`
@@ -177,7 +180,19 @@ func (cli *Client) Create(ctx context.Context, c ccxprov.Cluster) (*ccxprov.Clus
 
 	newCluster := ClusterFromResponse(rs)
 
-	if err := cli.LoadAll(ctx); err != nil {
+	ctx, cancel := context.WithCancel(ctx)
+
+	cli.onLoad.Listen(context.Background(), newCluster.ID, onLoadCallback(func(_ context.Context, c ccxprov.Cluster) {
+		if c.Status == StatusPending {
+			return
+		}
+
+		newCluster = c
+		cancel()
+	}))
+
+	err = cli.LoadAllUntilCtx(ctx)
+	if err != nil {
 		return nil, errors.Join(ccxprov.ResourcesLoadFailedErr, err)
 	}
 
