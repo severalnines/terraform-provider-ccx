@@ -98,7 +98,11 @@ provider  "ccx" {
 	# base_url = "optionally_use_a_different_base_url"
 }
 ```
-### Create an terraform resource file
+
+> **Note:**
+> the option `base_url` may be used to specify a different ccx compliant cloud service.
+
+### Create a terraform resource file
 ```
 resource "ccx_cluster" "spaceforce" {
   cluster_name = "spaceforce"
