@@ -253,9 +253,9 @@ func (r *Resource) Read(d *schema.ResourceData, _ any) error {
 	c := ToCluster(d)
 	n, err := r.svc.Read(ctx, c.ID)
 	if errors.Is(err, ccxprov.ResourceNotFoundErr) {
-		err = nil
-	}
-	if err != nil {
+		d.SetId("")
+		return nil
+	} else if err != nil {
 		return err
 	}
 

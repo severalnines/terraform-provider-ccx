@@ -2,6 +2,7 @@ package vpc
 
 import (
 	"context"
+	"errors"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	ccxprov "github.com/severalnines/terraform-provider-ccx"
@@ -133,8 +134,9 @@ func (r *Resource) Read(d *schema.ResourceData, _ any) error {
 	ctx := context.Background()
 	v := ToVpc(d)
 	n, err := r.svc.Read(ctx, v.ID)
-	if err == ccxprov.ResourceNotFoundErr {
-		return err
+	if errors.Is(err, ccxprov.ResourceNotFoundErr) {
+		d.SetId("")
+		return nil
 	} else if err != nil {
 		return err
 	}
