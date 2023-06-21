@@ -1,8 +1,8 @@
 terraform {
     required_providers {
         ccx = {
-            source  = "severalnines.com/severalnines/ccx"
-            version = "~> 1.2.0"
+            source  = "severalnines/ccx"
+            version = "~> 1.5.0"
         }
     }
 }
