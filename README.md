@@ -95,6 +95,7 @@ terraform {
 provider  "ccx" {
 	client_id  =  "your_ccx_client_id"
 	client_secret  =  "your_ccx_client_secret
+	# base_url = "optionally_use_a_different_base_url"
 }
 ```
 ### Create an terraform resource file
