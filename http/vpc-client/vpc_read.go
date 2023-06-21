@@ -40,7 +40,7 @@ func (cli *Client) Read(ctx context.Context, id string) (*ccxprov.VPC, error) {
 	}
 
 	if res.StatusCode == http.StatusNotFound {
-		return nil, fmt.Errorf("%w: resource not found: %s", ccxprov.ResourceNotFoundErr, id)
+		return nil, fmt.Errorf("%w: %s", ccxprov.ResourceNotFoundErr, id)
 	} else if res.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("%w: status = %d", ccxprov.ResponseStatusFailedErr, res.StatusCode)
 	}
