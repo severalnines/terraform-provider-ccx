@@ -241,6 +241,7 @@ func (r *Resource) Create(d *schema.ResourceData, _ any) error {
 	c := ToCluster(d)
 	n, err := r.svc.Create(ctx, c)
 	if err != nil {
+		d.SetId("")
 		return err
 	}
 

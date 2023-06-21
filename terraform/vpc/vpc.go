@@ -26,13 +26,30 @@ func ToVpc(d *schema.ResourceData) ccxprov.VPC {
 	}
 }
 
-func WriteSchema(d *schema.ResourceData, v ccxprov.VPC) {
+func ToSchema(d *schema.ResourceData, v ccxprov.VPC) error {
 	d.SetId(v.ID)
-	d.Set("name", v.Name)
-	d.Set("cloud_space", v.CloudSpace)
-	d.Set("cloud_provider", v.CloudProvider)
-	d.Set("cloud_region", v.Region)
-	d.Set("ipv4_cidr", v.CidrIpv4Block)
+
+	if err := d.Set("name", v.Name); err != nil {
+		return err
+	}
+
+	if err := d.Set("cloud_space", v.CloudSpace); err != nil {
+		return err
+	}
+
+	if err := d.Set("cloud_provider", v.CloudProvider); err != nil {
+		return err
+	}
+
+	if err := d.Set("cloud_region", v.Region); err != nil {
+		return err
+	}
+
+	if err := d.Set("ipv4_cidr", v.CidrIpv4Block); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type Resource struct {
@@ -105,11 +122,11 @@ func (r *Resource) Create(d *schema.ResourceData, _ any) error {
 	v := ToVpc(d)
 	n, err := r.svc.Create(ctx, v)
 	if err != nil {
+		d.SetId("")
 		return err
 	}
 
-	WriteSchema(d, *n)
-	return nil
+	return ToSchema(d, *n)
 }
 
 func (r *Resource) Read(d *schema.ResourceData, _ any) error {
@@ -122,8 +139,7 @@ func (r *Resource) Read(d *schema.ResourceData, _ any) error {
 		return err
 	}
 
-	WriteSchema(d, *n)
-	return nil
+	return ToSchema(d, *n)
 }
 
 func (r *Resource) Update(d *schema.ResourceData, _ any) error {
@@ -134,8 +150,7 @@ func (r *Resource) Update(d *schema.ResourceData, _ any) error {
 		return err
 	}
 
-	WriteSchema(d, *n)
-	return nil
+	return ToSchema(d, *n)
 }
 
 func (r *Resource) Delete(d *schema.ResourceData, _ any) error {

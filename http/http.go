@@ -57,7 +57,9 @@ func (f ParameterOptionFn) Set(p *ConnectionParameters) {
 // BaseURL to specify a different url for the provisioning services
 func BaseURL(url string) ParameterOptionFn {
 	return func(p *ConnectionParameters) {
-		p.BaseURL = strings.TrimSuffix(url, "/")
+		if url != "" {
+			p.BaseURL = strings.TrimSuffix(url, "/")
+		}
 	}
 }
 
