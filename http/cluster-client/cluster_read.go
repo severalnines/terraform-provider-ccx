@@ -77,7 +77,7 @@ func (cli *Client) Read(_ context.Context, id string) (*ccxprov.Cluster, error) 
 		return &c, nil
 	}
 
-	return nil, ccxprov.ResourceNotFoundErr
+	return &ccxprov.Cluster{}, ccxprov.ResourceNotFoundErr
 }
 
 func (cli *Client) LoadAll(ctx context.Context) error {

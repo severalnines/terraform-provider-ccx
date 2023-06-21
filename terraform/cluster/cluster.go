@@ -33,41 +33,73 @@ func ToCluster(d *schema.ResourceData) ccxprov.Cluster {
 		VolumeSize:        terraform.GetInt(d, "volume_size"),
 		VolumeIOPS:        terraform.GetInt(d, "volume_iops"),
 		NetworkType:       terraform.GetString(d, "network_type"),
-		HAEnabled:         terraform.GetBool(d, "high_availability"),
-		VpcUUID:           terraform.GetString(d, "vpc_uuid"),
-		AvailabilityZones: terraform.GetStrings(d, "availability_zones"),
+		HAEnabled:         terraform.GetBool(d, "network_ha_enabled"),
+		VpcUUID:           terraform.GetString(d, "network_vpc_uuid"),
+		AvailabilityZones: terraform.GetStrings(d, "network_az"),
 	}
 
 	return c
 }
 
-func ToSchema(d *schema.ResourceData, c ccxprov.Cluster) {
+func ToSchema(d *schema.ResourceData, c ccxprov.Cluster) error {
 	d.SetId(c.ID)
-	d.Set("cluster_name", c.ClusterName)
-	d.Set("cluster_size", c.ClusterSize)
-	d.Set("db_vendor", c.DBVendor)
-	d.Set("db_version", c.DBVersion)
-	d.Set("cluster_type", c.ClusterType)
-	d.Set("tags", c.Tags)
-	d.Set("cloud_space", c.CloudSpace)
-	d.Set("cloud_provider", c.CloudProvider)
-	d.Set("cloud_region", c.CloudRegion)
-	d.Set("instance_size", c.InstanceSize)
-	d.Set("volume_type", c.VolumeType)
-	d.Set("volume_size", c.VolumeSize)
-	d.Set("volume_iops", c.VolumeIOPS)
-	d.Set("network_type", c.NetworkType)
-	d.Set("high_availability", c.HAEnabled)
-	d.Set("vpc_uuid", c.VpcUUID)
-	d.Set("availability_zones", c.AvailabilityZones)
+	var err error
+	if err = d.Set("cluster_name", c.ClusterName); err != nil {
+		return err
+	}
+	if err = d.Set("cluster_size", c.ClusterSize); err != nil {
+		return err
+	}
+	if err = d.Set("db_vendor", c.DBVendor); err != nil {
+		return err
+	}
+	if err = d.Set("db_version", c.DBVersion); err != nil {
+		return err
+	}
+	if err = d.Set("cluster_type", c.ClusterType); err != nil {
+		return err
+	}
+	if err = d.Set("tags", c.Tags); err != nil {
+		return err
+	}
+	if err = d.Set("cloud_space", c.CloudSpace); err != nil {
+		return err
+	}
+	if err = d.Set("cloud_provider", c.CloudProvider); err != nil {
+		return err
+	}
+	if err = d.Set("cloud_region", c.CloudRegion); err != nil {
+		return err
+	}
+	if err = d.Set("instance_size", c.InstanceSize); err != nil {
+		return err
+	}
+	if err = d.Set("volume_type", c.VolumeType); err != nil {
+		return err
+	}
+	if err = d.Set("volume_size", c.VolumeSize); err != nil {
+		return err
+	}
+	if err = d.Set("volume_iops", c.VolumeIOPS); err != nil {
+		return err
+	}
+	if err = d.Set("network_type", c.NetworkType); err != nil {
+		return err
+	}
+	if err = d.Set("network_ha_enabled", c.HAEnabled); err != nil {
+		return err
+	}
+	if err = d.Set("network_vpc_uuid", c.VpcUUID); err != nil {
+		return err
+	}
+	if err = d.Set("network_az", c.AvailabilityZones); err != nil {
+		return err
+	}
+	return nil
 }
 
 type Resource struct {
 	svc ccxprov.ClusterService
-}
-
-type mockdata struct {
-	Clusters map[string]ccxprov.Cluster `json:"clusters"`
 }
 
 func (r *Resource) Name() string {
@@ -142,7 +174,7 @@ func (r *Resource) Schema() *schema.Resource {
 				Description: "Volume size",
 			},
 			"volume_iops": {
-				Type:        schema.TypeString,
+				Type:        schema.TypeInt,
 				Optional:    true,
 				Description: "Volume IOPS",
 			},
@@ -212,22 +244,21 @@ func (r *Resource) Create(d *schema.ResourceData, _ any) error {
 		return err
 	}
 
-	ToSchema(d, *n)
-	return nil
+	return ToSchema(d, *n)
 }
 
 func (r *Resource) Read(d *schema.ResourceData, _ any) error {
 	ctx := context.Background()
 	c := ToCluster(d)
 	n, err := r.svc.Read(ctx, c.ID)
-	if err == ccxprov.ResourceNotFoundErr {
-		return err
-	} else if err != nil {
+	if errors.Is(err, ccxprov.ResourceNotFoundErr) {
+		err = nil
+	}
+	if err != nil {
 		return err
 	}
 
-	ToSchema(d, *n)
-	return nil
+	return ToSchema(d, *n)
 }
 
 func (r *Resource) Update(d *schema.ResourceData, _ any) error {
@@ -238,8 +269,7 @@ func (r *Resource) Update(d *schema.ResourceData, _ any) error {
 		return err
 	}
 
-	ToSchema(d, *n)
-	return nil
+	return ToSchema(d, *n)
 }
 
 func (r *Resource) Delete(d *schema.ResourceData, _ any) error {
