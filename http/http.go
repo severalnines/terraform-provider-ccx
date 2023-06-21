@@ -55,11 +55,14 @@ func (f ParameterOptionFn) Set(p *ConnectionParameters) {
 }
 
 // BaseURL to specify a different url for the provisioning services
+// If an empty url is provided, it will default to DefaultBaseURL
 func BaseURL(url string) ParameterOptionFn {
+	if url == "" {
+		url = DefaultBaseURL
+	}
+
 	return func(p *ConnectionParameters) {
-		if url != "" {
-			p.BaseURL = strings.TrimSuffix(url, "/")
-		}
+		p.BaseURL = strings.TrimSuffix(url, "/")
 	}
 }
 
