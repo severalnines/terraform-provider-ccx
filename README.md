@@ -21,7 +21,7 @@ terraform {
   required_providers {
     ccx = {
       source  = "severalnines/ccx"
-      version = "~> 0.2.0"
+      version = "~> 0.2.1"
     }
   }
 }
@@ -74,7 +74,7 @@ in the resource "datastore" section, see also [example_datastore.tf](examples/ex
 
 ### Requirements
 
-- go 1.18 or later
+- go 1.20 or later
 - Terraform 0.13.x or later
 
 ### Unix
@@ -106,7 +106,7 @@ terraform {
   required_providers {
     ccx = {
       source  = "severalnines/ccx"
-      version = "~> 0.2.0"
+      version = "~> 0.2.1"
     }
   }
 }
