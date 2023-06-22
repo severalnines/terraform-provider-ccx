@@ -1,6 +1,6 @@
 module github.com/severalnines/terraform-provider-ccx
 
-go 1.18
+go 1.20
 
 require (
 	github.com/hashicorp/terraform v0.14.4
