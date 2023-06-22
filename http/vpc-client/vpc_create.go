@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"net/http"
 
-	ccxprov "github.com/severalnines/terraform-provider-ccx"
+	"github.com/severalnines/terraform-provider-ccx/ccx"
 	chttp "github.com/severalnines/terraform-provider-ccx/http"
 )
 
@@ -20,7 +20,7 @@ type CreateRequest struct {
 	CidrIpv4Block string `json:"cidr_ipv4_block"`
 }
 
-func CreateRequestFromVpc(v ccxprov.VPC) CreateRequest {
+func CreateRequestFromVpc(v ccx.VPC) CreateRequest {
 	return CreateRequest{
 		Name:          v.Name,
 		Cloudspace:    v.CloudSpace,
@@ -41,12 +41,12 @@ type CreateResponse struct {
 	} `json:"vpc"`
 }
 
-func VpcFromCreateResponse(r CreateResponse) ccxprov.VPC {
+func VpcFromCreateResponse(r CreateResponse) ccx.VPC {
 	if r.VPC == nil {
-		return ccxprov.VPC{}
+		return ccx.VPC{}
 	}
 
-	return ccxprov.VPC{
+	return ccx.VPC{
 		ID:            r.VPC.ID,
 		Name:          r.VPC.Name,
 		CloudProvider: r.VPC.CloudProvider,
@@ -56,18 +56,18 @@ func VpcFromCreateResponse(r CreateResponse) ccxprov.VPC {
 	}
 }
 
-func (cli *Client) Create(ctx context.Context, vpc ccxprov.VPC) (*ccxprov.VPC, error) {
+func (cli *Client) Create(ctx context.Context, vpc ccx.VPC) (*ccx.VPC, error) {
 	cr := CreateRequestFromVpc(vpc)
 
 	var b bytes.Buffer
 	if err := json.NewEncoder(&b).Encode(cr); err != nil {
-		return nil, errors.Join(ccxprov.RequestEncodingErr, err)
+		return nil, errors.Join(ccx.RequestEncodingErr, err)
 	}
 
 	url := cli.conn.BaseURL + "/api/vpc/api/v2/vpcs"
 	req, err := http.NewRequest(http.MethodPost, url, &b)
 	if err != nil {
-		return nil, errors.Join(ccxprov.RequestInitializationErr, err)
+		return nil, errors.Join(ccx.RequestInitializationErr, err)
 	}
 
 	token, err := cli.auth.Auth(ctx)
@@ -80,7 +80,7 @@ func (cli *Client) Create(ctx context.Context, vpc ccxprov.VPC) (*ccxprov.VPC, e
 
 	res, err := client.Do(req)
 	if err != nil {
-		return nil, errors.Join(ccxprov.RequestSendingErr, err)
+		return nil, errors.Join(ccx.RequestSendingErr, err)
 	}
 
 	if res.StatusCode == http.StatusBadRequest {
@@ -88,7 +88,7 @@ func (cli *Client) Create(ctx context.Context, vpc ccxprov.VPC) (*ccxprov.VPC, e
 	}
 
 	if res.StatusCode != http.StatusCreated {
-		return nil, fmt.Errorf("%w: status = %d", ccxprov.ResponseStatusFailedErr, res.StatusCode)
+		return nil, fmt.Errorf("%w: status = %d", ccx.ResponseStatusFailedErr, res.StatusCode)
 	}
 
 	var rs CreateResponse

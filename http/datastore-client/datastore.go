@@ -1,4 +1,4 @@
-package cluster_client
+package datastore_client
 
 import (
 	"bytes"
@@ -6,20 +6,20 @@ import (
 	"fmt"
 	"sync"
 
-	ccxprov "github.com/severalnines/terraform-provider-ccx"
+	"github.com/severalnines/terraform-provider-ccx/ccx"
 	chttp "github.com/severalnines/terraform-provider-ccx/http"
 )
 
-var _ ccxprov.ClusterService = &Client{}
+var _ ccx.DatastoreService = &Client{}
 
 type Client struct {
-	auth     chttp.Authorizer
-	conn     *chttp.ConnectionParameters
-	clusters map[string]ccxprov.Cluster
-	mut      sync.Mutex
+	auth   chttp.Authorizer
+	conn   *chttp.ConnectionParameters
+	stores map[string]ccx.Datastore
+	mut    sync.Mutex
 }
 
-// New creates a new clusters Client
+// New creates a new datastores Client
 func New(ctx context.Context, authorizer chttp.Authorizer, opts ...chttp.ParameterOption) (*Client, error) {
 	p := chttp.Parameters(opts...)
 
@@ -36,19 +36,19 @@ func New(ctx context.Context, authorizer chttp.Authorizer, opts ...chttp.Paramet
 	return &c, nil
 }
 
-// String returns a string representation of the internal clusters map
+// String returns a string representation of the internal stores map
 // useful for debugging
 func (cli *Client) String() string {
 	cli.mut.Lock()
 	defer cli.mut.Unlock()
 
-	if len(cli.clusters) == 0 {
+	if len(cli.stores) == 0 {
 		return "<empty>"
 	}
 
 	var b bytes.Buffer
-	for id, cluster := range cli.clusters {
-		b.WriteString(fmt.Sprintf("id = %s, name = %s\n", id, cluster.ClusterName))
+	for id, store := range cli.stores {
+		b.WriteString(fmt.Sprintf("id = %s, name = %s\n", id, store.Name))
 	}
 
 	return b.String()

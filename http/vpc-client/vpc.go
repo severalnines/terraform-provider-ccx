@@ -1,18 +1,18 @@
 package vpc_client
 
 import (
-	ccxprov "github.com/severalnines/terraform-provider-ccx"
+	"github.com/severalnines/terraform-provider-ccx/ccx"
 	chttp "github.com/severalnines/terraform-provider-ccx/http"
 )
 
-var _ ccxprov.VPCService = &Client{}
+var _ ccx.VPCService = &Client{}
 
 type Client struct {
 	auth chttp.Authorizer
 	conn *chttp.ConnectionParameters
 }
 
-// New creates a new clusters Client
+// New creates a new VPC Client
 func New(authorizer chttp.Authorizer, opts ...chttp.ParameterOption) *Client {
 	p := chttp.Parameters(opts...)
 

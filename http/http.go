@@ -1,18 +1,16 @@
 package http
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
-	ccxprov "github.com/severalnines/terraform-provider-ccx"
+	"github.com/severalnines/terraform-provider-ccx/ccx"
 	cio "github.com/severalnines/terraform-provider-ccx/io"
 )
 
@@ -126,30 +124,13 @@ func DecodeJsonInto(body io.ReadCloser, target any) error {
 
 	raw, err := io.ReadAll(body)
 	if err != nil {
-		return errors.Join(ccxprov.ResponseReadFailedErr, err)
+		return errors.Join(ccx.ResponseReadFailedErr, err)
 	}
 
 	err = json.Unmarshal(raw, target)
 	if err != nil {
-		return errors.Join(ccxprov.ResponseDecodingErr, err)
+		return errors.Join(ccx.ResponseDecodingErr, err)
 	}
 
 	return nil
-}
-
-// DumpRequest will dump a request in a http request file. Useful for debugging.
-func DumpRequest(method, url, token, body string) {
-	var authorization string
-	if token != "" {
-		authorization = "Authorization: " + token + "\n"
-	}
-
-	var b bytes.Buffer
-	if err := json.Indent(&b, []byte(body), "", "    "); err == nil {
-		body = b.String()
-	}
-
-	data := fmt.Sprintf("%s %s\n%s\n%s", method, url, authorization, body)
-	filename := "req_" + time.Now().Format("2006_01_02-15_04_05_999999999Z07_00") + ".http"
-	_ = os.WriteFile(filename, []byte(data), 0644)
 }

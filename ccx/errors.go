@@ -1,12 +1,10 @@
-package terraform_provider_ccx
+package ccx
 
 import (
 	"errors"
 )
 
 var (
-	// MissingParameterErr occurs when a required parameter is blank
-	MissingParameterErr = errors.New("required parameter is empty")
 
 	// RequestEncodingErr occurs when a request body cannot be encoded.
 	RequestEncodingErr = errors.New("failed to encode request body")
@@ -32,15 +30,9 @@ var (
 	// ResourcesLoadFailedErr occurs when trying to load resources fails
 	ResourcesLoadFailedErr = errors.New("failed to load resources")
 
-	// MockPathEmptyErr occurs when no mockfile path is provided, yet dev mode is activated
-	MockPathEmptyErr = errors.New("mockfile path is empty")
-
 	// UpdateNotSupportedErr occurs when trying to update a resource which might be destructive if attempted
 	UpdateNotSupportedErr = errors.New("updates for this resource are not supported")
 
 	// AuthenticationFailedErr indicates failure to authenticate with the api server
 	AuthenticationFailedErr = errors.New("authentication failed")
-
-	// InvalidRequestErr is a generic error for Bad Request responses
-	InvalidRequestErr = errors.New("request sent to server is invalid")
 )

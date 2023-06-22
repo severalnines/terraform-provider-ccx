@@ -5,26 +5,24 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
-	ccxprov "github.com/severalnines/terraform-provider-ccx"
+	"github.com/severalnines/terraform-provider-ccx/ccx"
 )
 
-func ToConfiguration(d *schema.ResourceData) ccxprov.TerraformConfiguration {
-	return ccxprov.TerraformConfiguration{
+func ToConfiguration(d *schema.ResourceData) ccx.TerraformConfiguration {
+	return ccx.TerraformConfiguration{
 		ClientID:     GetString(d, "client_id"),
 		ClientSecret: GetString(d, "client_secret"),
 		BaseURL:      GetString(d, "base_url"),
-		IsDevMode:    false,
-		Mockfile:     "",
 	}
 }
 
-func New(r ...ccxprov.TerraformResource) *Provider {
+func New(r ...ccx.TerraformResource) *Provider {
 	return &Provider{resources: r}
 }
 
 type Provider struct {
-	resources []ccxprov.TerraformResource
-	Config    ccxprov.TerraformConfiguration
+	resources []ccx.TerraformResource
+	Config    ccx.TerraformConfiguration
 }
 
 func (p *Provider) Resources() terraform.ResourceProvider {
@@ -49,7 +47,7 @@ func (p *Provider) Resources() terraform.ResourceProvider {
 			"base_url": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("CCX_BASE_URL", ""),
+				DefaultFunc: schema.EnvDefaultFunc("CCX_BASE_URL", "https://app.mydbservice.net"),
 			},
 		},
 		ResourcesMap:  rsc,
