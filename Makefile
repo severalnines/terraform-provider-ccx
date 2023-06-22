@@ -7,5 +7,5 @@ clean:
 	rm -rf ./bin/terraform-provider-ccx
 
 install: bin/terraform-provider-ccx
-	mkdir -p ~/.terraform.d/plugins/registry.terraform.io/severalnines/ccx/1.5.0/linux_amd64
-	cp ./bin/terraform-provider-ccx ~/.terraform.d/plugins/registry.terraform.io/severalnines/ccx/1.5.0/linux_amd64/
+	mkdir -p ~/.terraform.d/plugins/registry.terraform.io/severalnines/ccx/0.1.5/linux_amd64
+	cp ./bin/terraform-provider-ccx ~/.terraform.d/plugins/registry.terraform.io/severalnines/ccx/0.1.5/linux_amd64/
