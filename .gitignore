@@ -23,7 +23,6 @@ callgrind.out.*
 *.rpm
 *.deb
 compile
-Makefile
 missing
 nohup.out
 doc
@@ -32,3 +31,4 @@ examples/.terraform.d/
 examples/.terraform
 examples/.terraform.lock.hcl
 .idea
+bin/*

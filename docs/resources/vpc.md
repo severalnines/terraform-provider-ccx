@@ -17,13 +17,13 @@ description: |-
 
 ### Required
 
-- `vpc_cloud_provider` (String)
-- `vpc_name` (String)
+- `cloud_provider` (String)
+- `name` (String)
 
 ### Optional
 
-- `vpc_cloud_region` (String)
-- `vpc_ipv4_cidr` (String)
+- `cloud_region` (String)
+- `ipv4_cidr` (String)
 
 ### Read-Only
 

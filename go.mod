@@ -1,11 +1,10 @@
 module github.com/severalnines/terraform-provider-ccx
 
-go 1.18
+go 1.20
 
 require (
 	github.com/hashicorp/terraform v0.14.4
 	github.com/hashicorp/terraform-plugin-docs v0.8.1
-	golang.org/x/oauth2 v0.0.0-20201203001011-0b49973bad19
 )
 
 require (
@@ -68,6 +67,7 @@ require (
 	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e // indirect
 	golang.org/x/mod v0.4.0 // indirect
 	golang.org/x/net v0.0.0-20210410081132-afb366fc7cd1 // indirect
+	golang.org/x/oauth2 v0.0.0-20201203001011-0b49973bad19 // indirect
 	golang.org/x/sys v0.0.0-20220517195934-5e4e11fc645e // indirect
 	golang.org/x/text v0.3.6 // indirect
 	golang.org/x/tools v0.0.0-20210105210202-9ed45478a130 // indirect
