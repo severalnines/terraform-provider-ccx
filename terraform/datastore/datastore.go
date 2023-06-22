@@ -1,31 +1,30 @@
-package cluster
+package datastore
 
 import (
 	"context"
 	"errors"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	ccxprov "github.com/severalnines/terraform-provider-ccx"
+	"github.com/severalnines/terraform-provider-ccx/ccx"
 	chttp "github.com/severalnines/terraform-provider-ccx/http"
 	"github.com/severalnines/terraform-provider-ccx/http/auth"
-	clusterclient "github.com/severalnines/terraform-provider-ccx/http/cluster-client"
+	datastoreclient "github.com/severalnines/terraform-provider-ccx/http/datastore-client"
 	"github.com/severalnines/terraform-provider-ccx/terraform"
 )
 
 var (
-	_ ccxprov.TerraformResource = &Resource{}
+	_ ccx.TerraformResource = &Resource{}
 )
 
-func ToCluster(d *schema.ResourceData) ccxprov.Cluster {
-	c := ccxprov.Cluster{
+func ToDatastore(d *schema.ResourceData) ccx.Datastore {
+	c := ccx.Datastore{
 		ID:                d.Id(),
-		ClusterName:       terraform.GetString(d, "cluster_name"),
-		ClusterSize:       terraform.GetInt(d, "cluster_size"),
+		Name:              terraform.GetString(d, "name"),
+		Size:              terraform.GetInt(d, "size"),
 		DBVendor:          terraform.GetString(d, "db_vendor"),
 		DBVersion:         terraform.GetString(d, "db_version"),
-		ClusterType:       terraform.GetString(d, "cluster_type"),
+		Type:              terraform.GetString(d, "type"),
 		Tags:              terraform.GetStrings(d, "tags"),
-		CloudSpace:        terraform.GetString(d, "cloud_space"),
 		CloudProvider:     terraform.GetString(d, "cloud_provider"),
 		CloudRegion:       terraform.GetString(d, "cloud_region"),
 		InstanceSize:      terraform.GetString(d, "instance_size"),
@@ -37,32 +36,34 @@ func ToCluster(d *schema.ResourceData) ccxprov.Cluster {
 		VpcUUID:           terraform.GetString(d, "network_vpc_uuid"),
 		AvailabilityZones: terraform.GetStrings(d, "network_az"),
 	}
+	c.Type = defaultType(c.DBVendor, c.Type)
 
 	return c
 }
 
-func ToSchema(d *schema.ResourceData, c ccxprov.Cluster) error {
+func ToSchema(d *schema.ResourceData, c ccx.Datastore) error {
 	d.SetId(c.ID)
 	var err error
-	if err = d.Set("cluster_name", c.ClusterName); err != nil {
+	if err = d.Set("name", c.Name); err != nil {
 		return err
 	}
-	if err = d.Set("cluster_size", c.ClusterSize); err != nil {
+	if err = d.Set("size", c.Size); err != nil {
 		return err
 	}
 	if err = d.Set("db_vendor", c.DBVendor); err != nil {
 		return err
 	}
-	if err = d.Set("db_version", c.DBVersion); err != nil {
-		return err
+	if terraform.GetString(d, "db_version") != "" {
+		if err = d.Set("db_version", c.DBVersion); err != nil {
+			return err
+		}
 	}
-	if err = d.Set("cluster_type", c.ClusterType); err != nil {
-		return err
+	if terraform.GetString(d, "type") != "" || c.Type != defaultType(c.DBVendor, c.Type) {
+		if err = d.Set("type", defaultType(c.DBVendor, c.Type)); err != nil {
+			return err
+		}
 	}
 	if err = d.Set("tags", c.Tags); err != nil {
-		return err
-	}
-	if err = d.Set("cloud_space", c.CloudSpace); err != nil {
 		return err
 	}
 	if err = d.Set("cloud_provider", c.CloudProvider); err != nil {
@@ -99,35 +100,36 @@ func ToSchema(d *schema.ResourceData, c ccxprov.Cluster) error {
 }
 
 type Resource struct {
-	svc ccxprov.ClusterService
+	svc ccx.DatastoreService
 }
 
 func (r *Resource) Name() string {
-	return "ccx_cluster"
+	return "ccx_datastore"
 }
 
 func (r *Resource) Schema() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
-			"cluster_name": {
+			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "The name of the resource",
+				Description: "The name of the datastore",
 				// ValidateFunc: validateName,
 			},
-			"cluster_type": {
+			"type": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The type of the resource",
+				Description: "Replication type of the datastore",
 			},
-			"cluster_size": {
+			"size": {
 				Type:        schema.TypeInt,
-				Required:    true,
-				Description: "The size of the cluster ( int64 ). 1 or 3 nodes.",
+				Optional:    true,
+				Description: "The size of the datastore ( int64 ). 1 or 3 nodes.",
+				Default:     1,
 			},
 			"db_vendor": {
 				Type:        schema.TypeString,
-				Optional:    true,
+				Required:    true,
 				Description: "Database Vendor",
 			},
 			"db_version": {
@@ -145,23 +147,18 @@ func (r *Resource) Schema() *schema.Resource {
 			},
 			"cloud_provider": {
 				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "An optional list of tags, represented as a key, value pair",
+				Required:    true,
+				Description: "Cloud provider name",
 			},
 			"cloud_region": {
 				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The region to set up the cluster",
-			},
-			"cloud_space": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Cloud space information",
+				Required:    true,
+				Description: "The region to set up the datastore",
 			},
 			"instance_size": {
 				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "An optional list of tags, represented as a key, value pair",
+				Required:    true,
+				Description: "Instance type/flavor to use",
 			},
 			"volume_type": {
 				Type:        schema.TypeString,
@@ -211,34 +208,20 @@ func (r *Resource) Schema() *schema.Resource {
 	}
 }
 
-func (r *Resource) Configure(ctx context.Context, cfg ccxprov.TerraformConfiguration) error {
-	// if p.Config.IsDevMode {
-	// 	return r.ConfigureDev(p)
-	// }
-
+func (r *Resource) Configure(ctx context.Context, cfg ccx.TerraformConfiguration) error {
 	authorizer := auth.New(cfg.ClientID, cfg.ClientSecret, chttp.BaseURL(cfg.BaseURL))
-	clusterCli, err := clusterclient.New(ctx, authorizer, chttp.BaseURL(cfg.BaseURL))
+	datastoreCli, err := datastoreclient.New(ctx, authorizer, chttp.BaseURL(cfg.BaseURL))
 	if err != nil {
-		return errors.Join(err, ccxprov.ResourcesLoadFailedErr)
+		return errors.Join(err, ccx.ResourcesLoadFailedErr)
 	}
 
-	r.svc = clusterCli
+	r.svc = datastoreCli
 	return nil
 }
 
-// func (r *Resource) ConfigureDev(p *terraform.Provider) error {
-// 	var d mockdata
-// 	if err := io.LoadData(p.Config.Mockfile, &d); err != nil {
-// 		return err
-// 	}
-//
-// 	r.svc = fakecluster.Instance(d.Clusters)
-// 	return nil
-// }
-
 func (r *Resource) Create(d *schema.ResourceData, _ any) error {
 	ctx := context.Background()
-	c := ToCluster(d)
+	c := ToDatastore(d)
 	n, err := r.svc.Create(ctx, c)
 	if err != nil {
 		d.SetId("")
@@ -250,9 +233,9 @@ func (r *Resource) Create(d *schema.ResourceData, _ any) error {
 
 func (r *Resource) Read(d *schema.ResourceData, _ any) error {
 	ctx := context.Background()
-	c := ToCluster(d)
+	c := ToDatastore(d)
 	n, err := r.svc.Read(ctx, c.ID)
-	if errors.Is(err, ccxprov.ResourceNotFoundErr) {
+	if errors.Is(err, ccx.ResourceNotFoundErr) {
 		d.SetId("")
 		return nil
 	} else if err != nil {
@@ -264,7 +247,7 @@ func (r *Resource) Read(d *schema.ResourceData, _ any) error {
 
 func (r *Resource) Update(d *schema.ResourceData, _ any) error {
 	ctx := context.Background()
-	c := ToCluster(d)
+	c := ToDatastore(d)
 	n, err := r.svc.Update(ctx, c)
 	if err != nil {
 		return err
@@ -275,7 +258,7 @@ func (r *Resource) Update(d *schema.ResourceData, _ any) error {
 
 func (r *Resource) Delete(d *schema.ResourceData, _ any) error {
 	ctx := context.Background()
-	c := ToCluster(d)
+	c := ToDatastore(d)
 	err := r.svc.Delete(ctx, c.ID)
 	if err != nil {
 		return err
@@ -283,4 +266,19 @@ func (r *Resource) Delete(d *schema.ResourceData, _ any) error {
 
 	d.SetId("")
 	return nil
+}
+
+func defaultType(vendor, dbType string) string {
+	if dbType != "" {
+		return dbType
+	}
+	switch vendor {
+	case "mariadb", "percona":
+		return "replication"
+	case "psql", "postgres":
+		return "postgres_streaming"
+	case "redis":
+		return "redis"
+	}
+	return ""
 }

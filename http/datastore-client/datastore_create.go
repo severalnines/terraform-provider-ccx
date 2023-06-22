@@ -1,4 +1,4 @@
-package cluster_client
+package datastore_client
 
 import (
 	"bytes"
@@ -8,18 +8,18 @@ import (
 	"fmt"
 	"net/http"
 
-	ccxprov "github.com/severalnines/terraform-provider-ccx"
+	"github.com/severalnines/terraform-provider-ccx/ccx"
 	chttp "github.com/severalnines/terraform-provider-ccx/http"
 	"github.com/severalnines/terraform-provider-ccx/pointers"
 )
 
 type CreateRequestGeneral struct {
-	ClusterName string   `json:"cluster_name"`
-	ClusterSize int64    `json:"cluster_size"`
-	DBVendor    string   `json:"db_vendor"`
-	DBVersion   string   `json:"db_version"`
-	ClusterType string   `json:"cluster_type"`
-	Tags        []string `json:"tags"`
+	Name      string   `json:"cluster_name"`
+	Size      int64    `json:"cluster_size"`
+	DBVendor  string   `json:"db_vendor"`
+	DBVersion string   `json:"db_version"`
+	Type      string   `json:"cluster_type"`
+	Tags      []string `json:"tags"`
 }
 
 type CreateRequestCloud struct {
@@ -48,14 +48,14 @@ type CreateRequest struct {
 	Network  CreateRequestNetwork  `json:"network"`
 }
 
-func CreateRequestFromCluster(c ccxprov.Cluster) CreateRequest {
+func CreateRequestFromDatastore(c ccx.Datastore) CreateRequest {
 	general := CreateRequestGeneral{
-		ClusterName: c.ClusterName,
-		ClusterSize: c.ClusterSize,
-		DBVendor:    c.DBVendor,
-		DBVersion:   c.DBVersion,
-		ClusterType: c.ClusterType,
-		Tags:        c.Tags,
+		Name:      c.Name,
+		Size:      c.Size,
+		DBVendor:  c.DBVendor,
+		DBVersion: c.DBVersion,
+		Type:      c.Type,
+		Tags:      c.Tags,
 	}
 
 	cloud := CreateRequestCloud{
@@ -92,41 +92,40 @@ func CreateRequestFromCluster(c ccxprov.Cluster) CreateRequest {
 	}
 }
 
-type ClusterResponse struct {
-	ClusterUUID             string   `json:"uuid"`
-	ClusterName             string   `json:"cluster_name"`
-	ClusterType             string   `json:"cluster_type"`
-	ClusterRegion           string   `json:"region"`
-	CloudProvider           string   `json:"cloud_provider"`
-	ClusterSize             int64    `json:"cluster_size"`
-	ClusterDbVendor         string   `json:"database_vendor"`
-	ClusterDbVersion        string   `json:"database_version"`
-	ClusterInstanceSize     string   `json:"instance_size"`
-	ClusterInstanceDiskType *string  `json:"cluster_instance_disk_type"`
-	ClusterInstanceIOPS     *uint64  `json:"iops"`
-	ClusterInstanceDiskSize *uint64  `json:"disk_size"`
-	HighAvailability        bool     `json:"high_availability"`
-	VpcUUID                 *string  `json:"vpc_uuid"`
-	Tags                    []string `json:"tags"`
-	AZS                     []string `json:"azs"`
-	UsePublicIPs            bool     `json:"use_public_ips"`
+type DatastoreResponse struct {
+	UUID             string   `json:"uuid"`
+	Name             string   `json:"cluster_name"`
+	Type             string   `json:"cluster_type"`
+	Region           string   `json:"region"`
+	CloudProvider    string   `json:"cloud_provider"`
+	Size             int64    `json:"cluster_size"`
+	DbVendor         string   `json:"database_vendor"`
+	DbVersion        string   `json:"database_version"`
+	InstanceSize     string   `json:"instance_size"`
+	DiskType         *string  `json:"cluster_instance_disk_type"`
+	IOPS             *uint64  `json:"iops"`
+	DiskSize         *uint64  `json:"disk_size"`
+	HighAvailability bool     `json:"high_availability"`
+	VpcUUID          *string  `json:"vpc_uuid"`
+	Tags             []string `json:"tags"`
+	AZS              []string `json:"azs"`
 }
 
-func ClusterFromResponse(r ClusterResponse) ccxprov.Cluster {
-	return ccxprov.Cluster{
-		ID:                r.ClusterUUID,
-		ClusterName:       r.ClusterName,
-		ClusterSize:       r.ClusterSize,
-		DBVendor:          r.ClusterDbVendor,
-		DBVersion:         r.ClusterDbVersion,
-		ClusterType:       r.ClusterType,
+func DatastoreFromResponse(r DatastoreResponse) ccx.Datastore {
+	return ccx.Datastore{
+		ID:                r.UUID,
+		Name:              r.Name,
+		Size:              r.Size,
+		DBVendor:          r.DbVendor,
+		DBVersion:         r.DbVersion,
+		Type:              r.Type,
 		Tags:              r.Tags,
 		CloudProvider:     r.CloudProvider,
-		CloudRegion:       r.ClusterRegion,
-		InstanceSize:      r.ClusterInstanceSize,
-		VolumeType:        pointers.String(r.ClusterInstanceDiskType),
-		VolumeSize:        int64(pointers.Uint64(r.ClusterInstanceDiskSize)),
-		VolumeIOPS:        int64(pointers.Uint64(r.ClusterInstanceIOPS)),
+		CloudRegion:       r.Region,
+		InstanceSize:      r.InstanceSize,
+		VolumeType:        pointers.String(r.DiskType),
+		VolumeSize:        int64(pointers.Uint64(r.DiskSize)),
+		VolumeIOPS:        int64(pointers.Uint64(r.IOPS)),
 		NetworkType:       "", // todo
 		HAEnabled:         r.HighAvailability,
 		VpcUUID:           pointers.String(r.VpcUUID),
@@ -134,19 +133,19 @@ func ClusterFromResponse(r ClusterResponse) ccxprov.Cluster {
 	}
 }
 
-// Create a new clusters
-func (cli *Client) Create(ctx context.Context, c ccxprov.Cluster) (*ccxprov.Cluster, error) {
-	cr := CreateRequestFromCluster(c)
+// Create a new datastore
+func (cli *Client) Create(ctx context.Context, c ccx.Datastore) (*ccx.Datastore, error) {
+	cr := CreateRequestFromDatastore(c)
 
 	var b bytes.Buffer
 	if err := json.NewEncoder(&b).Encode(cr); err != nil {
-		return nil, errors.Join(ccxprov.RequestEncodingErr, err)
+		return nil, errors.Join(ccx.RequestEncodingErr, err)
 	}
 
 	url := cli.conn.BaseURL + "/api/prov/api/v2/cluster"
 	req, err := http.NewRequest(http.MethodPost, url, &b)
 	if err != nil {
-		return nil, errors.Join(ccxprov.RequestInitializationErr, err)
+		return nil, errors.Join(ccx.RequestInitializationErr, err)
 	}
 
 	token, err := cli.auth.Auth(ctx)
@@ -159,7 +158,7 @@ func (cli *Client) Create(ctx context.Context, c ccxprov.Cluster) (*ccxprov.Clus
 
 	res, err := client.Do(req)
 	if err != nil {
-		return nil, errors.Join(ccxprov.RequestSendingErr, err)
+		return nil, errors.Join(ccx.RequestSendingErr, err)
 	}
 
 	if res.StatusCode == http.StatusBadRequest {
@@ -170,16 +169,16 @@ func (cli *Client) Create(ctx context.Context, c ccxprov.Cluster) (*ccxprov.Clus
 		return nil, fmt.Errorf("%w: status = %d", chttp.ErrorFromErrorResponse(res.Body), res.StatusCode)
 	}
 
-	var rs ClusterResponse
+	var rs DatastoreResponse
 	if err := chttp.DecodeJsonInto(res.Body, &rs); err != nil {
 		return nil, err
 	}
 
-	newCluster := ClusterFromResponse(rs)
+	newDatastore := DatastoreFromResponse(rs)
 
 	if err := cli.LoadAll(ctx); err != nil {
-		return nil, errors.Join(ccxprov.ResourcesLoadFailedErr, err)
+		return nil, errors.Join(ccx.ResourcesLoadFailedErr, err)
 	}
 
-	return &newCluster, nil
+	return &newDatastore, nil
 }

@@ -1,4 +1,4 @@
-package cluster_client
+package datastore_client
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"io"
 	"net/http"
 
-	ccxprov "github.com/severalnines/terraform-provider-ccx"
+	"github.com/severalnines/terraform-provider-ccx/ccx"
 	chttp "github.com/severalnines/terraform-provider-ccx/http"
 	ccxprovio "github.com/severalnines/terraform-provider-ccx/io"
 	"github.com/severalnines/terraform-provider-ccx/pointers"
@@ -24,9 +24,9 @@ type LoadAllResponse []struct {
 	DiskType         *string `json:"disk_type"`
 	DbVendor         string  `json:"database_vendor"`
 	DbVersion        string  `json:"database_version"`
-	ClusterName      string  `json:"cluster_name"`
-	ClusterType      string  `json:"cluster_type"`
-	ClusterSize      int64   `json:"cluster_size"`
+	Name             string  `json:"cluster_name"`
+	Type             string  `json:"cluster_type"`
+	Size             int64   `json:"cluster_size"`
 	HighAvailability bool    `json:"high_availability"`
 	Vpc              *struct {
 		VpcUUID string `json:"vpc_uuid"`
@@ -35,8 +35,8 @@ type LoadAllResponse []struct {
 	AZS  []string `json:"azs"`
 }
 
-func ClustersFromLoadAllResponse(r LoadAllResponse) map[string]ccxprov.Cluster {
-	c := make(map[string]ccxprov.Cluster)
+func DatastoresFromLoadAllResponse(r LoadAllResponse) map[string]ccx.Datastore {
+	c := make(map[string]ccx.Datastore)
 
 	for _, info := range r {
 		var vpcUUID string
@@ -44,13 +44,13 @@ func ClustersFromLoadAllResponse(r LoadAllResponse) map[string]ccxprov.Cluster {
 			vpcUUID = info.Vpc.VpcUUID
 		}
 
-		c[info.UUID] = ccxprov.Cluster{
+		c[info.UUID] = ccx.Datastore{
 			ID:                info.UUID,
-			ClusterName:       info.ClusterName,
-			ClusterSize:       info.ClusterSize,
+			Name:              info.Name,
+			Size:              info.Size,
 			DBVendor:          info.DbVendor,
 			DBVersion:         info.DbVersion,
-			ClusterType:       info.ClusterType,
+			Type:              info.Type,
 			Tags:              info.Tags,
 			CloudProvider:     info.CloudProvider,
 			CloudRegion:       info.Region,
@@ -68,16 +68,16 @@ func ClustersFromLoadAllResponse(r LoadAllResponse) map[string]ccxprov.Cluster {
 	return c
 }
 
-func (cli *Client) Read(_ context.Context, id string) (*ccxprov.Cluster, error) {
+func (cli *Client) Read(_ context.Context, id string) (*ccx.Datastore, error) {
 	defer cli.mut.Unlock()
 	cli.mut.Lock()
 
-	c, ok := cli.clusters[id]
+	c, ok := cli.stores[id]
 	if ok {
 		return &c, nil
 	}
 
-	return &ccxprov.Cluster{}, ccxprov.ResourceNotFoundErr
+	return &ccx.Datastore{}, ccx.ResourceNotFoundErr
 }
 
 func (cli *Client) LoadAll(ctx context.Context) error {
@@ -85,7 +85,7 @@ func (cli *Client) LoadAll(ctx context.Context) error {
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		return errors.Join(ccxprov.RequestInitializationErr, err)
+		return errors.Join(ccx.RequestInitializationErr, err)
 	}
 
 	token, err := cli.auth.Auth(ctx)
@@ -98,7 +98,7 @@ func (cli *Client) LoadAll(ctx context.Context) error {
 
 	res, err := client.Do(req)
 	if err != nil {
-		return errors.Join(ccxprov.RequestSendingErr, err)
+		return errors.Join(ccx.RequestSendingErr, err)
 	}
 
 	if res.StatusCode != http.StatusOK {
@@ -109,20 +109,20 @@ func (cli *Client) LoadAll(ctx context.Context) error {
 
 	b, err := io.ReadAll(res.Body)
 	if err != nil {
-		return errors.Join(ccxprov.ResponseReadFailedErr, err)
+		return errors.Join(ccx.ResponseReadFailedErr, err)
 	}
 
 	var rs LoadAllResponse
 	if err := json.Unmarshal(b, &rs); err != nil {
-		return errors.Join(ccxprov.ResponseDecodingErr, err)
+		return errors.Join(ccx.ResponseDecodingErr, err)
 	}
 
-	clusters := ClustersFromLoadAllResponse(rs)
+	stores := DatastoresFromLoadAllResponse(rs)
 
 	cli.mut.Lock()
 	defer cli.mut.Unlock()
 
-	cli.clusters = clusters
+	cli.stores = stores
 
 	return nil
 }

@@ -1,4 +1,4 @@
-package cluster_client
+package datastore_client
 
 import (
 	"context"
@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"net/http"
 
-	ccxprov "github.com/severalnines/terraform-provider-ccx"
+	"github.com/severalnines/terraform-provider-ccx/ccx"
 )
 
 func (cli *Client) Delete(ctx context.Context, id string) error {
 	url := cli.conn.BaseURL + "/api/prov/api/v2/cluster" + "/" + id
 	req, err := http.NewRequest(http.MethodDelete, url, nil)
 	if err != nil {
-		return errors.Join(ccxprov.RequestInitializationErr, err)
+		return errors.Join(ccx.RequestInitializationErr, err)
 	}
 
 	token, err := cli.auth.Auth(ctx)
@@ -26,15 +26,15 @@ func (cli *Client) Delete(ctx context.Context, id string) error {
 
 	res, err := client.Do(req)
 	if err != nil {
-		return errors.Join(ccxprov.RequestSendingErr, err)
+		return errors.Join(ccx.RequestSendingErr, err)
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("%w: status = %d", ccxprov.ResponseStatusFailedErr, res.StatusCode)
+		return fmt.Errorf("%w: status = %d", ccx.ResponseStatusFailedErr, res.StatusCode)
 	}
 
 	if err := cli.LoadAll(ctx); err != nil {
-		return errors.Join(ccxprov.ResourcesLoadFailedErr, err)
+		return errors.Join(ccx.ResourcesLoadFailedErr, err)
 	}
 
 	return nil

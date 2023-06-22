@@ -1,4 +1,4 @@
-package cluster_client
+package datastore_client
 
 import (
 	"bytes"
@@ -9,13 +9,13 @@ import (
 	"net/http"
 	"strings"
 
-	ccxprov "github.com/severalnines/terraform-provider-ccx"
+	"github.com/severalnines/terraform-provider-ccx/ccx"
 	chttp "github.com/severalnines/terraform-provider-ccx/http"
 	cstrings "github.com/severalnines/terraform-provider-ccx/strings"
 )
 
 type UpdateRequest struct {
-	ClusterName string `json:"cluster_name"`
+	NewName string `json:"cluster_name"`
 
 	// AddNodes      *UpdateAddNodesRequest `json:"add_nodes"`
 	NewVolumeSize uint `json:"new_volume_size"`
@@ -30,10 +30,10 @@ type UpdateRequest struct {
 // 	AZ           string `json:"availability_zone"`
 // }
 
-func (cli *Client) Update(ctx context.Context, c ccxprov.Cluster) (*ccxprov.Cluster, error) {
+func (cli *Client) Update(ctx context.Context, c ccx.Datastore) (*ccx.Datastore, error) {
 	old, err := cli.Read(ctx, c.ID)
-	if err == ccxprov.ResourceNotFoundErr {
-		return nil, ccxprov.ResourceNotFoundErr
+	if err == ccx.ResourceNotFoundErr {
+		return nil, ccx.ResourceNotFoundErr
 	}
 
 	if hasCan, err := HasSupportedChanges(*old, c); err != nil {
@@ -44,11 +44,11 @@ func (cli *Client) Update(ctx context.Context, c ccxprov.Cluster) (*ccxprov.Clus
 
 	var ur UpdateRequest
 
-	if old.ClusterName != c.ClusterName {
-		ur.ClusterName = c.ClusterName
+	if old.Name != c.Name {
+		ur.NewName = c.Name
 	}
 
-	// if n := c.ClusterSize - old.ClusterSize; n > 0 {
+	// if n := c.Size - old.Size; n > 0 {
 	// 	ur.AddNodes = &UpdateAddNodesRequest{}
 	//
 	// 	for n > 0 {
@@ -63,13 +63,13 @@ func (cli *Client) Update(ctx context.Context, c ccxprov.Cluster) (*ccxprov.Clus
 
 	var b bytes.Buffer
 	if err := json.NewEncoder(&b).Encode(ur); err != nil {
-		return nil, errors.Join(ccxprov.RequestEncodingErr, err)
+		return nil, errors.Join(ccx.RequestEncodingErr, err)
 	}
 
 	url := cli.conn.BaseURL + "/api/prov/api/v2/cluster/" + c.ID
 	req, err := http.NewRequest(http.MethodPatch, url, &b)
 	if err != nil {
-		return nil, errors.Join(ccxprov.RequestInitializationErr, err)
+		return nil, errors.Join(ccx.RequestInitializationErr, err)
 	}
 
 	token, err := cli.auth.Auth(ctx)
@@ -82,7 +82,7 @@ func (cli *Client) Update(ctx context.Context, c ccxprov.Cluster) (*ccxprov.Clus
 
 	res, err := client.Do(req)
 	if err != nil {
-		return nil, errors.Join(ccxprov.RequestSendingErr, err)
+		return nil, errors.Join(ccx.RequestSendingErr, err)
 	}
 
 	if res.StatusCode == http.StatusBadRequest {
@@ -90,34 +90,34 @@ func (cli *Client) Update(ctx context.Context, c ccxprov.Cluster) (*ccxprov.Clus
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%w: status = %d", ccxprov.ResponseStatusFailedErr, res.StatusCode)
+		return nil, fmt.Errorf("%w: status = %d", ccx.ResponseStatusFailedErr, res.StatusCode)
 	}
 
-	var rs ClusterResponse
+	var rs DatastoreResponse
 	if err := chttp.DecodeJsonInto(res.Body, &rs); err != nil {
 		return nil, err
 	}
 
-	updatedCluster := ClusterFromResponse(rs)
+	updatedStore := DatastoreFromResponse(rs)
 
 	if err := cli.LoadAll(ctx); err != nil {
-		return nil, errors.Join(ccxprov.ResourcesLoadFailedErr, err)
+		return nil, errors.Join(ccx.ResourcesLoadFailedErr, err)
 	}
 
-	return &updatedCluster, nil
+	return &updatedStore, nil
 }
 
-func HasSupportedChanges(old, c ccxprov.Cluster) (bool, error) {
+func HasSupportedChanges(old, c ccx.Datastore) (bool, error) {
 	var (
 		hasCan, hasCant bool
 		fields          []string
 	)
 
-	if old.ClusterName != c.ClusterName {
+	if old.Name != c.Name {
 		hasCan = true
 	}
 
-	if old.ClusterSize != c.ClusterSize {
+	if old.Size != c.Size {
 		hasCant = true
 		fields = append(fields, "cluster_size")
 	}
@@ -138,7 +138,7 @@ func HasSupportedChanges(old, c ccxprov.Cluster) (bool, error) {
 		fields = append(fields, "db_version")
 	}
 
-	if old.ClusterType != c.ClusterType {
+	if old.Type != c.Type {
 		hasCant = true
 		fields = append(fields, "cluster_type")
 	}
@@ -147,11 +147,6 @@ func HasSupportedChanges(old, c ccxprov.Cluster) (bool, error) {
 	// 	hasCant = true
 	// 	fields = append(fields, "tags")
 	// }
-
-	if old.CloudSpace != c.CloudSpace {
-		hasCant = true
-		fields = append(fields, "cloud_space")
-	}
 
 	if old.CloudProvider != c.CloudProvider {
 		hasCant = true
@@ -199,7 +194,7 @@ func HasSupportedChanges(old, c ccxprov.Cluster) (bool, error) {
 	}
 
 	if hasCant {
-		return hasCan, fmt.Errorf("%w: %s", ccxprov.UpdateNotSupportedErr, strings.Join(fields, ", "))
+		return hasCan, fmt.Errorf("%w: %s", ccx.UpdateNotSupportedErr, strings.Join(fields, ", "))
 	}
 
 	return hasCan, nil

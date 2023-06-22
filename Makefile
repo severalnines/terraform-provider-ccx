@@ -1,3 +1,5 @@
+.PHONY: docs
+
 all: bin/terraform-provider-ccx
 
 bin/terraform-provider-ccx:
@@ -7,5 +9,9 @@ clean:
 	rm -rf ./bin/terraform-provider-ccx
 
 install: bin/terraform-provider-ccx
-	mkdir -p ~/.terraform.d/plugins/registry.terraform.io/severalnines/ccx/0.1.5/linux_amd64
-	cp ./bin/terraform-provider-ccx ~/.terraform.d/plugins/registry.terraform.io/severalnines/ccx/0.1.5/linux_amd64/
+	mkdir -p ~/.terraform.d/plugins/registry.terraform.io/severalnines/ccx/0.2.0/linux_amd64
+	cp ./bin/terraform-provider-ccx ~/.terraform.d/plugins/registry.terraform.io/severalnines/ccx/0.2.0/linux_amd64/
+
+docs:
+	go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
+

@@ -3,13 +3,16 @@ package main
 import (
 	"github.com/hashicorp/terraform/plugin"
 	"github.com/severalnines/terraform-provider-ccx/terraform"
-	"github.com/severalnines/terraform-provider-ccx/terraform/cluster"
+	"github.com/severalnines/terraform-provider-ccx/terraform/datastore"
 	"github.com/severalnines/terraform-provider-ccx/terraform/vpc"
 )
 
+// Generate the Terraform provider documentation using `tfplugindocs`:
+//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
+
 func main() {
 	p := terraform.New(
-		&cluster.Resource{},
+		&datastore.Resource{},
 		&vpc.Resource{},
 	)
 

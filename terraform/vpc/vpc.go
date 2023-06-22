@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	ccxprov "github.com/severalnines/terraform-provider-ccx"
+	"github.com/severalnines/terraform-provider-ccx/ccx"
 	chttp "github.com/severalnines/terraform-provider-ccx/http"
 	"github.com/severalnines/terraform-provider-ccx/http/auth"
 	vpcclient "github.com/severalnines/terraform-provider-ccx/http/vpc-client"
@@ -13,11 +13,11 @@ import (
 )
 
 var (
-	_ ccxprov.TerraformResource = &Resource{}
+	_ ccx.TerraformResource = &Resource{}
 )
 
-func ToVpc(d *schema.ResourceData) ccxprov.VPC {
-	return ccxprov.VPC{
+func ToVpc(d *schema.ResourceData) ccx.VPC {
+	return ccx.VPC{
 		ID:            d.Id(),
 		Name:          terraform.GetString(d, "name"),
 		CloudSpace:    terraform.GetString(d, "cloud_space"),
@@ -27,7 +27,7 @@ func ToVpc(d *schema.ResourceData) ccxprov.VPC {
 	}
 }
 
-func ToSchema(d *schema.ResourceData, v ccxprov.VPC) error {
+func ToSchema(d *schema.ResourceData, v ccx.VPC) error {
 	d.SetId(v.ID)
 
 	if err := d.Set("name", v.Name); err != nil {
@@ -54,38 +54,20 @@ func ToSchema(d *schema.ResourceData, v ccxprov.VPC) error {
 }
 
 type Resource struct {
-	svc ccxprov.VPCService
+	svc ccx.VPCService
 }
 
 func (r *Resource) Name() string {
 	return "ccx_vpc"
 }
 
-func (r *Resource) Configure(_ context.Context, cfg ccxprov.TerraformConfiguration) error {
-	// if p.Config.IsDevMode {
-	// 	return r.ConfigureDev(p)
-	// }
-
+func (r *Resource) Configure(_ context.Context, cfg ccx.TerraformConfiguration) error {
 	authorizer := auth.New(cfg.ClientID, cfg.ClientSecret, chttp.BaseURL(cfg.BaseURL))
 	vpcCli := vpcclient.New(authorizer, chttp.BaseURL(cfg.BaseURL))
 
 	r.svc = vpcCli
 	return nil
 }
-
-type mockdata struct {
-	VPCs map[string]ccxprov.VPC `json:"vpcs"`
-}
-
-// func (r *Resource) ConfigureDev(p *terraform.Provider) error {
-// 	var d mockdata
-// 	if err := io.LoadData(p.Config.Mockfile, &d); err != nil {
-// 		return err
-// 	}
-//
-// 	r.svc = fakevpc.Instance(d.VPCs)
-// 	return nil
-// }
 
 func (r *Resource) Schema() *schema.Resource {
 	return &schema.Resource{
@@ -134,7 +116,7 @@ func (r *Resource) Read(d *schema.ResourceData, _ any) error {
 	ctx := context.Background()
 	v := ToVpc(d)
 	n, err := r.svc.Read(ctx, v.ID)
-	if errors.Is(err, ccxprov.ResourceNotFoundErr) {
+	if errors.Is(err, ccx.ResourceNotFoundErr) {
 		d.SetId("")
 		return nil
 	} else if err != nil {

@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"strings"
 
-	ccxprov "github.com/severalnines/terraform-provider-ccx"
+	"github.com/severalnines/terraform-provider-ccx/ccx"
 	chttp "github.com/severalnines/terraform-provider-ccx/http"
 )
 
@@ -62,7 +62,7 @@ func (a *Authorizer) Auth(_ context.Context) (string, error) {
 
 	req, err := http.NewRequest(http.MethodPost, a.conn.BaseURL+"/api/auth/oauth2/token", strings.NewReader(b))
 	if err != nil {
-		return "", errors.Join(err, ccxprov.AuthenticationFailedErr)
+		return "", errors.Join(err, ccx.AuthenticationFailedErr)
 	}
 
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -73,7 +73,7 @@ func (a *Authorizer) Auth(_ context.Context) (string, error) {
 
 	res, err := client.Do(req)
 	if err != nil {
-		return "", errors.Join(err, ccxprov.AuthenticationFailedErr)
+		return "", errors.Join(err, ccx.AuthenticationFailedErr)
 	}
 
 	var tokenResponse TokenResponse
