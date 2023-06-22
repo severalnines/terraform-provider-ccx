@@ -95,9 +95,9 @@ Clone, build and place the plugin in the right folder.
 
 ## Using the provider
 
-Create a provider and a resource file and specify account settings and cluster properties. The provider and resource
+Create a provider and a resource file and specify account settings and datastore properties. The provider and resource
 sections may be located in one file,
-see https://github.com/severalnines/terraform-provider-ccx/examples/example_cluster.tf
+see https://github.com/severalnines/terraform-provider-ccx/examples/example_datastore.tf
 
 ### Create a terraform provider configuration
 
@@ -159,7 +159,7 @@ resource "ccx_vpc" "venus" {
 
 `terraform apply`
 
-### Cluster with VPC peering (Optional)
+### Datastore with VPC (Optional)
 
 > You can create a vpc and use it for peering
 
