@@ -14,7 +14,8 @@ This is the Terraform Provider for the Severalnines CCX Database as a service pl
 
 1. Sign up for CCX at https://ccx.severalnines.com/
 2. Create a Terraform file called datastore.tf with the content below.
-3. You must set client_id, client_secret and datastore information.
+3. Set `client_id`, `client_secret` and datastore information. You can generate these credentials on the Account
+   page (https://app.mydbservice.net/account) Authorization tab.
 
 ```
 terraform {
@@ -25,21 +26,23 @@ terraform {
     }
   }
 }
+
 provider "ccx" {
     client_id = "please_enter_your_client_id_here"
     client_secret = "please_enter_your_client_secret_here"
 }
-resource "ccx_datastore" "spaceforce" {
-    name = "spaceforce"
-    size = 1
-    db_vendor = "mariadb"
-    tags = ["new", "test"]
-    cloud_provider = "aws"
-    region = "eu-north-1"
-    instance_size = "tiny"
-    volume_size = 80
-    volume_type = "gp2"
-    network_type = "public"
+
+resource "ccx_datastore" "luna" {
+  name           = "luna"
+  size           = 1
+  db_vendor      = "postgres"
+  tags           = ["new", "test"]
+  cloud_provider = "aws"
+  cloud_region   = "eu-north-1"
+  instance_size  = "m5.large"
+  volume_size    = 80
+  volume_type    = "gp2"
+  network_type   = "public"
 }
 ```
 
