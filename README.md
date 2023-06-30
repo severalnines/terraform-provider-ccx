@@ -29,7 +29,7 @@ provider "ccx" {
     client_id = "please_enter_your_client_id_here"
     client_secret = "please_enter_your_client_secret_here"
 }
-resource "datastore" "spaceforce" {
+resource "ccx_datastore" "spaceforce" {
     name = "spaceforce"
     size = 1
     db_vendor = "mariadb"
@@ -43,7 +43,7 @@ resource "datastore" "spaceforce" {
 }
 ```
 
-Optionally you can create a VPC (supported by GCP, AWS)
+Optionally you can create a VPC (supported by AWS)
 
 ```
 resource "ccx_vpc" "venus" {
@@ -61,7 +61,7 @@ In that case set:
     network_vpc_uuid = ccx_vpc.venus.id
 ```
 
-in the resource "datastore" section, see also [example_datastore.tf](examples/example_datastore.tf)
+in the resource "ccx_datastore" section, see also [example_datastore.tf](examples/example_datastore.tf)
 
 3. Run:
 
@@ -128,19 +128,17 @@ provider  "ccx" {
 ### Create a terraform resource file
 
 ```
-resource "datastore" "spaceforce" {
-  name = "spaceforce"
-  size = 1
-  db_vendor = "mariadb"
-  db_version = "10.6"
-  tags = ["new", "test"]
+resource "ccx_datastore" "luna" {
+  name           = "luna"
+  size           = 1
+  db_vendor      = "postgres"
+  tags           = ["new", "test"]
   cloud_provider = "aws"
-  cloud_region = "eu-north-1"
-  instance_size = "t3.medium"
-  volume_size = 8000
-  volume_type = "gp2"
-  volume_iops = 0
-  network_type = "public"
+  cloud_region   = "eu-north-1"
+  instance_size  = "m5.large"
+  volume_size    = 80
+  volume_type    = "gp2"
+  network_type   = "public"
 }
 ```
 
@@ -158,40 +156,6 @@ resource "ccx_vpc" "venus" {
 ### Apply the created file
 
 `terraform apply`
-
-### Datastore with VPC (Optional)
-
-> You can create a vpc and use it for peering
-
-```
-resource "datastore" "luna" {
-  name = "luna"
-  size = 1
-  db_vendor = "mariadb"
-  db_version = "10.6"
-  tags = ["new", "test"]
-  cloud_provider = "aws"
-  cloud_region = "eu-north-1"
-  instance_size = "t3.medium"
-  volume_size = 9000
-  volume_type = "gp2"
-  volume_iops = 0
-  network_type = "public"
-}
-
-resource "ccx_vpc" "venus" {
-  vpc_name = "venus"
-  vpc_cloud_provider = "aws"
-  vpc_cloud_region = "eu-north-1"
-  vpc_ipv4_cidr = "10.10.0.0/16"
-}
-```
-
-Resource can be referenced in the network_vpc_uuid field in the following format:
-
-```
-<resource_type>.<resource_name>.<id>
-```
 
 ## Issues
 
