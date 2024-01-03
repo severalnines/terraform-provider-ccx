@@ -21,7 +21,7 @@ func ToDatastore(d *schema.ResourceData) ccx.Datastore {
 		ID:                d.Id(),
 		Name:              terraform.GetString(d, "name"),
 		Size:              terraform.GetInt(d, "size"),
-		DBVendor:          terraform.GetString(d, "db_vendor"),
+		DBVendor:          vendorToCCX(terraform.GetString(d, "db_vendor")),
 		DBVersion:         terraform.GetString(d, "db_version"),
 		Type:              terraform.GetString(d, "type"),
 		Tags:              terraform.GetStrings(d, "tags"),
@@ -50,7 +50,7 @@ func ToSchema(d *schema.ResourceData, c ccx.Datastore) error {
 	if err = d.Set("size", c.Size); err != nil {
 		return err
 	}
-	if err = d.Set("db_vendor", c.DBVendor); err != nil {
+	if err = d.Set("db_vendor", vendorFromCCX(c.DBVendor)); err != nil {
 		return err
 	}
 	if terraform.GetString(d, "db_version") != "" {
@@ -273,7 +273,7 @@ func defaultType(vendor, dbType string) string {
 		return dbType
 	}
 	switch vendor {
-	case "mariadb", "percona":
+	case "mariadb", "percona", "mysql":
 		return "replication"
 	case "psql", "postgres":
 		return "postgres_streaming"
@@ -281,4 +281,24 @@ func defaultType(vendor, dbType string) string {
 		return "redis"
 	}
 	return ""
+}
+
+var (
+	tfToCCXVendor = map[string]string{"mysql": "percona"}
+	ccxToTFVendor = map[string]string{"percona": "mysql"}
+)
+
+func vendorToCCX(s string) string {
+	if v, ok := tfToCCXVendor[s]; ok {
+		return v
+	}
+	return s
+}
+
+func vendorFromCCX(s string) string {
+	if v, ok := ccxToTFVendor[s]; ok {
+		return v
+	}
+	return s
+
 }
