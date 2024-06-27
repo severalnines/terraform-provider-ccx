@@ -1,4 +1,4 @@
-package auth
+package api
 
 import (
 	"context"
@@ -8,16 +8,16 @@ import (
 	"strings"
 
 	"github.com/severalnines/terraform-provider-ccx/ccx"
-	chttp "github.com/severalnines/terraform-provider-ccx/http"
+	"github.com/severalnines/terraform-provider-ccx/internal/lib"
 )
 
-type GetTokenRequest struct {
+type authTokenRequest struct {
 	ClientID     string `json:"client_id"`
 	ClientSecret string `json:"client_secret"`
 	GrantType    string `json:"grant_type"`
 }
 
-func (r GetTokenRequest) URLEncode() string {
+func (r authTokenRequest) URLEncode() string {
 	var body = url.Values{}
 	body.Set("client_id", r.ClientID)
 	body.Set("client_secret", r.ClientSecret)
@@ -28,39 +28,33 @@ func (r GetTokenRequest) URLEncode() string {
 	return e
 }
 
-type TokenResponse struct {
+type authTokenResponse struct {
 	AccessToken  string `json:"access_token"`
 	ExpiresIn    int    `json:"expires_in"`
 	RefreshToken string `json:"refresh_token"`
 	TokenType    string `json:"token_type"`
 }
 
-type Authorizer struct {
-	id     string
-	secret string
-	conn   *chttp.ConnectionParameters
+type authorizer interface {
+	Auth(_ context.Context) (string, error)
 }
 
-func New(clientID, clientSecret string, opts ...chttp.ParameterOption) *Authorizer {
-	p := chttp.Parameters(opts...)
-
-	return &Authorizer{
-		id:     clientID,
-		secret: clientSecret,
-		conn:   p,
-	}
+type tokenAuthorizer struct {
+	id      string
+	secret  string
+	baseURL string
 }
 
-func (a *Authorizer) Auth(_ context.Context) (string, error) {
-	r := GetTokenRequest{
-		ClientID:     a.id,
-		ClientSecret: a.secret,
+func (svc tokenAuthorizer) Auth(_ context.Context) (string, error) {
+	r := authTokenRequest{
+		ClientID:     svc.id,
+		ClientSecret: svc.secret,
 		GrantType:    "client_credentials",
 	}
 
 	b := r.URLEncode()
 
-	req, err := http.NewRequest(http.MethodPost, a.conn.BaseURL+"/api/auth/oauth2/token", strings.NewReader(b))
+	req, err := http.NewRequest(http.MethodPost, svc.baseURL+"/api/auth/oauth2/token", strings.NewReader(b))
 	if err != nil {
 		return "", errors.Join(err, ccx.AuthenticationFailedErr)
 	}
@@ -68,7 +62,7 @@ func (a *Authorizer) Auth(_ context.Context) (string, error) {
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	client := &http.Client{
-		Timeout: a.conn.Timeout,
+		Timeout: ccx.DefaultTimeout,
 	}
 
 	res, err := client.Do(req)
@@ -76,8 +70,8 @@ func (a *Authorizer) Auth(_ context.Context) (string, error) {
 		return "", errors.Join(err, ccx.AuthenticationFailedErr)
 	}
 
-	var tokenResponse TokenResponse
-	if err := chttp.DecodeJsonInto(res.Body, &tokenResponse); err != nil {
+	var tokenResponse authTokenResponse
+	if err := lib.DecodeJsonInto(res.Body, &tokenResponse); err != nil {
 		return "", err
 	}
 

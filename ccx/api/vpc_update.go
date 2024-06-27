@@ -1,4 +1,4 @@
-package vpc_client
+package api
 
 import (
 	"context"
@@ -6,6 +6,6 @@ import (
 	"github.com/severalnines/terraform-provider-ccx/ccx"
 )
 
-func (cli *Client) Update(_ context.Context, _ ccx.VPC) (*ccx.VPC, error) {
+func (svc *VpcService) Update(_ context.Context, _ ccx.VPC) (*ccx.VPC, error) {
 	return nil, ccx.UpdateNotSupportedErr
 }

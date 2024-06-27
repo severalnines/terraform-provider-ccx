@@ -1,4 +1,4 @@
-package vpc
+package resources
 
 import (
 	"context"
@@ -6,28 +6,25 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/severalnines/terraform-provider-ccx/ccx"
-	chttp "github.com/severalnines/terraform-provider-ccx/http"
-	"github.com/severalnines/terraform-provider-ccx/http/auth"
-	vpcclient "github.com/severalnines/terraform-provider-ccx/http/vpc-client"
-	"github.com/severalnines/terraform-provider-ccx/terraform"
+	"github.com/severalnines/terraform-provider-ccx/ccx/api"
 )
 
 var (
-	_ ccx.TerraformResource = &Resource{}
+	_ TerraformResource = &VPC{}
 )
 
-func ToVpc(d *schema.ResourceData) ccx.VPC {
+func schemaToVPC(d *schema.ResourceData) ccx.VPC {
 	return ccx.VPC{
 		ID:            d.Id(),
-		Name:          terraform.GetString(d, "name"),
-		CloudSpace:    terraform.GetString(d, "cloud_space"),
-		CloudProvider: terraform.GetString(d, "cloud_provider"),
-		Region:        terraform.GetString(d, "cloud_region"),
-		CidrIpv4Block: terraform.GetString(d, "ipv4_cidr"),
+		Name:          getString(d, "name"),
+		CloudSpace:    getString(d, "cloud_space"),
+		CloudProvider: getString(d, "cloud_provider"),
+		Region:        getString(d, "cloud_region"),
+		CidrIpv4Block: getString(d, "ipv4_cidr"),
 	}
 }
 
-func ToSchema(d *schema.ResourceData, v ccx.VPC) error {
+func vpcToSchema(v ccx.VPC, d *schema.ResourceData) error {
 	d.SetId(v.ID)
 
 	if err := d.Set("name", v.Name); err != nil {
@@ -53,23 +50,22 @@ func ToSchema(d *schema.ResourceData, v ccx.VPC) error {
 	return nil
 }
 
-type Resource struct {
+type VPC struct {
 	svc ccx.VPCService
 }
 
-func (r *Resource) Name() string {
+func (r *VPC) Name() string {
 	return "ccx_vpc"
 }
 
-func (r *Resource) Configure(_ context.Context, cfg ccx.TerraformConfiguration) error {
-	authorizer := auth.New(cfg.ClientID, cfg.ClientSecret, chttp.BaseURL(cfg.BaseURL))
-	vpcCli := vpcclient.New(authorizer, chttp.BaseURL(cfg.BaseURL))
+func (r *VPC) Configure(_ context.Context, cfg TerraformConfiguration) error {
+	vpcCli := api.Vpcs(cfg.BaseURL, cfg.ClientID, cfg.ClientSecret)
 
 	r.svc = vpcCli
 	return nil
 }
 
-func (r *Resource) Schema() *schema.Resource {
+func (r *VPC) Schema() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -100,21 +96,21 @@ func (r *Resource) Schema() *schema.Resource {
 	}
 }
 
-func (r *Resource) Create(d *schema.ResourceData, _ any) error {
+func (r *VPC) Create(d *schema.ResourceData, _ any) error {
 	ctx := context.Background()
-	v := ToVpc(d)
+	v := schemaToVPC(d)
 	n, err := r.svc.Create(ctx, v)
 	if err != nil {
 		d.SetId("")
 		return err
 	}
 
-	return ToSchema(d, *n)
+	return vpcToSchema(*n, d)
 }
 
-func (r *Resource) Read(d *schema.ResourceData, _ any) error {
+func (r *VPC) Read(d *schema.ResourceData, _ any) error {
 	ctx := context.Background()
-	v := ToVpc(d)
+	v := schemaToVPC(d)
 	n, err := r.svc.Read(ctx, v.ID)
 	if errors.Is(err, ccx.ResourceNotFoundErr) {
 		d.SetId("")
@@ -123,23 +119,23 @@ func (r *Resource) Read(d *schema.ResourceData, _ any) error {
 		return err
 	}
 
-	return ToSchema(d, *n)
+	return vpcToSchema(*n, d)
 }
 
-func (r *Resource) Update(d *schema.ResourceData, _ any) error {
+func (r *VPC) Update(d *schema.ResourceData, _ any) error {
 	ctx := context.Background()
-	v := ToVpc(d)
+	v := schemaToVPC(d)
 	n, err := r.svc.Update(ctx, v)
 	if err != nil {
 		return err
 	}
 
-	return ToSchema(d, *n)
+	return vpcToSchema(*n, d)
 }
 
-func (r *Resource) Delete(d *schema.ResourceData, _ any) error {
+func (r *VPC) Delete(d *schema.ResourceData, _ any) error {
 	ctx := context.Background()
-	v := ToVpc(d)
+	v := schemaToVPC(d)
 	err := r.svc.Delete(ctx, v.ID)
 	if err != nil {
 		return err

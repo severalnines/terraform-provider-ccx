@@ -1,4 +1,4 @@
-package datastore_client
+package api
 
 import (
 	"bytes"
@@ -9,11 +9,10 @@ import (
 	"net/http"
 
 	"github.com/severalnines/terraform-provider-ccx/ccx"
-	chttp "github.com/severalnines/terraform-provider-ccx/http"
-	"github.com/severalnines/terraform-provider-ccx/pointers"
+	"github.com/severalnines/terraform-provider-ccx/internal/lib"
 )
 
-type CreateRequestGeneral struct {
+type createStoreGeneral struct {
 	Name      string   `json:"cluster_name"`
 	Size      int64    `json:"cluster_size"`
 	DBVendor  string   `json:"db_vendor"`
@@ -22,34 +21,34 @@ type CreateRequestGeneral struct {
 	Tags      []string `json:"tags"`
 }
 
-type CreateRequestCloud struct {
+type createStoreCloud struct {
 	CloudProvider string `json:"cloud_provider"`
 	CloudRegion   string `json:"cloud_region"`
 }
 
-type CreateRequestInstance struct {
+type createStoreInstance struct {
 	InstanceSize string `json:"instance_size"` // "Tiny" ... "2X-Large"
 	VolumeType   string `json:"volume_type"`
 	VolumeSize   int64  `json:"volume_size"`
 	VolumeIOPS   int64  `json:"volume_iops"`
 }
 
-type CreateRequestNetwork struct {
+type createStoreNetwork struct {
 	NetworkType       string   `json:"network_type"` // public/private
 	HAEnabled         bool     `json:"ha_enabled"`
 	VpcUUID           string   `json:"vpc_uuid"`
 	AvailabilityZones []string `json:"availability_zones"`
 }
 
-type CreateRequest struct {
-	General  CreateRequestGeneral  `json:"general"`
-	Cloud    CreateRequestCloud    `json:"cloud"`
-	Instance CreateRequestInstance `json:"instance"`
-	Network  CreateRequestNetwork  `json:"network"`
+type createStoreRequest struct {
+	General  createStoreGeneral  `json:"general"`
+	Cloud    createStoreCloud    `json:"cloud"`
+	Instance createStoreInstance `json:"instance"`
+	Network  createStoreNetwork  `json:"network"`
 }
 
-func CreateRequestFromDatastore(c ccx.Datastore) CreateRequest {
-	general := CreateRequestGeneral{
+func CreateRequestFromDatastore(c ccx.Datastore) createStoreRequest {
+	general := createStoreGeneral{
 		Name:      c.Name,
 		Size:      c.Size,
 		DBVendor:  c.DBVendor,
@@ -58,7 +57,7 @@ func CreateRequestFromDatastore(c ccx.Datastore) CreateRequest {
 		Tags:      c.Tags,
 	}
 
-	cloud := CreateRequestCloud{
+	cloud := createStoreCloud{
 		CloudProvider: c.CloudProvider,
 		CloudRegion:   c.CloudRegion,
 	}
@@ -70,21 +69,21 @@ func CreateRequestFromDatastore(c ccx.Datastore) CreateRequest {
 		volumeSize = c.VolumeSize
 	}
 
-	instance := CreateRequestInstance{
+	instance := createStoreInstance{
 		InstanceSize: c.InstanceSize,
 		VolumeType:   c.VolumeType,
 		VolumeSize:   volumeSize,
 		VolumeIOPS:   c.VolumeIOPS,
 	}
 
-	network := CreateRequestNetwork{
+	network := createStoreNetwork{
 		NetworkType:       c.NetworkType,
 		HAEnabled:         c.HAEnabled,
 		VpcUUID:           c.VpcUUID,
 		AvailabilityZones: c.AvailabilityZones,
 	}
 
-	return CreateRequest{
+	return createStoreRequest{
 		General:  general,
 		Cloud:    cloud,
 		Instance: instance,
@@ -123,18 +122,17 @@ func DatastoreFromResponse(r DatastoreResponse) ccx.Datastore {
 		CloudProvider:     r.CloudProvider,
 		CloudRegion:       r.Region,
 		InstanceSize:      r.InstanceSize,
-		VolumeType:        pointers.String(r.DiskType),
-		VolumeSize:        int64(pointers.Uint64(r.DiskSize)),
-		VolumeIOPS:        int64(pointers.Uint64(r.IOPS)),
+		VolumeType:        pString(r.DiskType),
+		VolumeSize:        int64(pUint64(r.DiskSize)),
+		VolumeIOPS:        int64(pUint64(r.IOPS)),
 		NetworkType:       "", // todo
 		HAEnabled:         r.HighAvailability,
-		VpcUUID:           pointers.String(r.VpcUUID),
+		VpcUUID:           pString(r.VpcUUID),
 		AvailabilityZones: r.AZS,
 	}
 }
 
-// Create a new datastore
-func (cli *Client) Create(ctx context.Context, c ccx.Datastore) (*ccx.Datastore, error) {
+func (svc *DatastoreService) Create(ctx context.Context, c ccx.Datastore) (*ccx.Datastore, error) {
 	cr := CreateRequestFromDatastore(c)
 
 	var b bytes.Buffer
@@ -142,19 +140,19 @@ func (cli *Client) Create(ctx context.Context, c ccx.Datastore) (*ccx.Datastore,
 		return nil, errors.Join(ccx.RequestEncodingErr, err)
 	}
 
-	url := cli.conn.BaseURL + "/api/prov/api/v2/cluster"
+	url := svc.baseURL + "/api/prov/api/v2/cluster"
 	req, err := http.NewRequest(http.MethodPost, url, &b)
 	if err != nil {
-		return nil, errors.Join(ccx.RequestInitializationErr, err)
+		return nil, errors.Join(ccx.CreateFailedErr, ccx.RequestInitializationErr, err)
 	}
 
-	token, err := cli.auth.Auth(ctx)
+	token, err := svc.auth.Auth(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	req.Header.Set("Authorization", token)
-	client := &http.Client{Timeout: cli.conn.Timeout}
+	client := &http.Client{Timeout: ccx.DefaultTimeout}
 
 	res, err := client.Do(req)
 	if err != nil {
@@ -162,22 +160,25 @@ func (cli *Client) Create(ctx context.Context, c ccx.Datastore) (*ccx.Datastore,
 	}
 
 	if res.StatusCode == http.StatusBadRequest {
-		return nil, chttp.ErrorFromErrorResponse(res.Body)
+		return nil, fmt.Errorf("%w: %w", ccx.CreateFailedErr, lib.ErrorFromErrorResponse(res.Body))
 	}
 
 	if res.StatusCode != http.StatusCreated {
-		return nil, fmt.Errorf("%w: status = %d", chttp.ErrorFromErrorResponse(res.Body), res.StatusCode)
+		return nil, fmt.Errorf(":%w :%w: status = %d", ccx.CreateFailedErr, lib.ErrorFromErrorResponse(res.Body), res.StatusCode)
 	}
 
 	var rs DatastoreResponse
-	if err := chttp.DecodeJsonInto(res.Body, &rs); err != nil {
-		return nil, err
+	if err := lib.DecodeJsonInto(res.Body, &rs); err != nil {
+		return nil, fmt.Errorf("%w: %w", ccx.CreateFailedErr, err)
 	}
 
 	newDatastore := DatastoreFromResponse(rs)
 
-	if err := cli.LoadAll(ctx); err != nil {
-		return nil, errors.Join(ccx.ResourcesLoadFailedErr, err)
+	status, err := svc.jobs.Await(ctx, rs.UUID, deployStoreJob, svc.timeout)
+	if err != nil {
+		return nil, fmt.Errorf("%w: awaiting deploy job: %w", ccx.CreateFailedErr, err)
+	} else if status != jobStatusFinished {
+		return nil, fmt.Errorf("%w: deploy job failed: %s", ccx.CreateFailedErr, status)
 	}
 
 	return &newDatastore, nil

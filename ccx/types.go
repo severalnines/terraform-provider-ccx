@@ -4,27 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-
-	"github.com/hashicorp/terraform/helper/schema"
+	"time"
 )
 
-type TerraformConfiguration struct {
-	ClientID     string
-	ClientSecret string
-	BaseURL      string
-}
+const (
+	// DefaultBaseURL to access API services
+	DefaultBaseURL = "https://app.mydbservice.net"
 
-type TerraformResource interface {
-	Configure(ctx context.Context, cfg TerraformConfiguration) error
-
-	Name() string
-	Schema() *schema.Resource
-	Create(*schema.ResourceData, interface{}) error
-	Read(*schema.ResourceData, interface{}) error
-	Update(*schema.ResourceData, interface{}) error
-	Delete(*schema.ResourceData, interface{}) error
-	// Exists(*schema.ResourceData, interface{}) (bool, error)
-}
+	// DefaultTimeout for http requests
+	DefaultTimeout = time.Second * 30
+)
 
 type Datastore struct {
 	ID                string
@@ -44,6 +33,9 @@ type Datastore struct {
 	HAEnabled         bool
 	VpcUUID           string
 	AvailabilityZones []string
+
+	DbParams      map[string]string
+	FirewallRules []FirewallRule
 }
 
 // String representation of the Datastore, useful for debugging
@@ -55,11 +47,25 @@ func (c Datastore) String() string {
 	return string(b)
 }
 
+type FirewallRule struct {
+	Source      string `json:"source"`
+	Description string `json:"description"`
+}
+
+func (f FirewallRule) String() string {
+	return fmt.Sprintf(`{"source": "%s", "description": "%s"}`, f.Source, f.Description)
+}
+
 // DatastoreService is used to manage datastores
 type DatastoreService interface {
 	Create(ctx context.Context, c Datastore) (*Datastore, error)
+	SetParameters(ctx context.Context, storeID string, parameters map[string]string) error
+	SetFirewallRules(ctx context.Context, storeID string, firewalls []FirewallRule) error
+
 	Read(ctx context.Context, id string) (*Datastore, error)
+
 	Update(ctx context.Context, c Datastore) (*Datastore, error)
+
 	Delete(ctx context.Context, id string) error
 }
 

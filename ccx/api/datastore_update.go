@@ -1,4 +1,4 @@
-package datastore_client
+package api
 
 import (
 	"bytes"
@@ -7,36 +7,27 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/severalnines/terraform-provider-ccx/ccx"
-	chttp "github.com/severalnines/terraform-provider-ccx/http"
-	cstrings "github.com/severalnines/terraform-provider-ccx/strings"
+	"github.com/severalnines/terraform-provider-ccx/internal/lib"
 )
 
 type UpdateRequest struct {
-	NewName string `json:"cluster_name"`
-
-	// AddNodes      *UpdateAddNodesRequest `json:"add_nodes"`
-	NewVolumeSize uint `json:"new_volume_size"`
+	NewName       string `json:"cluster_name"`
+	NewVolumeSize uint   `json:"new_volume_size"`
 }
 
-// type UpdateAddNodesRequest struct {
-// 	Specs []UpdateAddNodesSpecsRequest `json:"specs"`
-// }
-
-// type UpdateAddNodesSpecsRequest struct {
-// 	InstanceType string `json:"instance_size"`
-// 	AZ           string `json:"availability_zone"`
-// }
-
-func (cli *Client) Update(ctx context.Context, c ccx.Datastore) (*ccx.Datastore, error) {
-	old, err := cli.Read(ctx, c.ID)
-	if err == ccx.ResourceNotFoundErr {
+func (svc *DatastoreService) Update(ctx context.Context, c ccx.Datastore) (*ccx.Datastore, error) {
+	old, err := svc.Read(ctx, c.ID)
+	if errors.Is(err, ccx.ResourceNotFoundErr) {
 		return nil, ccx.ResourceNotFoundErr
+	} else if err != nil {
+		return nil, err
 	}
 
-	if hasCan, err := HasSupportedChanges(*old, c); err != nil {
+	if hasCan, err := hasSupportedChanges(*old, c); err != nil {
 		return nil, err
 	} else if !hasCan {
 		return old, nil
@@ -48,15 +39,6 @@ func (cli *Client) Update(ctx context.Context, c ccx.Datastore) (*ccx.Datastore,
 		ur.NewName = c.Name
 	}
 
-	// if n := c.Size - old.Size; n > 0 {
-	// 	ur.AddNodes = &UpdateAddNodesRequest{}
-	//
-	// 	for n > 0 {
-	// 		n -= 1
-	// 		ur.AddNodes.Specs = append(ur.AddNodes.Specs, UpdateAddNodesSpecsRequest{})
-	// 	}
-	// }
-
 	if old.VolumeSize != c.VolumeSize {
 		ur.NewVolumeSize = uint(c.VolumeSize)
 	}
@@ -66,19 +48,19 @@ func (cli *Client) Update(ctx context.Context, c ccx.Datastore) (*ccx.Datastore,
 		return nil, errors.Join(ccx.RequestEncodingErr, err)
 	}
 
-	url := cli.conn.BaseURL + "/api/prov/api/v2/cluster/" + c.ID
+	url := svc.baseURL + "/api/prov/api/v2/cluster/" + c.ID
 	req, err := http.NewRequest(http.MethodPatch, url, &b)
 	if err != nil {
 		return nil, errors.Join(ccx.RequestInitializationErr, err)
 	}
 
-	token, err := cli.auth.Auth(ctx)
+	token, err := svc.auth.Auth(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	req.Header.Set("Authorization", token)
-	client := &http.Client{Timeout: cli.conn.Timeout}
+	client := &http.Client{Timeout: ccx.DefaultTimeout}
 
 	res, err := client.Do(req)
 	if err != nil {
@@ -86,7 +68,7 @@ func (cli *Client) Update(ctx context.Context, c ccx.Datastore) (*ccx.Datastore,
 	}
 
 	if res.StatusCode == http.StatusBadRequest {
-		return nil, chttp.ErrorFromErrorResponse(res.Body)
+		return nil, lib.ErrorFromErrorResponse(res.Body)
 	}
 
 	if res.StatusCode != http.StatusOK {
@@ -94,20 +76,20 @@ func (cli *Client) Update(ctx context.Context, c ccx.Datastore) (*ccx.Datastore,
 	}
 
 	var rs DatastoreResponse
-	if err := chttp.DecodeJsonInto(res.Body, &rs); err != nil {
+	if err := lib.DecodeJsonInto(res.Body, &rs); err != nil {
 		return nil, err
 	}
 
 	updatedStore := DatastoreFromResponse(rs)
 
-	if err := cli.LoadAll(ctx); err != nil {
+	if err := svc.LoadAll(ctx); err != nil {
 		return nil, errors.Join(ccx.ResourcesLoadFailedErr, err)
 	}
 
 	return &updatedStore, nil
 }
 
-func HasSupportedChanges(old, c ccx.Datastore) (bool, error) {
+func hasSupportedChanges(old, c ccx.Datastore) (bool, error) {
 	var (
 		hasCan, hasCant bool
 		fields          []string
@@ -142,12 +124,6 @@ func HasSupportedChanges(old, c ccx.Datastore) (bool, error) {
 		hasCant = true
 		fields = append(fields, "cluster_type")
 	}
-
-	// if !cstrings.Sames(old.Tags, c.Tags) {
-	// 	hasCant = true
-	// 	fields = append(fields, "tags")
-	// }
-
 	if old.CloudProvider != c.CloudProvider {
 		hasCant = true
 		fields = append(fields, "cloud_provider")
@@ -173,11 +149,6 @@ func HasSupportedChanges(old, c ccx.Datastore) (bool, error) {
 		fields = append(fields, "volume_iops")
 	}
 
-	// if old.NetworkType != c.NetworkType {
-	// 	hasCant = true
-	// 	fields = append(fields, "network_type")
-	// }
-
 	if old.HAEnabled != c.HAEnabled {
 		hasCant = true
 		fields = append(fields, "ha_enabled")
@@ -188,7 +159,7 @@ func HasSupportedChanges(old, c ccx.Datastore) (bool, error) {
 		fields = append(fields, "vpc_uuid")
 	}
 
-	if !cstrings.Sames(old.AvailabilityZones, c.AvailabilityZones) {
+	if !slices.Equal(old.AvailabilityZones, c.AvailabilityZones) {
 		hasCant = true
 		fields = append(fields, "availability_zones")
 	}

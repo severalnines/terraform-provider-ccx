@@ -1,48 +1,58 @@
-package datastore
+package resources
 
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/severalnines/terraform-provider-ccx/ccx"
-	chttp "github.com/severalnines/terraform-provider-ccx/http"
-	"github.com/severalnines/terraform-provider-ccx/http/auth"
-	datastoreclient "github.com/severalnines/terraform-provider-ccx/http/datastore-client"
-	"github.com/severalnines/terraform-provider-ccx/terraform"
+	"github.com/severalnines/terraform-provider-ccx/ccx/api"
 )
 
 var (
-	_ ccx.TerraformResource = &Resource{}
+	_ TerraformResource = &Datastore{}
 )
 
-func ToDatastore(d *schema.ResourceData) ccx.Datastore {
+func schemaToDatastore(d *schema.ResourceData) (ccx.Datastore, error) {
 	c := ccx.Datastore{
 		ID:                d.Id(),
-		Name:              terraform.GetString(d, "name"),
-		Size:              terraform.GetInt(d, "size"),
-		DBVendor:          vendorToCCX(terraform.GetString(d, "db_vendor")),
-		DBVersion:         terraform.GetString(d, "db_version"),
-		Type:              terraform.GetString(d, "type"),
-		Tags:              terraform.GetStrings(d, "tags"),
-		CloudProvider:     terraform.GetString(d, "cloud_provider"),
-		CloudRegion:       terraform.GetString(d, "cloud_region"),
-		InstanceSize:      terraform.GetString(d, "instance_size"),
-		VolumeType:        terraform.GetString(d, "volume_type"),
-		VolumeSize:        terraform.GetInt(d, "volume_size"),
-		VolumeIOPS:        terraform.GetInt(d, "volume_iops"),
-		NetworkType:       terraform.GetString(d, "network_type"),
-		HAEnabled:         terraform.GetBool(d, "network_ha_enabled"),
-		VpcUUID:           terraform.GetString(d, "network_vpc_uuid"),
-		AvailabilityZones: terraform.GetStrings(d, "network_az"),
+		Name:              getString(d, "name"),
+		Size:              getInt(d, "size"),
+		DBVendor:          getString(d, "db_vendor"),
+		DBVersion:         getString(d, "db_version"),
+		Type:              getString(d, "type"),
+		Tags:              getStrings(d, "tags"),
+		CloudProvider:     getString(d, "cloud_provider"),
+		CloudRegion:       getString(d, "cloud_region"),
+		InstanceSize:      getString(d, "instance_size"),
+		VolumeType:        getString(d, "volume_type"),
+		VolumeSize:        getInt(d, "volume_size"),
+		VolumeIOPS:        getInt(d, "volume_iops"),
+		NetworkType:       getString(d, "network_type"),
+		HAEnabled:         getBool(d, "network_ha_enabled"),
+		VpcUUID:           getString(d, "network_vpc_uuid"),
+		AvailabilityZones: getStrings(d, "network_az"),
 	}
+
+	dbparams := getMapString(d, "db_params")
+	c.DbParams = dbparams
+
+	firewalls, err := getFirewalls(d, "firewall")
+	if err != nil {
+		return c, err
+	}
+
+	c.FirewallRules = firewalls
+
 	c.Type = defaultType(c.DBVendor, c.Type)
 
-	return c
+	return c, nil
 }
 
-func ToSchema(d *schema.ResourceData, c ccx.Datastore) error {
+func datastoreToSchema(c ccx.Datastore, d *schema.ResourceData) error {
 	d.SetId(c.ID)
+
 	var err error
 	if err = d.Set("name", c.Name); err != nil {
 		return err
@@ -50,15 +60,15 @@ func ToSchema(d *schema.ResourceData, c ccx.Datastore) error {
 	if err = d.Set("size", c.Size); err != nil {
 		return err
 	}
-	if err = d.Set("db_vendor", vendorFromCCX(c.DBVendor)); err != nil {
+	if err = d.Set("db_vendor", c.DBVendor); err != nil {
 		return err
 	}
-	if terraform.GetString(d, "db_version") != "" {
+	if getString(d, "db_version") != "" {
 		if err = d.Set("db_version", c.DBVersion); err != nil {
 			return err
 		}
 	}
-	if terraform.GetString(d, "type") != "" || c.Type != defaultType(c.DBVendor, c.Type) {
+	if getString(d, "type") != "" || c.Type != defaultType(c.DBVendor, c.Type) {
 		if err = d.Set("type", defaultType(c.DBVendor, c.Type)); err != nil {
 			return err
 		}
@@ -96,18 +106,47 @@ func ToSchema(d *schema.ResourceData, c ccx.Datastore) error {
 	if err = d.Set("network_az", c.AvailabilityZones); err != nil {
 		return err
 	}
+
+	if len(c.DbParams) != 0 {
+		err = d.Set("db_params", c.DbParams)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	if len(c.FirewallRules) != 0 {
+		err = setFirewalls(d, "firewall", c.FirewallRules)
+	}
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-type Resource struct {
-	svc ccx.DatastoreService
+type Datastore struct {
+	svc      ccx.DatastoreService
+	firewall Firewall
 }
 
-func (r *Resource) Name() string {
+func (r *Datastore) Name() string {
 	return "ccx_datastore"
 }
 
-func (r *Resource) Schema() *schema.Resource {
+func (r *Datastore) Configure(ctx context.Context, cfg TerraformConfiguration) error {
+	svc, err := api.Datastores(ctx, cfg.BaseURL, cfg.ClientID, cfg.ClientSecret, cfg.Timeout)
+	if err != nil {
+		return errors.Join(err, ccx.ResourcesLoadFailedErr)
+	}
+
+	r.svc = svc
+
+	return nil
+}
+
+func (r *Datastore) Schema() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -143,7 +182,7 @@ func (r *Resource) Schema() *schema.Resource {
 				Computed:         true,
 				Description:      "An optional list of tags, represented as a key, value pair",
 				Elem:             &schema.Schema{Type: schema.TypeString},
-				DiffSuppressFunc: terraform.NonNewSuppressor,
+				DiffSuppressFunc: nonNewSuppressor,
 			},
 			"cloud_provider": {
 				Type:        schema.TypeString,
@@ -179,7 +218,7 @@ func (r *Resource) Schema() *schema.Resource {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Description:      "Type of network: public/private",
-				DiffSuppressFunc: terraform.NonNewSuppressor,
+				DiffSuppressFunc: nonNewSuppressor,
 			},
 			"network_ha_enabled": {
 				Type:        schema.TypeBool,
@@ -197,6 +236,18 @@ func (r *Resource) Schema() *schema.Resource {
 				Description: "Network availability zones",
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
+			"db_params": {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Description: "Database parameters",
+				Elem:        &schema.Schema{Type: schema.TypeString},
+			},
+			"firewall": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "FirewallRule rules to allow",
+				Elem:        r.firewall.Schema(),
+			},
 		},
 		Create: r.Create,
 		Read:   r.Read,
@@ -208,32 +259,57 @@ func (r *Resource) Schema() *schema.Resource {
 	}
 }
 
-func (r *Resource) Configure(ctx context.Context, cfg ccx.TerraformConfiguration) error {
-	authorizer := auth.New(cfg.ClientID, cfg.ClientSecret, chttp.BaseURL(cfg.BaseURL))
-	datastoreCli, err := datastoreclient.New(ctx, authorizer, chttp.BaseURL(cfg.BaseURL))
-	if err != nil {
-		return errors.Join(err, ccx.ResourcesLoadFailedErr)
-	}
-
-	r.svc = datastoreCli
-	return nil
-}
-
-func (r *Resource) Create(d *schema.ResourceData, _ any) error {
+func (r *Datastore) Create(d *schema.ResourceData, _ any) error {
 	ctx := context.Background()
-	c := ToDatastore(d)
-	n, err := r.svc.Create(ctx, c)
+	c, err := schemaToDatastore(d)
+
 	if err != nil {
-		d.SetId("")
 		return err
 	}
 
-	return ToSchema(d, *n)
+	n, err := r.svc.Create(ctx, c)
+	if err != nil {
+		d.SetId("")
+		return fmt.Errorf("creating stores: %w", err)
+	}
+
+	var errs []error
+
+	if len(c.DbParams) != 0 {
+		if err := r.svc.SetParameters(ctx, n.ID, c.DbParams); err != nil {
+			errs = append(errs, fmt.Errorf("%w setting: %w", ccx.ParametersErr, err))
+		} else {
+			n.DbParams = c.DbParams
+		}
+	}
+
+	if len(c.FirewallRules) != 0 {
+		if err := r.svc.SetFirewallRules(ctx, n.ID, c.FirewallRules); err != nil {
+			errs = append(errs, fmt.Errorf("%w: setting: %w", ccx.FirewallRulesErr, err))
+		} else {
+			n.FirewallRules = c.FirewallRules
+		}
+	}
+
+	if err := datastoreToSchema(*n, d); err != nil {
+		errs = append(errs, fmt.Errorf("setting schema: %w", err))
+	}
+
+	if len(errs) != 0 {
+		return fmt.Errorf("creating stores completed only partially: %w", errors.Join(errs...))
+	}
+
+	return nil
 }
 
-func (r *Resource) Read(d *schema.ResourceData, _ any) error {
+func (r *Datastore) Read(d *schema.ResourceData, _ any) error {
 	ctx := context.Background()
-	c := ToDatastore(d)
+	c, err := schemaToDatastore(d)
+
+	if err != nil {
+		return err
+	}
+
 	n, err := r.svc.Read(ctx, c.ID)
 	if errors.Is(err, ccx.ResourceNotFoundErr) {
 		d.SetId("")
@@ -242,24 +318,60 @@ func (r *Resource) Read(d *schema.ResourceData, _ any) error {
 		return err
 	}
 
-	return ToSchema(d, *n)
+	return datastoreToSchema(*n, d)
 }
 
-func (r *Resource) Update(d *schema.ResourceData, _ any) error {
+func (r *Datastore) Update(d *schema.ResourceData, _ any) error {
 	ctx := context.Background()
-	c := ToDatastore(d)
+	c, err := schemaToDatastore(d)
+
+	if err != nil {
+		return err
+	}
+
 	n, err := r.svc.Update(ctx, c)
 	if err != nil {
 		return err
 	}
 
-	return ToSchema(d, *n)
+	var errs []error
+
+	if len(c.DbParams) != 0 {
+		if err := r.svc.SetParameters(ctx, n.ID, c.DbParams); err != nil {
+			errs = append(errs, fmt.Errorf("%w setting: %w", ccx.ParametersErr, err))
+		} else {
+			n.DbParams = c.DbParams
+		}
+	}
+
+	if len(c.FirewallRules) != 0 {
+		if err := r.svc.SetFirewallRules(ctx, n.ID, c.FirewallRules); err != nil {
+			errs = append(errs, fmt.Errorf("%w: setting: %w", ccx.FirewallRulesErr, err))
+		} else {
+			n.FirewallRules = c.FirewallRules
+		}
+	}
+
+	if err := datastoreToSchema(*n, d); err != nil {
+		errs = append(errs, fmt.Errorf("setting schema: %w", err))
+	}
+
+	if len(errs) != 0 {
+		return fmt.Errorf("creating stores completed only partially: %w", errors.Join(errs...))
+	}
+
+	return nil
 }
 
-func (r *Resource) Delete(d *schema.ResourceData, _ any) error {
+func (r *Datastore) Delete(d *schema.ResourceData, _ any) error {
 	ctx := context.Background()
-	c := ToDatastore(d)
-	err := r.svc.Delete(ctx, c.ID)
+	c, err := schemaToDatastore(d)
+
+	if err != nil {
+		return err
+	}
+
+	err = r.svc.Delete(ctx, c.ID)
 	if err != nil {
 		return err
 	}
@@ -273,7 +385,7 @@ func defaultType(vendor, dbType string) string {
 		return dbType
 	}
 	switch vendor {
-	case "mariadb", "percona", "mysql":
+	case "mariadb", "percona":
 		return "replication"
 	case "psql", "postgres":
 		return "postgres_streaming"
@@ -281,24 +393,4 @@ func defaultType(vendor, dbType string) string {
 		return "redis"
 	}
 	return ""
-}
-
-var (
-	tfToCCXVendor = map[string]string{"mysql": "percona"}
-	ccxToTFVendor = map[string]string{"percona": "mysql"}
-)
-
-func vendorToCCX(s string) string {
-	if v, ok := tfToCCXVendor[s]; ok {
-		return v
-	}
-	return s
-}
-
-func vendorFromCCX(s string) string {
-	if v, ok := ccxToTFVendor[s]; ok {
-		return v
-	}
-	return s
-
 }
