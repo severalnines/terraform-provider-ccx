@@ -32,10 +32,24 @@ provider "ccx" {
     client_secret = "please_enter_your_client_secret_here"
 }
 
-resource "ccx_datastore" "luna" {
+resource "ccx_datastore" "luna_postgres" {
   name           = "luna"
   size           = 1
   db_vendor      = "postgres"
+  tags           = ["new", "test"]
+  cloud_provider = "aws"
+  cloud_region   = "eu-north-1"
+  instance_size  = "m5.large"
+  volume_size    = 80
+  volume_type    = "gp2"
+  network_type   = "public"
+}
+
+resource "ccx_datastore" "luna_mysql" {
+  name           = "luna_mysql"
+  size           = 3
+  type           = "replication"
+  db_vendor      = "mysql"
   tags           = ["new", "test"]
   cloud_provider = "aws"
   cloud_region   = "eu-north-1"
@@ -133,7 +147,7 @@ provider  "ccx" {
 ```
 resource "ccx_datastore" "luna" {
   name           = "luna"
-  size           = 1
+  size           = 2
   db_vendor      = "postgres"
   tags           = ["new", "test"]
   cloud_provider = "aws"
@@ -144,7 +158,22 @@ resource "ccx_datastore" "luna" {
   network_type   = "public"
 }
 ```
-
+or for mysql, replication (primary and two replicas, i.e size=3)
+```
+resource "ccx_datastore" "luna_mysql" {
+  name           = "luna_mysql"
+  size           = 3
+  type           = "replication"
+  db_vendor      = "mysql"
+  tags           = ["new", "test"]
+  cloud_provider = "aws"
+  cloud_region   = "eu-north-1"
+  instance_size  = "m5.large"
+  volume_size    = 80
+  volume_type    = "gp2"
+  network_type   = "public"
+}
+```
 ### Create VPC
 
 ```
