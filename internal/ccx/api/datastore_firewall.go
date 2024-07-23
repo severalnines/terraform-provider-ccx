@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/severalnines/terraform-provider-ccx/ccx"
+	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 	"github.com/severalnines/terraform-provider-ccx/internal/lib"
 	"golang.org/x/sync/errgroup"
 )
@@ -110,27 +110,18 @@ func (svc *DatastoreService) CreateFirewallRule(ctx context.Context, storeID str
 }
 
 func (svc *DatastoreService) CreateFirewallRules(ctx context.Context, storeID string, firewalls []ccx.FirewallRule) error {
-	limiter := make(chan bool, 10)
-
-	var eg errgroup.Group
+	var errs []error
 
 	for _, f := range firewalls {
-		limiter <- true
-		f := f
-		eg.Go(func() error {
-			defer func() { <-limiter }()
-			err := svc.CreateFirewallRule(ctx, storeID, f)
-
-			if err != nil {
-				return fmt.Errorf("creating rule (source=%s, description=%s): %w", f.Source, f.Description, err)
-			}
-
-			return nil
-		})
+		err := svc.CreateFirewallRule(ctx, storeID, f)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("creating rule (source=%s, description=%s): %w", f.Source, f.Description, err))
+			break
+		}
 	}
 
-	if err := eg.Wait(); err != nil {
-		return err
+	if len(errs) != 0 {
+		return errors.Join(errs...)
 	}
 
 	return nil

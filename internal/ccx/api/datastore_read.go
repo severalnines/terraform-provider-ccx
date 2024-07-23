@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/severalnines/terraform-provider-ccx/ccx"
+	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 )
 
 type loadAllResponse []struct {

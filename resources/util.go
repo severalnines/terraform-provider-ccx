@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/severalnines/terraform-provider-ccx/ccx"
+	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 )
 
 func getString(d *schema.ResourceData, key string) string {
@@ -127,7 +127,7 @@ func getFirewalls(d *schema.ResourceData, key string) ([]ccx.FirewallRule, error
 	return ls, nil
 }
 
-func setFirewalls(d *schema.ResourceData, fieldname string, firewalls []ccx.FirewallRule) error {
+func setFirewalls(d *schema.ResourceData, firewalls []ccx.FirewallRule) error {
 	value := make([]map[string]any, 0, len(firewalls))
 
 	for _, f := range firewalls {
@@ -137,7 +137,7 @@ func setFirewalls(d *schema.ResourceData, fieldname string, firewalls []ccx.Fire
 		})
 	}
 
-	return d.Set(fieldname, value)
+	return d.Set("firewall", value)
 }
 
 func firewallFromMapAny(m map[string]any) (*ccx.FirewallRule, error) {

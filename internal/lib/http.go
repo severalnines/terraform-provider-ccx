@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/severalnines/terraform-provider-ccx/ccx"
+	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 )
 
 // ErrorResponse represents generic error responses from ccx api

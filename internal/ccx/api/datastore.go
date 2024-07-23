@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/severalnines/terraform-provider-ccx/ccx"
+	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 )
 
 type DatastoreService struct {
@@ -29,8 +29,9 @@ func Datastores(ctx context.Context, baseURL, clientID, clientSecret string, tim
 	}
 
 	j := jobs{
-		baseURL: baseURL,
-		auth:    a,
+		baseURL:             baseURL,
+		auth:                a,
+		awaitTickerDuration: time.Second * 10,
 	}
 
 	c := DatastoreService{

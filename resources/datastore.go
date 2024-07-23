@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/severalnines/terraform-provider-ccx/ccx"
-	"github.com/severalnines/terraform-provider-ccx/ccx/api"
+	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
+	"github.com/severalnines/terraform-provider-ccx/internal/ccx/api"
 )
 
 var (
@@ -50,7 +50,7 @@ func schemaToDatastore(d *schema.ResourceData) (ccx.Datastore, error) {
 	return c, nil
 }
 
-func datastoreToSchema(c ccx.Datastore, d *schema.ResourceData) error {
+func schemaFromDatastore(c ccx.Datastore, d *schema.ResourceData) error {
 	d.SetId(c.ID)
 
 	var err error
@@ -116,7 +116,7 @@ func datastoreToSchema(c ccx.Datastore, d *schema.ResourceData) error {
 	}
 
 	if len(c.FirewallRules) != 0 {
-		err = setFirewalls(d, "firewall", c.FirewallRules)
+		err = setFirewalls(d, c.FirewallRules)
 	}
 
 	if err != nil {
@@ -291,7 +291,7 @@ func (r *Datastore) Create(d *schema.ResourceData, _ any) error {
 		}
 	}
 
-	if err := datastoreToSchema(*n, d); err != nil {
+	if err := schemaFromDatastore(*n, d); err != nil {
 		errs = append(errs, fmt.Errorf("setting schema: %w", err))
 	}
 
@@ -318,7 +318,7 @@ func (r *Datastore) Read(d *schema.ResourceData, _ any) error {
 		return err
 	}
 
-	return datastoreToSchema(*n, d)
+	return schemaFromDatastore(*n, d)
 }
 
 func (r *Datastore) Update(d *schema.ResourceData, _ any) error {
@@ -352,7 +352,7 @@ func (r *Datastore) Update(d *schema.ResourceData, _ any) error {
 		}
 	}
 
-	if err := datastoreToSchema(*n, d); err != nil {
+	if err := schemaFromDatastore(*n, d); err != nil {
 		errs = append(errs, fmt.Errorf("setting schema: %w", err))
 	}
 

@@ -295,13 +295,14 @@ func Test_jobs_Await(t *testing.T) {
 			defer srv.Close()
 
 			svc := jobs{
-				baseURL: srv.URL,
-				auth:    fakeAuthorizer{wantToken: authToken},
+				baseURL:             srv.URL,
+				auth:                fakeAuthorizer{wantToken: authToken},
+				awaitTickerDuration: time.Second / 2,
 			}
 
 			ctx := context.Background()
 
-			got, err := svc.Await(ctx, tt.storeID, tt.job, time.Second*4)
+			got, err := svc.Await(ctx, tt.storeID, tt.job, time.Second*10)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetStatus() error = %v, wantErr %v", err, tt.wantErr)
 				return

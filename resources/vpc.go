@@ -5,8 +5,8 @@ import (
 	"errors"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/severalnines/terraform-provider-ccx/ccx"
-	"github.com/severalnines/terraform-provider-ccx/ccx/api"
+	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
+	"github.com/severalnines/terraform-provider-ccx/internal/ccx/api"
 )
 
 var (

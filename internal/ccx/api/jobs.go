@@ -25,8 +25,9 @@ const (
 )
 
 type jobs struct {
-	baseURL string
-	auth    authorizer
+	baseURL             string
+	auth                authorizer
+	awaitTickerDuration time.Duration
 }
 
 type jobsResponse struct {
@@ -41,17 +42,20 @@ type jobsResponseJobItem struct {
 }
 
 func (svc jobs) Await(ctx context.Context, storeID string, job jobType, wait time.Duration) (jobStatus, error) {
-	attempts := (wait / time.Second) * 2
-	ticker := time.NewTicker(time.Second / 2)
+	timeout := time.Now().Add(wait)
+	ticker := time.NewTicker(svc.awaitTickerDuration)
 
 	var (
 		status jobStatus
 		err    error
 	)
 
-	for ; attempts > 0; attempts-- {
+	for time.Now().Before(timeout) {
 		select {
 		case <-ctx.Done():
+			if err := ctx.Err(); err != nil {
+				return jobStatusUnknown, fmt.Errorf("context cancelled with error %w", err)
+			}
 			return jobStatusUnknown, errors.New("context cancelled")
 		default:
 			break
@@ -79,7 +83,7 @@ func (svc jobs) Await(ctx context.Context, storeID string, job jobType, wait tim
 }
 
 func (svc jobs) GetStatus(ctx context.Context, storeID string, job jobType) (jobStatus, error) {
-	url := svc.baseURL + "/api/deployment/v2/data-stores/" + storeID + "/jobs?limit=50&offset=0"
+	url := svc.baseURL + "/api/deployment/v2/data-stores/" + storeID + "/jobs?limit=10&offset=0"
 
 	var rs jobsResponse
 	if err := httpGet(ctx, svc.auth, url, &rs); err != nil {
