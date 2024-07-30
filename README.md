@@ -2,7 +2,7 @@
 
 This is the Terraform Provider for the Severalnines CCX Database as a service platform.
 
-- CCX Website: https://ccx.severalnines.com/
+- CCX Website: https://severalnines.com/ccx
 - Documentation: https://docs.severalnines.com/docs/ccx/
 - Support: https://support.severalnines.com/hc/en-us/requests/new (sign up before you create the request).
 
@@ -78,7 +78,7 @@ In that case set:
     network_vpc_uuid = ccx_vpc.venus.id
 ```
 
-in the resource "ccx_datastore" section, see also [example_datastore.tf](examples/example_datastore.tf)
+in the resource "ccx_datastore" section, see also [example_datastore.tf](examples/resources/ccx_datastore/resource.tf)
 
 3. Run:
 
