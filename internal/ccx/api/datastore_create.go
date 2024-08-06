@@ -1,9 +1,7 @@
 package api
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -29,8 +27,8 @@ type createStoreCloud struct {
 type createStoreInstance struct {
 	InstanceSize string `json:"instance_size"` // "Tiny" ... "2X-Large"
 	VolumeType   string `json:"volume_type"`
-	VolumeSize   int64  `json:"volume_size"`
-	VolumeIOPS   int64  `json:"volume_iops"`
+	VolumeSize   uint64 `json:"volume_size"`
+	VolumeIOPS   uint64 `json:"volume_iops"`
 }
 
 type createStoreNetwork struct {
@@ -47,7 +45,7 @@ type createStoreRequest struct {
 	Network  createStoreNetwork  `json:"network"`
 }
 
-func CreateRequestFromDatastore(c ccx.Datastore) createStoreRequest {
+func createRequestFromDatastore(c ccx.Datastore) createStoreRequest {
 	general := createStoreGeneral{
 		Name:      c.Name,
 		Size:      c.Size,
@@ -62,7 +60,7 @@ func CreateRequestFromDatastore(c ccx.Datastore) createStoreRequest {
 		CloudRegion:   c.CloudRegion,
 	}
 
-	var volumeSize int64
+	var volumeSize uint64
 	if c.VolumeSize == 0 {
 		volumeSize = 80
 	} else {
@@ -91,7 +89,7 @@ func CreateRequestFromDatastore(c ccx.Datastore) createStoreRequest {
 	}
 }
 
-type DatastoreResponse struct {
+type datastoreResponse struct {
 	UUID             string   `json:"uuid"`
 	Name             string   `json:"cluster_name"`
 	Type             string   `json:"cluster_type"`
@@ -110,51 +108,10 @@ type DatastoreResponse struct {
 	AZS              []string `json:"azs"`
 }
 
-func DatastoreFromResponse(r DatastoreResponse) ccx.Datastore {
-	return ccx.Datastore{
-		ID:                r.UUID,
-		Name:              r.Name,
-		Size:              r.Size,
-		DBVendor:          r.DbVendor,
-		DBVersion:         r.DbVersion,
-		Type:              r.Type,
-		Tags:              r.Tags,
-		CloudProvider:     r.CloudProvider,
-		CloudRegion:       r.Region,
-		InstanceSize:      r.InstanceSize,
-		VolumeType:        pString(r.DiskType),
-		VolumeSize:        int64(pUint64(r.DiskSize)),
-		VolumeIOPS:        int64(pUint64(r.IOPS)),
-		NetworkType:       "", // todo
-		HAEnabled:         r.HighAvailability,
-		VpcUUID:           pString(r.VpcUUID),
-		AvailabilityZones: r.AZS,
-	}
-}
-
 func (svc *DatastoreService) Create(ctx context.Context, c ccx.Datastore) (*ccx.Datastore, error) {
-	cr := CreateRequestFromDatastore(c)
+	cr := createRequestFromDatastore(c)
 
-	var b bytes.Buffer
-	if err := json.NewEncoder(&b).Encode(cr); err != nil {
-		return nil, errors.Join(ccx.RequestEncodingErr, err)
-	}
-
-	url := svc.baseURL + "/api/prov/api/v2/cluster"
-	req, err := http.NewRequest(http.MethodPost, url, &b)
-	if err != nil {
-		return nil, errors.Join(ccx.CreateFailedErr, ccx.RequestInitializationErr, err)
-	}
-
-	token, err := svc.auth.Auth(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Authorization", token)
-	client := &http.Client{Timeout: ccx.DefaultTimeout}
-
-	res, err := client.Do(req)
+	res, err := svc.httpcli.Do(ctx, http.MethodPost, "/api/prov/api/v2/cluster", cr)
 	if err != nil {
 		return nil, errors.Join(ccx.RequestSendingErr, err)
 	}
@@ -164,22 +121,25 @@ func (svc *DatastoreService) Create(ctx context.Context, c ccx.Datastore) (*ccx.
 	}
 
 	if res.StatusCode != http.StatusCreated {
-		return nil, fmt.Errorf(":%w :%w: status = %d", ccx.CreateFailedErr, lib.ErrorFromErrorResponse(res.Body), res.StatusCode)
+		return nil, fmt.Errorf("%w :%w: status = %d", ccx.CreateFailedErr, lib.ErrorFromErrorResponse(res.Body), res.StatusCode)
 	}
 
-	var rs DatastoreResponse
+	var rs datastoreResponse
 	if err := lib.DecodeJsonInto(res.Body, &rs); err != nil {
 		return nil, fmt.Errorf("%w: %w", ccx.CreateFailedErr, err)
 	}
 
-	newDatastore := DatastoreFromResponse(rs)
-
-	status, err := svc.jobs.Await(ctx, rs.UUID, deployStoreJob, svc.timeout)
+	status, err := svc.jobs.Await(ctx, rs.UUID, deployStoreJob)
 	if err != nil {
 		return nil, fmt.Errorf("%w: awaiting deploy job: %w", ccx.CreateFailedErr, err)
 	} else if status != jobStatusFinished {
 		return nil, fmt.Errorf("%w: deploy job failed: %s", ccx.CreateFailedErr, status)
 	}
 
-	return &newDatastore, nil
+	newDatastore, err := svc.Read(ctx, rs.UUID)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ccx.CreateFailedErr, err)
+	}
+
+	return newDatastore, nil
 }

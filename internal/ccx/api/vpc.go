@@ -5,21 +5,13 @@ import (
 )
 
 type VpcService struct {
-	auth    authorizer
-	baseURL string
+	httpcli HttpClient
 }
 
 // Vpcs creates a new VPC VpcService
-func Vpcs(baseURL, clientID, clientSecret string) *VpcService {
-	a := tokenAuthorizer{
-		id:      clientID,
-		secret:  clientSecret,
-		baseURL: baseURL,
-	}
-
+func Vpcs(httpcli HttpClient) *VpcService {
 	var c = VpcService{
-		auth:    a,
-		baseURL: baseURL,
+		httpcli: httpcli,
 	}
 
 	return &c

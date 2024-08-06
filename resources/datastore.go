@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx/api"
+	"github.com/severalnines/terraform-provider-ccx/internal/lib"
 )
 
 var (
@@ -27,8 +28,8 @@ func schemaToDatastore(d *schema.ResourceData) (ccx.Datastore, error) {
 		CloudRegion:       getString(d, "cloud_region"),
 		InstanceSize:      getString(d, "instance_size"),
 		VolumeType:        getString(d, "volume_type"),
-		VolumeSize:        getInt(d, "volume_size"),
-		VolumeIOPS:        getInt(d, "volume_iops"),
+		VolumeSize:        uint64(getInt(d, "volume_size")),
+		VolumeIOPS:        uint64(getInt(d, "volume_iops")),
 		NetworkType:       getString(d, "network_type"),
 		HAEnabled:         getBool(d, "network_ha_enabled"),
 		VpcUUID:           getString(d, "network_vpc_uuid"),
@@ -38,7 +39,7 @@ func schemaToDatastore(d *schema.ResourceData) (ccx.Datastore, error) {
 	dbparams := getMapString(d, "db_params")
 	c.DbParams = dbparams
 
-	firewalls, err := getFirewalls(d, "firewall")
+	firewalls, err := getFirewalls(d)
 	if err != nil {
 		return c, err
 	}
@@ -46,6 +47,9 @@ func schemaToDatastore(d *schema.ResourceData) (ccx.Datastore, error) {
 	c.FirewallRules = firewalls
 
 	c.Type = defaultType(c.DBVendor, c.Type)
+
+	c.Notifications = getNotifications(d)
+	c.MaintenanceSettings = getMaintenanceSettings(d)
 
 	return c, nil
 }
@@ -107,28 +111,29 @@ func schemaFromDatastore(c ccx.Datastore, d *schema.ResourceData) error {
 		return err
 	}
 
-	if len(c.DbParams) != 0 {
-		err = d.Set("db_params", c.DbParams)
-	}
-
-	if err != nil {
+	if err = d.Set("db_params", c.DbParams); err != nil {
 		return err
 	}
 
-	if len(c.FirewallRules) != 0 {
-		err = setFirewalls(d, c.FirewallRules)
+	if err = setFirewalls(d, c.FirewallRules); err != nil {
+		return err
 	}
 
-	if err != nil {
+	if err = setNotifications(d, c.Notifications); err != nil {
 		return err
+	}
+
+	if c.MaintenanceSettings != nil {
+		if err = setMaintenanceSettings(d, *c.MaintenanceSettings); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
 type Datastore struct {
-	svc      ccx.DatastoreService
-	firewall Firewall
+	svc ccx.DatastoreService
 }
 
 func (r *Datastore) Name() string {
@@ -136,7 +141,9 @@ func (r *Datastore) Name() string {
 }
 
 func (r *Datastore) Configure(ctx context.Context, cfg TerraformConfiguration) error {
-	svc, err := api.Datastores(ctx, cfg.BaseURL, cfg.ClientID, cfg.ClientSecret, cfg.Timeout)
+	httpcli := lib.NewHttpClient("datastore", cfg.BaseURL, cfg.ClientID, cfg.ClientSecret, cfg.Logpath)
+
+	svc, err := api.Datastores(ctx, httpcli, cfg.Timeout)
 	if err != nil {
 		return errors.Join(err, ccx.ResourcesLoadFailedErr)
 	}
@@ -153,7 +160,6 @@ func (r *Datastore) Schema() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The name of the datastore",
-				// ValidateFunc: validateName,
 			},
 			"type": {
 				Type:        schema.TypeString,
@@ -246,7 +252,45 @@ func (r *Datastore) Schema() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				Description: "FirewallRule rules to allow",
-				Elem:        r.firewall.Schema(),
+				Elem:        (firewall{}).Schema(),
+			},
+			// "notifications": {
+			// 	Type:        schema.TypeMap,
+			// 	Optional:    true,
+			// 	Description: "Notification settings",
+			// 	Elem:        (notifications{}).Schema(),
+			// },
+			"notifications_enabled": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Enable or disable notifications. Default is false",
+			},
+			"notifications_emails": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "List of email addresses to send notifications to",
+				Elem:        &schema.Schema{Type: schema.TypeString},
+			},
+			// "maintenance_settings": {
+			// 	Type:        schema.TypeMap,
+			// 	Optional:    true,
+			// 	Description: "Maintenance settings",
+			// 	Elem:        (maintenance{}).Schema(),
+			// },
+			"maintenance_day_of_week": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "Day of the week to run the maintenance. 1-7, 1 is Monday",
+			},
+			"maintenance_start_hour": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "Hour of the day to start the maintenance. 0-23",
+			},
+			"maintenance_end_hour": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "Hour of the day to end the maintenance. 0-23. Must be start_hour + 2",
 			},
 		},
 		Create: r.Create,
@@ -283,12 +327,10 @@ func (r *Datastore) Create(d *schema.ResourceData, _ any) error {
 		}
 	}
 
-	if len(c.FirewallRules) != 0 {
-		if err := r.svc.SetFirewallRules(ctx, n.ID, c.FirewallRules); err != nil {
-			errs = append(errs, fmt.Errorf("%w: setting: %w", ccx.FirewallRulesErr, err))
-		} else {
-			n.FirewallRules = c.FirewallRules
-		}
+	if err := r.svc.SetFirewallRules(ctx, n.ID, c.FirewallRules); err != nil {
+		errs = append(errs, fmt.Errorf("%w: setting: %w", ccx.FirewallRulesErr, err))
+	} else {
+		n.FirewallRules = c.FirewallRules
 	}
 
 	if err := schemaFromDatastore(*n, d); err != nil {
@@ -323,25 +365,28 @@ func (r *Datastore) Read(d *schema.ResourceData, _ any) error {
 
 func (r *Datastore) Update(d *schema.ResourceData, _ any) error {
 	ctx := context.Background()
-	c, err := schemaToDatastore(d)
 
+	c, err := schemaToDatastore(d)
 	if err != nil {
 		return err
 	}
 
-	n, err := r.svc.Update(ctx, c)
+	old, err := r.svc.Read(ctx, c.ID)
+	if err != nil {
+		return err
+	}
+
+	n, err := r.svc.Update(ctx, *old, c)
 	if err != nil {
 		return err
 	}
 
 	var errs []error
 
-	if len(c.DbParams) != 0 {
-		if err := r.svc.SetParameters(ctx, n.ID, c.DbParams); err != nil {
-			errs = append(errs, fmt.Errorf("%w setting: %w", ccx.ParametersErr, err))
-		} else {
-			n.DbParams = c.DbParams
-		}
+	if err := r.svc.SetParameters(ctx, n.ID, c.DbParams); err != nil {
+		errs = append(errs, fmt.Errorf("%w setting: %w", ccx.ParametersErr, err))
+	} else {
+		n.DbParams = c.DbParams
 	}
 
 	if len(c.FirewallRules) != 0 {
@@ -357,7 +402,7 @@ func (r *Datastore) Update(d *schema.ResourceData, _ any) error {
 	}
 
 	if len(errs) != 0 {
-		return fmt.Errorf("creating stores completed only partially: %w", errors.Join(errs...))
+		return fmt.Errorf("updating stores completed only partially: %w", errors.Join(errs...))
 	}
 
 	return nil
