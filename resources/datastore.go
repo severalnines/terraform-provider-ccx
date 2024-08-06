@@ -374,7 +374,7 @@ func (r *Datastore) Update(ctx context.Context, d *schema.ResourceData, _ any) d
 
 	var errs []error
 
-	if !parametersEqual(old.DbParams, c.DbParams) {
+	if d.HasChange("db_params") {
 		if err := r.svc.SetParameters(ctx, n.ID, c.DbParams); err != nil {
 			errs = append(errs, fmt.Errorf("%w setting: %w", ccx.ParametersErr, err))
 		} else {

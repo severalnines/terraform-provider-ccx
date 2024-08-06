@@ -2,15 +2,12 @@ package resources
 
 import (
 	"context"
-	"os"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx/api"
 	"github.com/severalnines/terraform-provider-ccx/internal/lib"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
 type TerraformConfiguration struct {
@@ -18,7 +15,6 @@ type TerraformConfiguration struct {
 	ClientSecret string
 	BaseURL      string
 	Timeout      time.Duration
-	Logpath      string
 
 	httpClient api.HttpClient
 }
@@ -77,11 +73,6 @@ func (p *provider) Resources() *schema.Provider {
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("CCX_TIMEOUT", "15m"),
 			},
-			"debug_log_path": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("CCX_DEBUG_LOG_PATH", ""),
-			},
 		},
 		ResourcesMap:         rsc,
 		ConfigureContextFunc: p.Configure,
@@ -93,19 +84,12 @@ func (p *provider) Configure(_ context.Context, d *schema.ResourceData) (any, di
 		ClientID:     getString(d, "client_id"),
 		ClientSecret: getString(d, "client_secret"),
 		BaseURL:      getString(d, "base_url"),
-		Logpath:      getString(d, "debug_log_path"),
 	}
 
 	if t, err := time.ParseDuration(getString(d, "timeout")); err == nil {
 		p.Config.Timeout = t
 	} else {
 		return nil, diag.Errorf("invalid timeout (%s): %s", getString(d, "timeout"), err)
-	}
-
-	if p.Config.Logpath != "" {
-		if err := os.MkdirAll(p.Config.Logpath, 0755); err != nil {
-			return nil, diag.Errorf("creating log directory [%s]: %s", p.Config.Logpath, err)
-		}
 	}
 
 	p.Config.httpClient = lib.NewHttpClient(p.Config.BaseURL, p.Config.ClientID, p.Config.ClientSecret)

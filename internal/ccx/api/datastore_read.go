@@ -55,21 +55,23 @@ func (svc *DatastoreService) Read(ctx context.Context, id string) (*ccx.Datastor
 	}
 
 	c := ccx.Datastore{
-		ID:                rs.ID,
-		Name:              rs.Name,
-		Size:              rs.Size,
-		DBVendor:          rs.DbVendor,
-		DBVersion:         rs.DbVersion,
-		Type:              rs.Type,
-		Tags:              rs.Tags,
-		CloudProvider:     rs.CloudProvider,
-		CloudRegion:       rs.Region.Code,
-		InstanceSize:      rs.InstanceSize,
-		VolumeType:        lib.StringVal(rs.DiskType),
-		VolumeSize:        lib.Uint64Val(rs.DiskSize),
-		VolumeIOPS:        lib.Uint64Val(rs.InstanceIOPS),
-		HAEnabled:         rs.HighAvailability,
-		AvailabilityZones: rs.AZS,
+		ID:                  rs.ID,
+		Name:                rs.Name,
+		Size:                rs.Size,
+		DBVendor:            rs.DbVendor,
+		DBVersion:           rs.DbVersion,
+		Type:                rs.Type,
+		Tags:                rs.Tags,
+		CloudProvider:       rs.CloudProvider,
+		CloudRegion:         rs.Region.Code,
+		InstanceSize:        rs.InstanceSize,
+		VolumeType:          lib.StringVal(rs.DiskType),
+		VolumeSize:          lib.Uint64Val(rs.DiskSize),
+		VolumeIOPS:          lib.Uint64Val(rs.InstanceIOPS),
+		HAEnabled:           rs.HighAvailability,
+		AvailabilityZones:   rs.AZS,
+		Notifications:       rs.Notifications,
+		MaintenanceSettings: rs.MaintenanceSettings,
 	}
 
 	if rs.Vpc != nil {

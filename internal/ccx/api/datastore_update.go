@@ -17,7 +17,7 @@ type updateRequest struct {
 	Remove        *removeHosts   `json:"remove_nodes"`
 	Add           *addHosts      `json:"add_nodes"`
 	Notifications *notifications `json:"notifications"`
-	Maintenance   *maintenance   `json:"maintenance"`
+	Maintenance   *maintenance   `json:"maintenance_settings"`
 }
 
 type removeHosts struct {

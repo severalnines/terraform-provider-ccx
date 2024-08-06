@@ -33,7 +33,10 @@ func (l *LoggingRoundTripper) RoundTrip(req *http.Request) (*http.Response, erro
 		return nil, err
 	}
 
-	tflog.Trace(req.Context(), fmt.Sprintf("ccx api request: %s\n response: %s", requestDump, responseDump))
+	tflog.Debug(req.Context(), fmt.Sprintf("ccx api request %s", req.URL.Path), map[string]any{
+		"request":  string(requestDump),
+		"response": string(responseDump),
+	})
 
 	return res, nil
 }

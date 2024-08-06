@@ -74,7 +74,6 @@ func Closed(c io.Closer) {
 }
 
 func NewHttpClient(baseURL, clientID, clientSecret string) *HttpClient {
-
 	creds := &clientcredentials.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
