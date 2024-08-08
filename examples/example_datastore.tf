@@ -25,6 +25,20 @@ resource "ccx_datastore" "luna" {
   volume_size    = 80
   volume_type    = "gp2"
   network_type   = "public"
+
+  db_params = {
+    deadlock_timeout = "2"
+  }
+
+  firewall {
+    source = "2.3.41.5/10"
+    description = "hello"
+  }
+
+  firewall {
+    source = "2.2.2.2/24"
+    description = "world"
+  }
 }
 
 output "MOTD" {
