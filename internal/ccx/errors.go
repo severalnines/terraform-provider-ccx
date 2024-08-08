@@ -35,4 +35,13 @@ var (
 
 	// AuthenticationFailedErr indicates failure to authenticate with the api server
 	AuthenticationFailedErr = errors.New("authentication failed")
+
+	// CreateFailedErr indicates failure to create a resource
+	CreateFailedErr = errors.New("failed to create resource")
+
+	// ParametersErr indicates failure to configure parameters
+	ParametersErr = errors.New("failed to configure parameters")
+
+	// FirewallRulesErr indicates failure to configure firewall rules
+	FirewallRulesErr = errors.New("failed to configure firewall rules")
 )

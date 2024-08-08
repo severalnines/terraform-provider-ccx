@@ -5,6 +5,8 @@ go 1.20
 require (
 	github.com/hashicorp/terraform v0.14.4
 	github.com/hashicorp/terraform-plugin-docs v0.8.1
+	github.com/stretchr/testify v1.7.0
+	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 )
 
 require (
@@ -21,6 +23,7 @@ require (
 	github.com/aws/aws-sdk-go v1.36.1 // indirect
 	github.com/bgentry/speakeasy v0.1.0 // indirect
 	github.com/bmatcuk/doublestar v1.1.5 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fatih/color v1.7.0 // indirect
 	github.com/golang/protobuf v1.4.3 // indirect
 	github.com/google/go-cmp v0.5.8 // indirect
@@ -54,6 +57,7 @@ require (
 	github.com/mitchellh/mapstructure v1.4.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/oklog/run v1.0.0 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/posener/complete v1.2.1 // indirect
 	github.com/russross/blackfriday v1.6.0 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
