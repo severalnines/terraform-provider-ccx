@@ -1,9 +1,7 @@
 package api
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -33,26 +31,7 @@ func CreateRequestFromVpc(v ccx.VPC) createVpcRequest {
 func (svc *VpcService) Create(ctx context.Context, vpc ccx.VPC) (*ccx.VPC, error) {
 	cr := CreateRequestFromVpc(vpc)
 
-	var b bytes.Buffer
-	if err := json.NewEncoder(&b).Encode(cr); err != nil {
-		return nil, errors.Join(ccx.RequestEncodingErr, err)
-	}
-
-	url := svc.baseURL + "/api/vpc/api/v2/vpcs"
-	req, err := http.NewRequest(http.MethodPost, url, &b)
-	if err != nil {
-		return nil, errors.Join(ccx.RequestInitializationErr, err)
-	}
-
-	token, err := svc.auth.Auth(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Authorization", token)
-	client := &http.Client{Timeout: ccx.DefaultTimeout}
-
-	res, err := client.Do(req)
+	res, err := svc.httpcli.Do(ctx, http.MethodPost, "/api/vpc/api/v2/vpcs", cr)
 	if err != nil {
 		return nil, errors.Join(ccx.RequestSendingErr, err)
 	}

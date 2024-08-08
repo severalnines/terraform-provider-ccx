@@ -10,21 +10,7 @@ import (
 )
 
 func (svc *VpcService) Delete(ctx context.Context, id string) error {
-	url := svc.baseURL + "/api/vpc/api/v2/vpcs" + "/" + id
-	req, err := http.NewRequest(http.MethodDelete, url, nil)
-	if err != nil {
-		return errors.Join(ccx.RequestInitializationErr, err)
-	}
-
-	token, err := svc.auth.Auth(ctx)
-	if err != nil {
-		return err
-	}
-
-	req.Header.Set("Authorization", token)
-	client := &http.Client{Timeout: ccx.DefaultTimeout}
-
-	res, err := client.Do(req)
+	res, err := svc.httpcli.Do(ctx, http.MethodDelete, "/api/vpc/api/v2/vpcs"+"/"+id, nil)
 	if err != nil {
 		return errors.Join(ccx.RequestSendingErr, err)
 	}

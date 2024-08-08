@@ -25,11 +25,15 @@ description: |-
 
 ### Optional
 
+- `db_params` (Map of String) Database parameters
 - `db_version` (String) Database Version
+- `firewall` (Block List) (see [below for nested schema](#nestedblock--firewall))
+- `maintenance_settings` (Map of String) Maintenance settings
 - `network_az` (List of String) Network availability zones
 - `network_ha_enabled` (Boolean) High availability enabled or not
 - `network_type` (String) Type of network: public/private
 - `network_vpc_uuid` (String) VPC to use if network_type is private
+- `notifications` (Map of String) Notification settings
 - `size` (Number) The size of the datastore ( int64 ). 1 or 3 nodes.
 - `tags` (List of String) An optional list of tags, represented as a key, value pair
 - `type` (String) Replication type of the datastore
@@ -38,6 +42,21 @@ description: |-
 - `volume_type` (String) Volume type
 
 ### Read-Only
+
+- `id` (String) The ID of this resource.
+
+<a id="nestedblock--firewall"></a>
+### Nested Schema for `firewall`
+
+Required:
+
+- `source` (String) CIDR source for the firewall rule
+
+Optional:
+
+- `description` (String) Description of this firewall rule
+
+Read-Only:
 
 - `id` (String) The ID of this resource.
 

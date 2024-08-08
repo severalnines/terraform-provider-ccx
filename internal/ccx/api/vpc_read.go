@@ -7,11 +7,9 @@ import (
 )
 
 func (svc *VpcService) Read(ctx context.Context, id string) (*ccx.VPC, error) {
-	url := svc.baseURL + "/api/vpc/api/v2/vpcs/" + id
-
 	var rs vpcResponse
 
-	if err := httpGet(ctx, svc.auth, url, &rs); err != nil {
+	if err := svc.httpcli.Get(ctx, "/api/vpc/api/v2/vpcs/"+id, &rs); err != nil {
 		return nil, err
 	}
 

@@ -1,172 +1,232 @@
 package api
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"slices"
-	"strings"
 
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 	"github.com/severalnines/terraform-provider-ccx/internal/lib"
 )
 
-type UpdateRequest struct {
-	NewName       string `json:"cluster_name"`
-	NewVolumeSize uint   `json:"new_volume_size"`
+type updateRequest struct {
+	NewName       string         `json:"cluster_name"`
+	NewVolumeSize uint           `json:"new_volume_size"`
+	Remove        *removeHosts   `json:"remove_nodes"`
+	Add           *addHosts      `json:"add_nodes"`
+	Notifications *notifications `json:"notifications"`
+	Maintenance   *maintenance   `json:"maintenance"`
 }
 
-func (svc *DatastoreService) Update(ctx context.Context, c ccx.Datastore) (*ccx.Datastore, error) {
-	old, err := svc.Read(ctx, c.ID)
-	if errors.Is(err, ccx.ResourceNotFoundErr) {
-		return nil, ccx.ResourceNotFoundErr
-	} else if err != nil {
+type removeHosts struct {
+	HostIDs []string `json:"node_uuids"`
+}
+
+type addHosts struct {
+	Specs []hostSpecs `json:"specs"`
+}
+
+type notifications struct {
+	Enabled bool     `json:"enabled"`
+	Emails  []string `json:"emails"`
+}
+
+type maintenance struct {
+	DayOfWeek uint32 `json:"day_of_week"`
+	StartHour uint64 `json:"start_hour"`
+	EndHour   uint64 `json:"end_hour"`
+}
+
+type hostSpecs struct {
+	InstanceType string `json:"instance_size"`
+	AZ           string `json:"availability_zone"`
+}
+
+func (svc *DatastoreService) Update(ctx context.Context, old, next ccx.Datastore) (*ccx.Datastore, error) {
+	if err := svc.update(ctx, old, next); err != nil {
 		return nil, err
 	}
 
-	if hasCan, err := hasSupportedChanges(*old, c); err != nil {
+	if err := svc.resize(ctx, old, next); err != nil {
 		return nil, err
-	} else if !hasCan {
-		return old, nil
 	}
 
-	var ur UpdateRequest
-
-	if old.Name != c.Name {
-		ur.NewName = c.Name
-	}
-
-	if old.VolumeSize != c.VolumeSize {
-		ur.NewVolumeSize = uint(c.VolumeSize)
-	}
-
-	var b bytes.Buffer
-	if err := json.NewEncoder(&b).Encode(ur); err != nil {
-		return nil, errors.Join(ccx.RequestEncodingErr, err)
-	}
-
-	url := svc.baseURL + "/api/prov/api/v2/cluster/" + c.ID
-	req, err := http.NewRequest(http.MethodPatch, url, &b)
-	if err != nil {
-		return nil, errors.Join(ccx.RequestInitializationErr, err)
-	}
-
-	token, err := svc.auth.Auth(ctx)
+	updatedStore, err := svc.Read(ctx, old.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	req.Header.Set("Authorization", token)
-	client := &http.Client{Timeout: ccx.DefaultTimeout}
+	return updatedStore, nil
+}
 
-	res, err := client.Do(req)
+func (svc *DatastoreService) update(ctx context.Context, old, next ccx.Datastore) error {
+	ur, ok := svc.updateRequest(old, next)
+	if !ok {
+		return nil
+	}
+
+	res, err := svc.httpcli.Do(ctx, http.MethodPatch, "/api/prov/api/v2/cluster/"+next.ID, ur)
 	if err != nil {
-		return nil, errors.Join(ccx.RequestSendingErr, err)
+		return errors.Join(ccx.RequestSendingErr, err)
 	}
 
 	if res.StatusCode == http.StatusBadRequest {
-		return nil, lib.ErrorFromErrorResponse(res.Body)
+		return lib.ErrorFromErrorResponse(res.Body)
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%w: status = %d", ccx.ResponseStatusFailedErr, res.StatusCode)
+		return fmt.Errorf("%w: status = %d", ccx.ResponseStatusFailedErr, res.StatusCode)
 	}
 
-	var rs DatastoreResponse
-	if err := lib.DecodeJsonInto(res.Body, &rs); err != nil {
-		return nil, err
-	}
-
-	updatedStore := DatastoreFromResponse(rs)
-
-	if err := svc.LoadAll(ctx); err != nil {
-		return nil, errors.Join(ccx.ResourcesLoadFailedErr, err)
-	}
-
-	return &updatedStore, nil
+	return nil
 }
 
-func hasSupportedChanges(old, c ccx.Datastore) (bool, error) {
+func (svc *DatastoreService) resize(ctx context.Context, old, next ccx.Datastore) error {
+	ur, ok := svc.updateSizeRequest(old, next)
+	if !ok {
+		return nil
+	}
+
+	res, err := svc.httpcli.Do(ctx, http.MethodPatch, "/api/prov/api/v2/cluster/"+next.ID, ur)
+	if err != nil {
+		return errors.Join(ccx.RequestSendingErr, err)
+	}
+
+	if res.StatusCode == http.StatusBadRequest {
+		return lib.ErrorFromErrorResponse(res.Body)
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return fmt.Errorf("%w: status = %d", ccx.ResponseStatusFailedErr, res.StatusCode)
+	}
+
+	var jt jobType
+
+	if old.Size > next.Size {
+		jt = removeNodeJob
+	} else if old.Size < next.Size {
+		jt = addNodeJob
+	} else {
+		// should not be here
+		return nil
+	}
+
+	status, err := svc.jobs.Await(ctx, old.ID, jt)
+	if err != nil {
+		return fmt.Errorf("%w: awaiting resize job: %w", ccx.CreateFailedErr, err)
+	} else if status != jobStatusFinished {
+		return fmt.Errorf("%w: resize job failed: %s", ccx.CreateFailedErr, status)
+	}
+
+	return nil
+}
+
+func (svc *DatastoreService) updateSizeRequest(old, next ccx.Datastore) (updateRequest, bool) {
 	var (
-		hasCan, hasCant bool
-		fields          []string
+		ur updateRequest
+		ok bool
 	)
 
-	if old.Name != c.Name {
-		hasCan = true
+	if old.Size > next.Size { // remove the oldest non-primary nodes
+		ids, err := oldestRemovableNodeIds(old.Hosts, int(old.Size-next.Size))
+		if err != nil {
+			return ur, false
+		}
+
+		ur.Remove = &removeHosts{HostIDs: ids}
+		ok = true
+	} else if old.Size < next.Size { // add new hosts based on newest node spec
+		specs, err := newestNodeSpecs(old.Hosts, int(next.Size-old.Size))
+		if err != nil {
+			return ur, false
+		}
+
+		ur.Add = &addHosts{Specs: specs}
+		ok = true
 	}
 
-	if old.Size != c.Size {
-		hasCant = true
-		fields = append(fields, "cluster_size")
+	return ur, ok
+}
+
+func (svc *DatastoreService) updateRequest(old, next ccx.Datastore) (updateRequest, bool) {
+	var (
+		ur updateRequest
+		ok bool
+	)
+
+	if old.Name != next.Name {
+		ur.NewName = next.Name
+		ok = true
 	}
 
-	if old.VolumeSize != c.VolumeSize {
-		// hasCan = true
-		hasCant = true
-		fields = append(fields, "volume_size")
+	if old.VolumeSize != next.VolumeSize {
+		ur.NewVolumeSize = uint(next.VolumeSize)
+		ok = true
 	}
 
-	if old.DBVendor != c.DBVendor {
-		hasCant = true
-		fields = append(fields, "db_vendor")
+	if old.Notifications.Enabled != next.Notifications.Enabled || !slices.Equal(old.Notifications.Emails, next.Notifications.Emails) {
+		ur.Notifications = &notifications{
+			Enabled: next.Notifications.Enabled,
+			Emails:  next.Notifications.Emails,
+		}
+
+		ok = true
 	}
 
-	if old.DBVersion != c.DBVersion {
-		hasCant = true
-		fields = append(fields, "db_version")
+	if next.MaintenanceSettings != nil {
+		ur.Maintenance = &maintenance{
+			DayOfWeek: uint32(next.MaintenanceSettings.DayOfWeek),
+			StartHour: uint64(next.MaintenanceSettings.StartHour),
+			EndHour:   uint64(next.MaintenanceSettings.EndHour),
+		}
+
+		ok = true
 	}
 
-	if old.Type != c.Type {
-		hasCant = true
-		fields = append(fields, "cluster_type")
-	}
-	if old.CloudProvider != c.CloudProvider {
-		hasCant = true
-		fields = append(fields, "cloud_provider")
+	return ur, ok
+}
+
+func oldestRemovableNodeIds(hosts []ccx.Host, count int) ([]string, error) {
+	hosts = slices.DeleteFunc(hosts, func(h ccx.Host) bool {
+		return h.IsPrimary()
+	})
+
+	if len(hosts) < count {
+		return nil, fmt.Errorf("cannot remove %d nodes, only %d non-primary available", count, len(hosts))
 	}
 
-	if old.CloudRegion != c.CloudRegion {
-		hasCant = true
-		fields = append(fields, "cloud_region")
+	slices.SortStableFunc(hosts, func(a, b ccx.Host) int {
+		return a.CreatedAt.Compare(b.CreatedAt)
+	})
+
+	ls := make([]string, 0, count)
+	for i := 0; i < count; i++ {
+		ls = append(ls, hosts[i].ID)
 	}
 
-	if old.InstanceSize != c.InstanceSize {
-		hasCant = true
-		fields = append(fields, "instance_size")
+	return ls, nil
+}
+
+func newestNodeSpecs(hosts []ccx.Host, count int) ([]hostSpecs, error) {
+	if len(hosts) == 0 {
+		return nil, fmt.Errorf("no nodes available")
 	}
 
-	if old.VolumeType != c.VolumeType {
-		hasCant = true
-		fields = append(fields, "volume_type")
+	slices.SortStableFunc(hosts, func(a, b ccx.Host) int {
+		return b.CreatedAt.Compare(a.CreatedAt)
+	})
+
+	h := hosts[0]
+	ls := make([]hostSpecs, 0, count)
+
+	for i := 0; i < count; i++ {
+		ls = append(ls, hostSpecs{
+			InstanceType: h.InstanceType,
+			AZ:           h.AZ,
+		})
 	}
 
-	if old.VolumeIOPS != c.VolumeIOPS {
-		hasCant = true
-		fields = append(fields, "volume_iops")
-	}
-
-	if old.HAEnabled != c.HAEnabled {
-		hasCant = true
-		fields = append(fields, "ha_enabled")
-	}
-
-	if old.VpcUUID != c.VpcUUID {
-		hasCant = true
-		fields = append(fields, "vpc_uuid")
-	}
-
-	if !slices.Equal(old.AvailabilityZones, c.AvailabilityZones) {
-		hasCant = true
-		fields = append(fields, "availability_zones")
-	}
-
-	if hasCant {
-		return hasCan, fmt.Errorf("%w: %s", ccx.UpdateNotSupportedErr, strings.Join(fields, ", "))
-	}
-
-	return hasCan, nil
+	return ls, nil
 }

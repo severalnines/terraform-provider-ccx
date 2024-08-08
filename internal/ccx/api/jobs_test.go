@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/severalnines/terraform-provider-ccx/internal/lib"
 	"github.com/stretchr/testify/require"
 )
 
@@ -120,8 +121,7 @@ func Test_jobs_GetStatus(t *testing.T) {
 			defer srv.Close()
 
 			svc := jobs{
-				baseURL: srv.URL,
-				auth:    fakeAuthorizer{wantToken: authToken},
+				httpcli: lib.NewTestHttpClient("test", srv.URL, authToken),
 			}
 
 			ctx := context.Background()
@@ -295,14 +295,14 @@ func Test_jobs_Await(t *testing.T) {
 			defer srv.Close()
 
 			svc := jobs{
-				baseURL:             srv.URL,
-				auth:                fakeAuthorizer{wantToken: authToken},
-				awaitTickerDuration: time.Second / 2,
+				httpcli: lib.NewTestHttpClient("test", srv.URL, authToken),
+				tick:    time.Second / 2,
+				timeout: time.Second,
 			}
 
 			ctx := context.Background()
 
-			got, err := svc.Await(ctx, tt.storeID, tt.job, time.Second*10)
+			got, err := svc.Await(ctx, tt.storeID, tt.job)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetStatus() error = %v, wantErr %v", err, tt.wantErr)
 				return

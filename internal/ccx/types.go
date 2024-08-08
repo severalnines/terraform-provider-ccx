@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -27,8 +28,8 @@ type Datastore struct {
 	CloudRegion       string
 	InstanceSize      string
 	VolumeType        string
-	VolumeSize        int64
-	VolumeIOPS        int64
+	VolumeSize        uint64
+	VolumeIOPS        uint64
 	NetworkType       string
 	HAEnabled         bool
 	VpcUUID           string
@@ -36,6 +37,31 @@ type Datastore struct {
 
 	DbParams      map[string]string
 	FirewallRules []FirewallRule
+	Hosts         []Host
+
+	Notifications       Notifications
+	MaintenanceSettings *MaintenanceSettings
+}
+
+type Host struct {
+	ID            string
+	CreatedAt     time.Time
+	CloudProvider string
+	AZ            string
+	InstanceType  string
+	DiskType      string
+	DiskSize      uint64
+	Role          string
+	Region        string
+}
+
+func (h Host) IsPrimary() bool {
+	switch r := strings.ToLower(h.Role); r {
+	case "primary", "master":
+		return true
+	}
+
+	return false
 }
 
 // String representation of the Datastore, useful for debugging
@@ -56,17 +82,25 @@ func (f FirewallRule) String() string {
 	return fmt.Sprintf(`{"source": "%s", "description": "%s"}`, f.Source, f.Description)
 }
 
+type Notifications struct {
+	Enabled bool     `json:"enabled"`
+	Emails  []string `json:"emails"`
+}
+
+type MaintenanceSettings struct {
+	DayOfWeek int32 `json:"day_of_week"`
+	StartHour int   `json:"start_hour"`
+	EndHour   int   `json:"end_hour"`
+}
+
 // DatastoreService is used to manage datastores
 type DatastoreService interface {
 	Create(ctx context.Context, c Datastore) (*Datastore, error)
+	Read(ctx context.Context, id string) (*Datastore, error)
+	Update(ctx context.Context, old, next Datastore) (*Datastore, error)
+	Delete(ctx context.Context, id string) error
 	SetParameters(ctx context.Context, storeID string, parameters map[string]string) error
 	SetFirewallRules(ctx context.Context, storeID string, firewalls []FirewallRule) error
-
-	Read(ctx context.Context, id string) (*Datastore, error)
-
-	Update(ctx context.Context, c Datastore) (*Datastore, error)
-
-	Delete(ctx context.Context, id string) error
 }
 
 type VPC struct {

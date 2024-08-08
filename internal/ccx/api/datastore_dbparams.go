@@ -1,9 +1,7 @@
 package api
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -29,27 +27,7 @@ func (svc *DatastoreService) SetParameters(ctx context.Context, storeID string, 
 		cr.Parameters[k] = setParamsParameter{Value: v}
 	}
 
-	var b bytes.Buffer
-	if err := json.NewEncoder(&b).Encode(cr); err != nil {
-		return errors.Join(ccx.RequestEncodingErr, err)
-	}
-
-	url := svc.baseURL + "/api/db-configuration/v1/" + storeID
-
-	req, err := http.NewRequest(http.MethodPut, url, &b)
-	if err != nil {
-		return errors.Join(ccx.RequestInitializationErr, err)
-	}
-
-	token, err := svc.auth.Auth(ctx)
-	if err != nil {
-		return err
-	}
-
-	req.Header.Set("Authorization", token)
-	client := &http.Client{Timeout: ccx.DefaultTimeout}
-
-	res, err := client.Do(req)
+	res, err := svc.httpcli.Do(ctx, http.MethodPut, "/api/db-configuration/v1/"+storeID, cr)
 	if err != nil {
 		return errors.Join(ccx.RequestSendingErr, err)
 	}
@@ -62,7 +40,7 @@ func (svc *DatastoreService) SetParameters(ctx context.Context, storeID string, 
 		return fmt.Errorf("%w: status = %d", lib.ErrorFromErrorResponse(res.Body), res.StatusCode)
 	}
 
-	status, err := svc.jobs.Await(ctx, storeID, modifyDbConfigJob, svc.timeout)
+	status, err := svc.jobs.Await(ctx, storeID, modifyDbConfigJob)
 	if err != nil {
 		return fmt.Errorf("awaiting parameters job: %w", err)
 	} else if status != jobStatusFinished {
@@ -87,11 +65,9 @@ type getParamsResponse struct {
 }
 
 func (svc *DatastoreService) GetParameters(ctx context.Context, storeID string) (map[string]string, error) {
-	url := svc.baseURL + "/api/db-configuration/v1/" + storeID
-
 	var rs getParamsResponse
 
-	if err := httpGet(ctx, svc.auth, url, &rs); err != nil {
+	if err := svc.httpcli.Get(ctx, "/api/db-configuration/v1/"+storeID, &rs); err != nil {
 		return nil, err
 	}
 

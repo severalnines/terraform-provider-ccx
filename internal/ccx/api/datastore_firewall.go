@@ -1,9 +1,7 @@
 package api
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -28,11 +26,9 @@ type getFirewallsResponse []struct {
 }
 
 func (svc *DatastoreService) GetFirewallRules(ctx context.Context, storeID string) ([]ccx.FirewallRule, error) {
-	url := svc.baseURL + "/api/firewall/api/v1/firewalls/" + storeID
-
 	var rs getFirewallsResponse
 
-	if err := httpGet(ctx, svc.auth, url, &rs); err != nil {
+	if err := svc.httpcli.Get(ctx, "/api/firewall/api/v1/firewalls/"+storeID, &rs); err != nil {
 		return nil, err
 	}
 
@@ -74,26 +70,7 @@ func firewallsDiff(have, want []ccx.FirewallRule) (create, del []ccx.FirewallRul
 }
 
 func (svc *DatastoreService) CreateFirewallRule(ctx context.Context, storeID string, firewall ccx.FirewallRule) error {
-	var b bytes.Buffer
-	if err := json.NewEncoder(&b).Encode(firewall); err != nil {
-		return errors.Join(ccx.RequestEncodingErr, err)
-	}
-
-	url := svc.baseURL + "/api/firewall/api/v1/firewall/" + storeID
-	req, err := http.NewRequest(http.MethodPost, url, &b)
-	if err != nil {
-		return errors.Join(ccx.RequestInitializationErr, err)
-	}
-
-	token, err := svc.auth.Auth(ctx)
-	if err != nil {
-		return err
-	}
-
-	req.Header.Set("Authorization", token)
-	client := &http.Client{Timeout: ccx.DefaultTimeout}
-
-	res, err := client.Do(req)
+	res, err := svc.httpcli.Do(ctx, http.MethodPost, "/api/firewall/api/v1/firewall/"+storeID, firewall)
 	if err != nil {
 		return errors.Join(ccx.RequestSendingErr, err)
 	}
@@ -128,26 +105,7 @@ func (svc *DatastoreService) CreateFirewallRules(ctx context.Context, storeID st
 }
 
 func (svc *DatastoreService) DeleteFirewallRule(ctx context.Context, storeID string, firewall ccx.FirewallRule) error {
-	var b bytes.Buffer
-	if err := json.NewEncoder(&b).Encode(firewall); err != nil {
-		return errors.Join(ccx.RequestEncodingErr, err)
-	}
-
-	url := svc.baseURL + "/api/firewall/api/v1/firewall/" + storeID
-	req, err := http.NewRequest(http.MethodDelete, url, &b)
-	if err != nil {
-		return errors.Join(ccx.RequestInitializationErr, err)
-	}
-
-	token, err := svc.auth.Auth(ctx)
-	if err != nil {
-		return err
-	}
-
-	req.Header.Set("Authorization", token)
-	client := &http.Client{Timeout: ccx.DefaultTimeout}
-
-	res, err := client.Do(req)
+	res, err := svc.httpcli.Do(ctx, http.MethodDelete, "/api/firewall/api/v1/firewall/"+storeID, firewall)
 	if err != nil {
 		return errors.Join(ccx.RequestSendingErr, err)
 	}

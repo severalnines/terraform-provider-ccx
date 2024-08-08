@@ -1,10 +1,7 @@
 package resources
 
 import (
-	"fmt"
-
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 )
 
 func getString(d *schema.ResourceData, key string) string {
@@ -104,59 +101,12 @@ func getMapString(d *schema.ResourceData, key string) map[string]string {
 	return m
 }
 
-func getFirewalls(d *schema.ResourceData, key string) ([]ccx.FirewallRule, error) {
-	var raw []interface{}
-
-	if v, ok := d.Get(key).([]any); ok {
-		raw = v
-	}
-
-	ls := make([]ccx.FirewallRule, len(raw))
-
-	for i := range raw {
-		if v, ok := raw[i].(map[string]any); ok {
-			f, err := firewallFromMapAny(v)
-			if err != nil {
-				return nil, fmt.Errorf("invalid value for firewall[%d]: %w", i, err)
-			}
-
-			ls[i] = *f
+func allKeysSet(d *schema.ResourceData, keys ...string) bool {
+	for _, key := range keys {
+		if _, ok := d.GetOk(key); !ok {
+			return false
 		}
 	}
 
-	return ls, nil
-}
-
-func setFirewalls(d *schema.ResourceData, firewalls []ccx.FirewallRule) error {
-	value := make([]map[string]any, 0, len(firewalls))
-
-	for _, f := range firewalls {
-		value = append(value, map[string]any{
-			"source":      f.Source,
-			"description": f.Description,
-		})
-	}
-
-	return d.Set("firewall", value)
-}
-
-func firewallFromMapAny(m map[string]any) (*ccx.FirewallRule, error) {
-	var f ccx.FirewallRule
-
-	if v, ok := m["description"].(string); ok {
-		f.Description = v
-	}
-
-	if v, ok := m["source"].(string); ok {
-		f.Source = v
-	} else {
-		return nil, fmt.Errorf("mandatory field source is missing")
-	}
-
-	return &f, nil
-}
-
-// nonNewSuppressor suppresses diff for fields when the resource is not new
-func nonNewSuppressor(_, _, _ string, d *schema.ResourceData) bool {
-	return !d.IsNewResource()
+	return true
 }
