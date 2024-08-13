@@ -74,7 +74,7 @@ func Closed(c io.Closer) {
 	}
 }
 
-func NewHttpClient(module, baseURL, clientID, clientSecret, logpath string) *HttpClient {
+func NewHttpClient(ctx context.Context, module, baseURL, clientID, clientSecret, logpath string) *HttpClient {
 	if logpath != "" {
 		if err := os.MkdirAll(logpath, 0755); err != nil {
 			panic(fmt.Sprintf("failed to create log directory [%s]: %s", logpath, err))
@@ -87,20 +87,35 @@ func NewHttpClient(module, baseURL, clientID, clientSecret, logpath string) *Htt
 		TokenURL:     baseURL + "/api/auth/oauth2/token",
 	}
 
+	cli := creds.Client(ctx)
+	cli.Timeout = ccx.DefaultTimeout
+
+	if logpath != "" {
+		cli.Transport = &LoggingRoundTripper{
+			LogPath: logpath,
+			Module:  module,
+			Proxied: cli.Transport,
+		}
+	}
+
 	return &HttpClient{
-		module:  module,
 		baseURL: baseURL,
-		logpath: logpath,
-		creds:   creds,
+		cli:     cli,
+	}
+}
+
+func NewTestHttpClient(baseURL string) *HttpClient {
+	cli := http.DefaultClient
+
+	return &HttpClient{
+		baseURL: baseURL,
+		cli:     cli,
 	}
 }
 
 type HttpClient struct {
-	module  string
 	baseURL string
-	logpath string
-
-	creds *clientcredentials.Config
+	cli     *http.Client
 }
 
 func (h *HttpClient) Do(ctx context.Context, method, path string, body any) (*http.Response, error) {
@@ -116,9 +131,7 @@ func (h *HttpClient) Do(ctx context.Context, method, path string, body any) (*ht
 		return nil, errors.Join(ccx.RequestInitializationErr, err)
 	}
 
-	cli := h.cli(ctx)
-
-	return cli.Do(req)
+	return h.cli.Do(req)
 }
 
 func (h *HttpClient) Get(ctx context.Context, path string, target any) error {
@@ -127,9 +140,7 @@ func (h *HttpClient) Get(ctx context.Context, path string, target any) error {
 		return errors.Join(ccx.RequestInitializationErr, err)
 	}
 
-	client := h.cli(ctx)
-
-	res, err := client.Do(req)
+	res, err := h.cli.Do(req)
 	if err != nil {
 		return errors.Join(ccx.RequestSendingErr, err)
 	}
@@ -154,19 +165,4 @@ func (h *HttpClient) Get(ctx context.Context, path string, target any) error {
 	}
 
 	return nil
-}
-
-func (h *HttpClient) cli(ctx context.Context) *http.Client {
-	cli := h.creds.Client(ctx)
-	cli.Timeout = ccx.DefaultTimeout
-
-	if h.logpath != "" {
-		cli.Transport = &LoggingRoundTripper{
-			LogPath: h.logpath,
-			Module:  h.module,
-			Proxied: cli.Transport,
-		}
-	}
-
-	return cli
 }

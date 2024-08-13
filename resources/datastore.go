@@ -141,7 +141,7 @@ func (r *Datastore) Name() string {
 }
 
 func (r *Datastore) Configure(ctx context.Context, cfg TerraformConfiguration) error {
-	httpcli := lib.NewHttpClient("datastore", cfg.BaseURL, cfg.ClientID, cfg.ClientSecret, cfg.Logpath)
+	httpcli := lib.NewHttpClient(ctx, "datastore", cfg.BaseURL, cfg.ClientID, cfg.ClientSecret, cfg.Logpath)
 
 	svc, err := api.Datastores(ctx, httpcli, cfg.Timeout)
 	if err != nil {

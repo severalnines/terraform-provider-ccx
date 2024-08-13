@@ -105,10 +105,8 @@ func Test_jobs_GetStatus(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			const authToken = "fake-auth-token"
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				require.Equal(t, "/api/deployment/v2/data-stores/"+tt.storeID+"/jobs", r.URL.Path)
-				require.Equal(t, authToken, r.Header.Get("Authorization"))
 
 				w.WriteHeader(tt.response.StatusCode)
 				err := json.NewEncoder(w).Encode(tt.response.Response)
@@ -121,7 +119,7 @@ func Test_jobs_GetStatus(t *testing.T) {
 			defer srv.Close()
 
 			svc := jobs{
-				httpcli: lib.NewTestHttpClient("test", srv.URL, authToken),
+				httpcli: lib.NewTestHttpClient(srv.URL),
 			}
 
 			ctx := context.Background()
@@ -267,12 +265,10 @@ func Test_jobs_Await(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			const authToken = "fake-auth-token"
 			i := 0
 
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				require.Equal(t, "/api/deployment/v2/data-stores/"+tt.storeID+"/jobs", r.URL.Path)
-				require.Equal(t, authToken, r.Header.Get("Authorization"))
 
 				if len(tt.responses) == 0 {
 					t.Fatalf("unexpected call to server")
@@ -295,7 +291,7 @@ func Test_jobs_Await(t *testing.T) {
 			defer srv.Close()
 
 			svc := jobs{
-				httpcli: lib.NewTestHttpClient("test", srv.URL, authToken),
+				httpcli: lib.NewTestHttpClient(srv.URL),
 				tick:    time.Second / 2,
 				timeout: time.Second,
 			}
