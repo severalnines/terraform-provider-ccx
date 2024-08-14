@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/severalnines/terraform-provider-ccx/internal/lib"
 	"github.com/stretchr/testify/require"
 )
 
@@ -104,10 +105,8 @@ func Test_jobs_GetStatus(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			const authToken = "fake-auth-token"
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				require.Equal(t, "/api/deployment/v2/data-stores/"+tt.storeID+"/jobs", r.URL.Path)
-				require.Equal(t, authToken, r.Header.Get("Authorization"))
 
 				w.WriteHeader(tt.response.StatusCode)
 				err := json.NewEncoder(w).Encode(tt.response.Response)
@@ -120,8 +119,7 @@ func Test_jobs_GetStatus(t *testing.T) {
 			defer srv.Close()
 
 			svc := jobs{
-				baseURL: srv.URL,
-				auth:    fakeAuthorizer{wantToken: authToken},
+				httpcli: lib.NewTestHttpClient(srv.URL),
 			}
 
 			ctx := context.Background()
@@ -267,12 +265,10 @@ func Test_jobs_Await(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			const authToken = "fake-auth-token"
 			i := 0
 
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				require.Equal(t, "/api/deployment/v2/data-stores/"+tt.storeID+"/jobs", r.URL.Path)
-				require.Equal(t, authToken, r.Header.Get("Authorization"))
 
 				if len(tt.responses) == 0 {
 					t.Fatalf("unexpected call to server")
@@ -295,14 +291,14 @@ func Test_jobs_Await(t *testing.T) {
 			defer srv.Close()
 
 			svc := jobs{
-				baseURL:             srv.URL,
-				auth:                fakeAuthorizer{wantToken: authToken},
-				awaitTickerDuration: time.Second / 2,
+				httpcli: lib.NewTestHttpClient(srv.URL),
+				tick:    time.Second / 2,
+				timeout: time.Second,
 			}
 
 			ctx := context.Background()
 
-			got, err := svc.Await(ctx, tt.storeID, tt.job, time.Second*10)
+			got, err := svc.Await(ctx, tt.storeID, tt.job)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetStatus() error = %v, wantErr %v", err, tt.wantErr)
 				return

@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx/api"
+	"github.com/severalnines/terraform-provider-ccx/internal/lib"
 )
 
 var (
@@ -58,8 +59,9 @@ func (r *VPC) Name() string {
 	return "ccx_vpc"
 }
 
-func (r *VPC) Configure(_ context.Context, cfg TerraformConfiguration) error {
-	vpcCli := api.Vpcs(cfg.BaseURL, cfg.ClientID, cfg.ClientSecret)
+func (r *VPC) Configure(ctx context.Context, cfg TerraformConfiguration) error {
+	httpcli := lib.NewHttpClient(ctx, "vpc", cfg.BaseURL, cfg.ClientID, cfg.ClientSecret, cfg.Logpath)
+	vpcCli := api.Vpcs(httpcli)
 
 	r.svc = vpcCli
 	return nil

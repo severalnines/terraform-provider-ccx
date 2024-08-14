@@ -3,6 +3,7 @@ package resources
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -14,6 +15,7 @@ type TerraformConfiguration struct {
 	ClientSecret string
 	BaseURL      string
 	Timeout      time.Duration
+	Logpath      string
 }
 
 type TerraformSchema interface {
@@ -70,6 +72,11 @@ func (p *provider) Resources() terraform.ResourceProvider {
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("CCX_TIMEOUT", "15m"),
 			},
+			"debug_log_path": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("CCX_DEBUG_LOG_PATH", ""),
+			},
 		},
 		ResourcesMap:  rsc,
 		ConfigureFunc: p.Configure,
@@ -83,12 +90,19 @@ func (p *provider) Configure(d *schema.ResourceData) (any, error) {
 		ClientID:     getString(d, "client_id"),
 		ClientSecret: getString(d, "client_secret"),
 		BaseURL:      getString(d, "base_url"),
+		Logpath:      getString(d, "debug_log_path"),
 	}
 
 	if t, err := time.ParseDuration(getString(d, "timeout")); err == nil {
 		p.Config.Timeout = t
 	} else {
 		return nil, fmt.Errorf("invalid timeout (%s): %w", getString(d, "timeout"), err)
+	}
+
+	if p.Config.Logpath != "" {
+		if err := os.MkdirAll(p.Config.Logpath, 0755); err != nil {
+			return nil, fmt.Errorf("creating log directory [%s]: %w", p.Config.Logpath, err)
+		}
 	}
 
 	for i := range p.resources {
@@ -98,4 +112,9 @@ func (p *provider) Configure(d *schema.ResourceData) (any, error) {
 	}
 
 	return nil, nil
+}
+
+// nonNewSuppressor suppresses diff for fields when the resource is not new
+func nonNewSuppressor(_, _, _ string, d *schema.ResourceData) bool {
+	return !d.IsNewResource()
 }

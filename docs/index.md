@@ -20,3 +20,5 @@ description: |-
 - `base_url` (String)
 - `client_id` (String)
 - `client_secret` (String)
+- `debug_log_path` (String)
+- `timeout` (String)
