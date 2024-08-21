@@ -73,7 +73,7 @@ func Closed(c io.Closer) {
 	}
 }
 
-func NewHttpClient(ctx context.Context, baseURL, clientID, clientSecret string) *HttpClient {
+func NewHttpClient(baseURL, clientID, clientSecret string) *HttpClient {
 
 	creds := &clientcredentials.Config{
 		ClientID:     clientID,
@@ -81,7 +81,8 @@ func NewHttpClient(ctx context.Context, baseURL, clientID, clientSecret string) 
 		TokenURL:     baseURL + "/api/auth/oauth2/token",
 	}
 
-	cli := creds.Client(ctx)
+	// TF context is canceled to soon on import
+	cli := creds.Client(context.Background())
 
 	cli.Timeout = ccx.DefaultTimeout
 	cli.Transport = &LoggingRoundTripper{

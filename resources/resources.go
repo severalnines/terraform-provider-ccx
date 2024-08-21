@@ -86,7 +86,7 @@ func (p *provider) Resources() *schema.Provider {
 	}
 }
 
-func (p *provider) Configure(ctx context.Context, d *schema.ResourceData) (any, diag.Diagnostics) {
+func (p *provider) Configure(_ context.Context, d *schema.ResourceData) (any, diag.Diagnostics) {
 	p.Config = TerraformConfiguration{
 		ClientID:     getString(d, "client_id"),
 		ClientSecret: getString(d, "client_secret"),
@@ -106,7 +106,7 @@ func (p *provider) Configure(ctx context.Context, d *schema.ResourceData) (any, 
 		}
 	}
 
-	p.Config.httpClient = lib.NewHttpClient(ctx, p.Config.BaseURL, p.Config.ClientID, p.Config.ClientSecret)
+	p.Config.httpClient = lib.NewHttpClient(p.Config.BaseURL, p.Config.ClientID, p.Config.ClientSecret)
 
 	for i := range p.resources {
 		if err := p.resources[i].Configure(p.Config); err != nil {
