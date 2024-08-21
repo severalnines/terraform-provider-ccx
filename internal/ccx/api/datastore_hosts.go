@@ -27,7 +27,7 @@ type getHostsResponse struct {
 func (svc *DatastoreService) GetHosts(ctx context.Context, clusterID string) ([]ccx.Host, error) {
 	var rs getHostsResponse
 
-	err := svc.httpcli.Get(ctx, "/api/deployment/v2/data-stores/"+clusterID+"/nodes", &rs)
+	err := svc.client.Get(ctx, "/api/deployment/v2/data-stores/"+clusterID+"/nodes", &rs)
 	if err != nil {
 		return nil, err
 	}

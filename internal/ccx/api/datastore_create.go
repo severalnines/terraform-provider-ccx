@@ -111,7 +111,7 @@ type datastoreResponse struct {
 func (svc *DatastoreService) Create(ctx context.Context, c ccx.Datastore) (*ccx.Datastore, error) {
 	cr := createRequestFromDatastore(c)
 
-	res, err := svc.httpcli.Do(ctx, http.MethodPost, "/api/prov/api/v2/cluster", cr)
+	res, err := svc.client.Do(ctx, http.MethodPost, "/api/prov/api/v2/cluster", cr)
 	if err != nil {
 		return nil, errors.Join(ccx.RequestSendingErr, err)
 	}

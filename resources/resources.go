@@ -2,12 +2,13 @@ package resources
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/severalnines/terraform-provider-ccx/internal/ccx/api"
+	"github.com/severalnines/terraform-provider-ccx/internal/lib"
 )
 
 type TerraformConfiguration struct {
@@ -16,6 +17,8 @@ type TerraformConfiguration struct {
 	BaseURL      string
 	Timeout      time.Duration
 	Logpath      string
+
+	httpClient api.HttpClient
 }
 
 type TerraformSchema interface {
@@ -24,13 +27,13 @@ type TerraformSchema interface {
 
 type TerraformResource interface {
 	TerraformSchema
-	Configure(ctx context.Context, cfg TerraformConfiguration) error
+	Configure(cfg TerraformConfiguration) error
 
 	Name() string
-	Create(*schema.ResourceData, interface{}) error
-	Read(*schema.ResourceData, interface{}) error
-	Update(*schema.ResourceData, interface{}) error
-	Delete(*schema.ResourceData, interface{}) error
+	Create(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics
+	Read(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics
+	Update(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics
+	Delete(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics
 	// Exists(*schema.ResourceData, interface{}) (bool, error)
 }
 
@@ -43,7 +46,7 @@ type provider struct {
 	Config    TerraformConfiguration
 }
 
-func (p *provider) Resources() terraform.ResourceProvider {
+func (p *provider) Resources() *schema.Provider {
 	rsc := map[string]*schema.Resource{}
 	for i := range p.resources {
 		name := p.resources[i].Name()
@@ -78,14 +81,12 @@ func (p *provider) Resources() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("CCX_DEBUG_LOG_PATH", ""),
 			},
 		},
-		ResourcesMap:  rsc,
-		ConfigureFunc: p.Configure,
+		ResourcesMap:         rsc,
+		ConfigureContextFunc: p.Configure,
 	}
 }
 
-func (p *provider) Configure(d *schema.ResourceData) (any, error) {
-	ctx := context.Background()
-
+func (p *provider) Configure(ctx context.Context, d *schema.ResourceData) (any, diag.Diagnostics) {
 	p.Config = TerraformConfiguration{
 		ClientID:     getString(d, "client_id"),
 		ClientSecret: getString(d, "client_secret"),
@@ -96,18 +97,20 @@ func (p *provider) Configure(d *schema.ResourceData) (any, error) {
 	if t, err := time.ParseDuration(getString(d, "timeout")); err == nil {
 		p.Config.Timeout = t
 	} else {
-		return nil, fmt.Errorf("invalid timeout (%s): %w", getString(d, "timeout"), err)
+		return nil, diag.Errorf("invalid timeout (%s): %s", getString(d, "timeout"), err)
 	}
 
 	if p.Config.Logpath != "" {
 		if err := os.MkdirAll(p.Config.Logpath, 0755); err != nil {
-			return nil, fmt.Errorf("creating log directory [%s]: %w", p.Config.Logpath, err)
+			return nil, diag.Errorf("creating log directory [%s]: %s", p.Config.Logpath, err)
 		}
 	}
 
+	p.Config.httpClient = lib.NewHttpClient(ctx, p.Config.BaseURL, p.Config.ClientID, p.Config.ClientSecret)
+
 	for i := range p.resources {
-		if err := p.resources[i].Configure(ctx, p.Config); err != nil {
-			return nil, err
+		if err := p.resources[i].Configure(p.Config); err != nil {
+			return nil, diag.FromErr(err)
 		}
 	}
 

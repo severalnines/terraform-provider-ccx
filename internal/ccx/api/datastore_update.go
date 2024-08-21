@@ -45,61 +45,66 @@ type hostSpecs struct {
 }
 
 func (svc *DatastoreService) Update(ctx context.Context, old, next ccx.Datastore) (*ccx.Datastore, error) {
-	if err := svc.update(ctx, old, next); err != nil {
-		return nil, err
-	}
+	out := &old
 
-	if err := svc.resize(ctx, old, next); err != nil {
-		return nil, err
-	}
-
-	updatedStore, err := svc.Read(ctx, old.ID)
+	updated, err := svc.update(ctx, old, next)
 	if err != nil {
 		return nil, err
 	}
 
-	return updatedStore, nil
+	resized, err := svc.resize(ctx, old, next)
+	if err != nil {
+		return nil, err
+	}
+
+	if updated || resized {
+		if out, err = svc.Read(ctx, old.ID); err != nil {
+			return nil, err
+		}
+	}
+
+	return out, nil
 }
 
-func (svc *DatastoreService) update(ctx context.Context, old, next ccx.Datastore) error {
+func (svc *DatastoreService) update(ctx context.Context, old, next ccx.Datastore) (bool, error) {
 	ur, ok := svc.updateRequest(old, next)
 	if !ok {
-		return nil
+		return false, nil
 	}
 
-	res, err := svc.httpcli.Do(ctx, http.MethodPatch, "/api/prov/api/v2/cluster/"+next.ID, ur)
+	res, err := svc.client.Do(ctx, http.MethodPatch, "/api/prov/api/v2/cluster/"+next.ID, ur)
 	if err != nil {
-		return errors.Join(ccx.RequestSendingErr, err)
+		return false, errors.Join(ccx.RequestSendingErr, err)
 	}
 
 	if res.StatusCode == http.StatusBadRequest {
-		return lib.ErrorFromErrorResponse(res.Body)
+		return false, lib.ErrorFromErrorResponse(res.Body)
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("%w: status = %d", ccx.ResponseStatusFailedErr, res.StatusCode)
+		return false, fmt.Errorf("%w: status = %d", ccx.ResponseStatusFailedErr, res.StatusCode)
 	}
 
-	return nil
+	return true, nil
 }
 
-func (svc *DatastoreService) resize(ctx context.Context, old, next ccx.Datastore) error {
+func (svc *DatastoreService) resize(ctx context.Context, old, next ccx.Datastore) (bool, error) {
 	ur, ok := svc.updateSizeRequest(old, next)
 	if !ok {
-		return nil
+		return false, nil
 	}
 
-	res, err := svc.httpcli.Do(ctx, http.MethodPatch, "/api/prov/api/v2/cluster/"+next.ID, ur)
+	res, err := svc.client.Do(ctx, http.MethodPatch, "/api/prov/api/v2/cluster/"+next.ID, ur)
 	if err != nil {
-		return errors.Join(ccx.RequestSendingErr, err)
+		return false, errors.Join(ccx.RequestSendingErr, err)
 	}
 
 	if res.StatusCode == http.StatusBadRequest {
-		return lib.ErrorFromErrorResponse(res.Body)
+		return false, lib.ErrorFromErrorResponse(res.Body)
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("%w: status = %d", ccx.ResponseStatusFailedErr, res.StatusCode)
+		return false, fmt.Errorf("%w: status = %d", ccx.ResponseStatusFailedErr, res.StatusCode)
 	}
 
 	var jt jobType
@@ -110,17 +115,17 @@ func (svc *DatastoreService) resize(ctx context.Context, old, next ccx.Datastore
 		jt = addNodeJob
 	} else {
 		// should not be here
-		return nil
+		return false, nil
 	}
 
 	status, err := svc.jobs.Await(ctx, old.ID, jt)
 	if err != nil {
-		return fmt.Errorf("%w: awaiting resize job: %w", ccx.CreateFailedErr, err)
+		return false, fmt.Errorf("%w: awaiting resize job: %w", ccx.CreateFailedErr, err)
 	} else if status != jobStatusFinished {
-		return fmt.Errorf("%w: resize job failed: %s", ccx.CreateFailedErr, status)
+		return false, fmt.Errorf("%w: resize job failed: %s", ccx.CreateFailedErr, status)
 	}
 
-	return nil
+	return true, nil
 }
 
 func (svc *DatastoreService) updateSizeRequest(old, next ccx.Datastore) (updateRequest, bool) {

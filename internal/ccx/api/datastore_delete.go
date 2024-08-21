@@ -10,7 +10,7 @@ import (
 )
 
 func (svc *DatastoreService) Delete(ctx context.Context, id string) error {
-	res, err := svc.httpcli.Do(ctx, http.MethodDelete, "/api/prov/api/v2/cluster"+"/"+id, nil)
+	res, err := svc.client.Do(ctx, http.MethodDelete, "/api/prov/api/v2/cluster"+"/"+id, nil)
 	if err != nil {
 		return errors.Join(ccx.RequestSendingErr, err)
 	}
