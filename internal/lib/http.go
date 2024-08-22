@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 	"golang.org/x/oauth2/clientcredentials"
@@ -74,12 +73,7 @@ func Closed(c io.Closer) {
 	}
 }
 
-func NewHttpClient(ctx context.Context, module, baseURL, clientID, clientSecret, logpath string) *HttpClient {
-	if logpath != "" {
-		if err := os.MkdirAll(logpath, 0755); err != nil {
-			panic(fmt.Sprintf("failed to create log directory [%s]: %s", logpath, err))
-		}
-	}
+func NewHttpClient(baseURL, clientID, clientSecret string) *HttpClient {
 
 	creds := &clientcredentials.Config{
 		ClientID:     clientID,
@@ -87,15 +81,12 @@ func NewHttpClient(ctx context.Context, module, baseURL, clientID, clientSecret,
 		TokenURL:     baseURL + "/api/auth/oauth2/token",
 	}
 
-	cli := creds.Client(ctx)
-	cli.Timeout = ccx.DefaultTimeout
+	// TF context is canceled to soon on import
+	cli := creds.Client(context.Background())
 
-	if logpath != "" {
-		cli.Transport = &LoggingRoundTripper{
-			LogPath: logpath,
-			Module:  module,
-			Proxied: cli.Transport,
-		}
+	cli.Timeout = ccx.DefaultTimeout
+	cli.Transport = &LoggingRoundTripper{
+		Proxied: cli.Transport,
 	}
 
 	return &HttpClient{
@@ -126,7 +117,7 @@ func (h *HttpClient) Do(ctx context.Context, method, path string, body any) (*ht
 		}
 	}
 
-	req, err := http.NewRequest(method, h.baseURL+path, &b)
+	req, err := http.NewRequestWithContext(ctx, method, h.baseURL+path, &b)
 	if err != nil {
 		return nil, errors.Join(ccx.RequestInitializationErr, err)
 	}
@@ -135,7 +126,7 @@ func (h *HttpClient) Do(ctx context.Context, method, path string, body any) (*ht
 }
 
 func (h *HttpClient) Get(ctx context.Context, path string, target any) error {
-	req, err := http.NewRequest(http.MethodGet, h.baseURL+path, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, h.baseURL+path, nil)
 	if err != nil {
 		return errors.Join(ccx.RequestInitializationErr, err)
 	}

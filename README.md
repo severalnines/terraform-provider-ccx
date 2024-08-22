@@ -91,7 +91,7 @@ in the resource "ccx_datastore" section, see also [example_datastore.tf](example
 
 ### Requirements
 
-- go 1.20 or later
+- go 1.21 or later
 - Terraform 0.13.x or later
 
 ### Unix

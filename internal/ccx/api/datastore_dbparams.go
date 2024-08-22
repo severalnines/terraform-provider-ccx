@@ -27,7 +27,7 @@ func (svc *DatastoreService) SetParameters(ctx context.Context, storeID string, 
 		cr.Parameters[k] = setParamsParameter{Value: v}
 	}
 
-	res, err := svc.httpcli.Do(ctx, http.MethodPut, "/api/db-configuration/v1/"+storeID, cr)
+	res, err := svc.client.Do(ctx, http.MethodPut, "/api/db-configuration/v1/"+storeID, cr)
 	if err != nil {
 		return errors.Join(ccx.RequestSendingErr, err)
 	}
@@ -67,7 +67,7 @@ type getParamsResponse struct {
 func (svc *DatastoreService) GetParameters(ctx context.Context, storeID string) (map[string]string, error) {
 	var rs getParamsResponse
 
-	if err := svc.httpcli.Get(ctx, "/api/db-configuration/v1/"+storeID, &rs); err != nil {
+	if err := svc.client.Get(ctx, "/api/db-configuration/v1/"+storeID, &rs); err != nil {
 		return nil, err
 	}
 

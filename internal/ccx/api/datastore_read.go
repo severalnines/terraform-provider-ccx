@@ -49,7 +49,7 @@ type getDatastoreResponse struct {
 func (svc *DatastoreService) Read(ctx context.Context, id string) (*ccx.Datastore, error) {
 	var rs getDatastoreResponse
 
-	err := svc.httpcli.Get(ctx, "/api/deployment/v3/data-stores/"+id, &rs)
+	err := svc.client.Get(ctx, "/api/deployment/v3/data-stores/"+id, &rs)
 	if err != nil {
 		return nil, err
 	}

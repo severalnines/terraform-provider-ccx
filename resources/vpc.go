@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx/api"
-	"github.com/severalnines/terraform-provider-ccx/internal/lib"
 )
 
 var (
@@ -59,11 +59,9 @@ func (r *VPC) Name() string {
 	return "ccx_vpc"
 }
 
-func (r *VPC) Configure(ctx context.Context, cfg TerraformConfiguration) error {
-	httpcli := lib.NewHttpClient(ctx, "vpc", cfg.BaseURL, cfg.ClientID, cfg.ClientSecret, cfg.Logpath)
-	vpcCli := api.Vpcs(httpcli)
+func (r *VPC) Configure(cfg TerraformConfiguration) error {
+	r.svc = api.Vpcs(cfg.httpClient)
 
-	r.svc = vpcCli
 	return nil
 }
 
@@ -88,59 +86,51 @@ func (r *VPC) Schema() *schema.Resource {
 				Optional: true,
 			},
 		},
-		Create: r.Create,
-		Read:   r.Read,
-		Update: r.Update,
-		Delete: r.Delete,
+		CreateContext: r.Create,
+		ReadContext:   r.Read,
+		UpdateContext: r.Update,
+		DeleteContext: r.Delete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 	}
 }
 
-func (r *VPC) Create(d *schema.ResourceData, _ any) error {
-	ctx := context.Background()
+func (r *VPC) Create(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
 	v := schemaToVPC(d)
 	n, err := r.svc.Create(ctx, v)
 	if err != nil {
 		d.SetId("")
-		return err
+		return diag.FromErr(err)
 	}
 
-	return vpcToSchema(*n, d)
+	return diag.FromErr(vpcToSchema(*n, d))
 }
 
-func (r *VPC) Read(d *schema.ResourceData, _ any) error {
-	ctx := context.Background()
+func (r *VPC) Read(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
 	v := schemaToVPC(d)
 	n, err := r.svc.Read(ctx, v.ID)
 	if errors.Is(err, ccx.ResourceNotFoundErr) {
 		d.SetId("")
 		return nil
 	} else if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return vpcToSchema(*n, d)
+	return diag.FromErr(vpcToSchema(*n, d))
 }
 
-func (r *VPC) Update(d *schema.ResourceData, _ any) error {
-	ctx := context.Background()
+func (r *VPC) Update(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
 	v := schemaToVPC(d)
 	n, err := r.svc.Update(ctx, v)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return vpcToSchema(*n, d)
+	return diag.FromErr(vpcToSchema(*n, d))
 }
 
-func (r *VPC) Delete(d *schema.ResourceData, _ any) error {
-	ctx := context.Background()
+func (r *VPC) Delete(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
 	v := schemaToVPC(d)
-	err := r.svc.Delete(ctx, v.ID)
-	if err != nil {
-		return err
-	}
-	return nil
+	return diag.FromErr(r.svc.Delete(ctx, v.ID))
 }

@@ -28,7 +28,7 @@ type getFirewallsResponse []struct {
 func (svc *DatastoreService) GetFirewallRules(ctx context.Context, storeID string) ([]ccx.FirewallRule, error) {
 	var rs getFirewallsResponse
 
-	if err := svc.httpcli.Get(ctx, "/api/firewall/api/v1/firewalls/"+storeID, &rs); err != nil {
+	if err := svc.client.Get(ctx, "/api/firewall/api/v1/firewalls/"+storeID, &rs); err != nil {
 		return nil, err
 	}
 
@@ -44,24 +44,24 @@ func (svc *DatastoreService) GetFirewallRules(ctx context.Context, storeID strin
 }
 
 func firewallsDiff(have, want []ccx.FirewallRule) (create, del []ccx.FirewallRule) {
-	haveM := make(map[string]ccx.FirewallRule, len(have))
+	haveM := make(map[ccx.FirewallRule]struct{}, len(have))
 	for _, f := range have {
-		haveM[f.Source] = f
+		haveM[f] = struct{}{}
 	}
 
 	for _, f := range want {
-		if _, ok := haveM[f.Source]; !ok {
+		if _, ok := haveM[f]; !ok {
 			create = append(create, f)
 		}
 	}
 
-	wantM := make(map[string]ccx.FirewallRule, len(want))
+	wantM := make(map[ccx.FirewallRule]struct{}, len(want))
 	for _, f := range want {
-		wantM[f.Source] = f
+		wantM[f] = struct{}{}
 	}
 
 	for _, f := range have {
-		if _, ok := wantM[f.Source]; !ok {
+		if _, ok := wantM[f]; !ok {
 			del = append(del, f)
 		}
 	}
@@ -70,7 +70,7 @@ func firewallsDiff(have, want []ccx.FirewallRule) (create, del []ccx.FirewallRul
 }
 
 func (svc *DatastoreService) CreateFirewallRule(ctx context.Context, storeID string, firewall ccx.FirewallRule) error {
-	res, err := svc.httpcli.Do(ctx, http.MethodPost, "/api/firewall/api/v1/firewall/"+storeID, firewall)
+	res, err := svc.client.Do(ctx, http.MethodPost, "/api/firewall/api/v1/firewall/"+storeID, firewall)
 	if err != nil {
 		return errors.Join(ccx.RequestSendingErr, err)
 	}
@@ -105,7 +105,7 @@ func (svc *DatastoreService) CreateFirewallRules(ctx context.Context, storeID st
 }
 
 func (svc *DatastoreService) DeleteFirewallRule(ctx context.Context, storeID string, firewall ccx.FirewallRule) error {
-	res, err := svc.httpcli.Do(ctx, http.MethodDelete, "/api/firewall/api/v1/firewall/"+storeID, firewall)
+	res, err := svc.client.Do(ctx, http.MethodDelete, "/api/firewall/api/v1/firewall/"+storeID, firewall)
 	if err != nil {
 		return errors.Join(ccx.RequestSendingErr, err)
 	}
@@ -156,20 +156,16 @@ func (svc *DatastoreService) SetFirewallRules(ctx context.Context, storeID strin
 
 	create, del := firewallsDiff(have, firewalls)
 
-	if len(create) > 0 {
-		err = svc.CreateFirewallRules(ctx, storeID, create)
-	}
-
-	if err != nil {
-		return fmt.Errorf("creating rules: %w", err)
-	}
-
 	if len(del) > 0 {
-		err = svc.DeleteFirewallRules(ctx, storeID, del)
+		if err = svc.DeleteFirewallRules(ctx, storeID, del); err != nil {
+			return fmt.Errorf("deleting rules: %w", err)
+		}
 	}
 
-	if err != nil {
-		return fmt.Errorf("deleting rules: %w", err)
+	if len(create) > 0 {
+		if err = svc.CreateFirewallRules(ctx, storeID, create); err != nil {
+			return fmt.Errorf("creating rules: %w", err)
+		}
 	}
 
 	return nil

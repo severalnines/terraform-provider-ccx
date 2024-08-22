@@ -27,11 +27,11 @@ resource "ccx_datastore" "luna" {
   network_type   = "public"
 
   db_params = {
-    deadlock_timeout = "2"
+    statement_timeout = "500"
   }
 
   firewall {
-    source = "2.3.41.5/10"
+    source = "2.3.41.5/32"
     description = "hello"
   }
 
