@@ -1,22 +1,28 @@
 package main
 
 import (
-	"github.com/hashicorp/terraform/plugin"
-	"github.com/severalnines/terraform-provider-ccx/terraform"
-	"github.com/severalnines/terraform-provider-ccx/terraform/datastore"
-	"github.com/severalnines/terraform-provider-ccx/terraform/vpc"
+	"flag"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
+	"github.com/severalnines/terraform-provider-ccx/resources"
 )
 
-// Generate the Terraform provider documentation using `tfplugindocs`:
-//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
-
 func main() {
-	p := terraform.New(
-		&datastore.Resource{},
-		&vpc.Resource{},
+	p := resources.Provider(
+		&resources.Datastore{},
+		&resources.VPC{},
 	)
 
-	plugin.Serve(&plugin.ServeOpts{
+	var debug bool
+
+	flag.BoolVar(&debug, "debug", false, "set to true to run the provider with support for debuggers like delve")
+	flag.Parse()
+
+	opts := &plugin.ServeOpts{
+		Debug:        debug,
+		ProviderAddr: "registry.terraform.io/severalnines/ccx",
 		ProviderFunc: p.Resources,
-	})
+	}
+
+	plugin.Serve(opts)
 }
