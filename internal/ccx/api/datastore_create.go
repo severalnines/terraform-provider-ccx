@@ -136,16 +136,18 @@ func (svc *DatastoreService) Create(ctx context.Context, c ccx.Datastore) (*ccx.
 		return nil, fmt.Errorf("%w: %w", ccx.CreateFailedErr, err)
 	}
 
+	partialDatastore := &ccx.Datastore{ID: rs.UUID}
+
 	status, err := svc.jobs.Await(ctx, rs.UUID, deployStoreJob)
 	if err != nil {
-		return nil, fmt.Errorf("%w: awaiting deploy job: %w", ccx.CreateFailedErr, err)
+		return partialDatastore, fmt.Errorf("%w: awaiting deploy job: %w", ccx.CreateFailedReadErr, err)
 	} else if status != jobStatusFinished {
-		return nil, fmt.Errorf("%w: deploy job failed: %s", ccx.CreateFailedErr, status)
+		return partialDatastore, fmt.Errorf("%w: deploy job failed: %s", ccx.CreateFailedReadErr, status)
 	}
 
 	newDatastore, err := svc.Read(ctx, rs.UUID)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ccx.CreateFailedErr, err)
+		return partialDatastore, fmt.Errorf("%w: %w", ccx.CreateFailedReadErr, err)
 	}
 
 	return newDatastore, nil

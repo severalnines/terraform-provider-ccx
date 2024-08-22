@@ -304,7 +304,10 @@ func (r *Datastore) Create(ctx context.Context, d *schema.ResourceData, _ any) d
 	}
 
 	n, err := r.svc.Create(ctx, c)
-	if err != nil {
+	if errors.Is(err, ccx.CreateFailedReadErr) && n != nil {
+		d.SetId(n.ID)
+		return diag.Errorf("creating stores: %s", err)
+	} else if err != nil {
 		d.SetId("")
 		return diag.Errorf("creating stores: %s", err)
 	}

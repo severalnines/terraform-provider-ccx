@@ -39,6 +39,9 @@ var (
 	// CreateFailedErr indicates failure to create a resource
 	CreateFailedErr = errors.New("failed to create resource")
 
+	// CreateFailedReadErr indicates failure to read a newly created resource. The resource may exist, but we have the id and terraform can possibly read it on next apply.
+	CreateFailedReadErr = errors.New("reading newly created resource failed")
+
 	// ParametersErr indicates failure to configure parameters
 	ParametersErr = errors.New("failed to configure parameters")
 
