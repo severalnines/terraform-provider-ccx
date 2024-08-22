@@ -39,6 +39,13 @@ resource "ccx_datastore" "luna" {
     source = "2.2.2.2/24"
     description = "world"
   }
+
+  notifications_enabled = true # or false
+  notifications_emails = ["your@email.com"] # list of emails
+
+  maintenance_day_of_week = 1 # 1-7, 1 is Monday
+  maintenance_start_hour = 2 # 0-23
+  maintenance_end_hour = 4
 }
 
 output "MOTD" {
