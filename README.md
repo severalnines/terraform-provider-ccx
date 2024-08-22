@@ -192,7 +192,7 @@ provider  "ccx" {
 	client_id  =  "your_ccx_client_id"
 	client_secret  =  "your_ccx_client_secret
 	# base_url = "optionally_use_a_different_base_url"
-	# timeout = "15m"
+	# timeout = "60m"
 }
 ```
 
@@ -201,7 +201,7 @@ provider  "ccx" {
 > the option `base_url` may be used to specify a different ccx compliant cloud service.
 > 
 > The option `timeout` may be used to specify a different timeout for operations.
-> Default is `"15m"`.
+> Default is `"60m"`.
 > Format is according to [ParseDuration](https://pkg.go.dev/time#ParseDuration).
 > 
 

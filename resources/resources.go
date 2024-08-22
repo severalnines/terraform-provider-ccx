@@ -71,7 +71,7 @@ func (p *provider) Resources() *schema.Provider {
 			"timeout": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("CCX_TIMEOUT", "15m"),
+				DefaultFunc: schema.EnvDefaultFunc("CCX_TIMEOUT", "60m"),
 			},
 		},
 		ResourcesMap:         rsc,
