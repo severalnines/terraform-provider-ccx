@@ -259,12 +259,6 @@ func (r *Datastore) Schema() *schema.Resource {
 				Description: "FirewallRule rules to allow",
 				Elem:        (firewall{}).Schema(),
 			},
-			// "notifications": {
-			// 	Type:        schema.TypeMap,
-			// 	Optional:    true,
-			// 	Description: "Notification settings",
-			// 	Elem:        (notifications{}).Schema(),
-			// },
 			"notifications_enabled": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -276,12 +270,6 @@ func (r *Datastore) Schema() *schema.Resource {
 				Description: "List of email addresses to send notifications to",
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
-			// "maintenance_settings": {
-			// 	Type:        schema.TypeMap,
-			// 	Optional:    true,
-			// 	Description: "Maintenance settings",
-			// 	Elem:        (maintenance{}).Schema(),
-			// },
 			"maintenance_day_of_week": {
 				Type:        schema.TypeInt,
 				Optional:    true,
@@ -386,7 +374,7 @@ func (r *Datastore) Update(ctx context.Context, d *schema.ResourceData, _ any) d
 
 	var errs []error
 
-	if d.HasChange("db_params") {
+	if !parametersEqual(old.DbParams, c.DbParams) {
 		if err := r.svc.SetParameters(ctx, n.ID, c.DbParams); err != nil {
 			errs = append(errs, fmt.Errorf("%w setting: %w", ccx.ParametersErr, err))
 		} else {

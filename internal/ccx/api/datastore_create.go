@@ -39,10 +39,11 @@ type createStoreNetwork struct {
 }
 
 type createStoreRequest struct {
-	General  createStoreGeneral  `json:"general"`
-	Cloud    createStoreCloud    `json:"cloud"`
-	Instance createStoreInstance `json:"instance"`
-	Network  createStoreNetwork  `json:"network"`
+	General       createStoreGeneral  `json:"general"`
+	Cloud         createStoreCloud    `json:"cloud"`
+	Instance      createStoreInstance `json:"instance"`
+	Network       createStoreNetwork  `json:"network"`
+	Notifications notifications       `json:"notifications"`
 }
 
 func createRequestFromDatastore(c ccx.Datastore) createStoreRequest {
@@ -81,11 +82,17 @@ func createRequestFromDatastore(c ccx.Datastore) createStoreRequest {
 		AvailabilityZones: c.AvailabilityZones,
 	}
 
+	notifs := notifications{
+		Enabled: c.Notifications.Enabled,
+		Emails:  c.Notifications.Emails,
+	}
+
 	return createStoreRequest{
-		General:  general,
-		Cloud:    cloud,
-		Instance: instance,
-		Network:  network,
+		General:       general,
+		Cloud:         cloud,
+		Instance:      instance,
+		Network:       network,
+		Notifications: notifs,
 	}
 }
 
