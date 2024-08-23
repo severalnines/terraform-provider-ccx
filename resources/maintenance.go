@@ -7,33 +7,6 @@ import (
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 )
 
-type maintenance struct{}
-
-func (m maintenance) Schema() *schema.Resource {
-	return &schema.Resource{
-		Schema: map[string]*schema.Schema{
-			"day_of_week": {
-				Type:        schema.TypeInt,
-				Required:    true,
-				Description: "Day of the week to run the maintenance. 1-7, 1 is Monday",
-			},
-			"start_hour": {
-				Type:        schema.TypeInt,
-				Required:    true,
-				Description: "Hour of the day to start the maintenance. 0-23",
-			},
-			"end_hour": {
-				Type:        schema.TypeInt,
-				Required:    true,
-				Description: "Hour of the day to end the maintenance. 0-23. Must be start_hour + 2",
-			},
-		},
-		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
-		},
-	}
-}
-
 func getMaintenanceSettings(d *schema.ResourceData) *ccx.MaintenanceSettings {
 	if !allKeysSet(d, "maintenance_day_of_week", "maintenance_start_hour", "maintenance_end_hour") {
 		return nil
