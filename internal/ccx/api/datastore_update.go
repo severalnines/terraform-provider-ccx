@@ -229,7 +229,6 @@ func newestNodeSpecs(hosts []ccx.Host, count int) ([]hostSpecs, error) {
 	for i := 0; i < count; i++ {
 		ls = append(ls, hostSpecs{
 			InstanceType: h.InstanceType,
-			AZ:           h.AZ,
 		})
 	}
 
