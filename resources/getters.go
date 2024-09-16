@@ -5,11 +5,7 @@ import (
 )
 
 func getString(d *schema.ResourceData, key string) string {
-	v, ok := d.GetOkExists(key)
-
-	if !ok {
-		return ""
-	}
+	v := d.Get(key)
 
 	switch s := v.(type) {
 	case string:
