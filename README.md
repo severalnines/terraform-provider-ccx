@@ -94,7 +94,7 @@ in the resource "ccx_datastore" section, see also [example_datastore.tf](example
 Database parameters can be configured for the cluster by using the block `db_params` inside the `ccx_datastore` block as follows:
 
 ```terraform
-db_params {
+db_params = {
    sql_mode = "STRICT"
 }
 ```
@@ -126,7 +126,7 @@ Notifications can be configured for the cluster by including the following block
 
 ```terraform
 notifications_enabled = true # or false
- notifications_emails = ["your@email.com", "your2@email.com"] # 
+notifications_emails = ["your@email.com", "your2@email.com"] # 
 ```
 
 ### Maintenance Settings
