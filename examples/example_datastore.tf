@@ -26,10 +26,6 @@ resource "ccx_datastore" "luna" {
   volume_type    = "gp2"
   network_type   = "public"
 
-  db_params = {
-    statement_timeout = "500"
-  }
-
   firewall {
     source = "2.3.41.5/32"
     description = "hello"
