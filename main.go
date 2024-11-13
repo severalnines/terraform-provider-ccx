@@ -9,6 +9,7 @@ import (
 
 func main() {
 	p := resources.Provider(
+		&resources.ParameterGroup{},
 		&resources.Datastore{},
 		&resources.VPC{},
 	)
