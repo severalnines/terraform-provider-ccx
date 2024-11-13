@@ -12,10 +12,10 @@ import (
 )
 
 var (
-	_ TerraformResource = &Datastore{}
+	_ TerraformResource = (*Datastore)(nil)
 )
 
-func schemaToDatastore(d *schema.ResourceData) (ccx.Datastore, error) {
+func datastoreFromSchema(d *schema.ResourceData) (ccx.Datastore, error) {
 	c := ccx.Datastore{
 		ID:                d.Id(),
 		Name:              getString(d, "name"),
@@ -33,6 +33,7 @@ func schemaToDatastore(d *schema.ResourceData) (ccx.Datastore, error) {
 		NetworkType:       getString(d, "network_type"),
 		HAEnabled:         getBool(d, "network_ha_enabled"),
 		VpcUUID:           getString(d, "network_vpc_uuid"),
+		ParameterGroupID:  getString(d, "parameter_group_id"),
 		AvailabilityZones: getStrings(d, "network_az"),
 	}
 
@@ -51,7 +52,7 @@ func schemaToDatastore(d *schema.ResourceData) (ccx.Datastore, error) {
 	return c, nil
 }
 
-func schemaFromDatastore(c ccx.Datastore, d *schema.ResourceData) error {
+func datastoreToSchema(c ccx.Datastore, d *schema.ResourceData) error {
 	d.SetId(c.ID)
 
 	var err error
@@ -116,6 +117,10 @@ func schemaFromDatastore(c ccx.Datastore, d *schema.ResourceData) error {
 	}
 
 	if err = d.Set("network_vpc_uuid", c.VpcUUID); err != nil {
+		return err
+	}
+
+	if err = d.Set("parameter_group_id", c.ParameterGroupID); err != nil {
 		return err
 	}
 
@@ -249,6 +254,11 @@ func (r *Datastore) Schema() *schema.Resource {
 				Description: "VPC to use if network_type is private",
 				ForceNew:    true,
 			},
+			"parameter_group_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Parameter group ID to use",
+			},
 			"network_az": {
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -299,7 +309,7 @@ func (r *Datastore) Schema() *schema.Resource {
 }
 
 func (r *Datastore) Create(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
-	c, err := schemaToDatastore(d)
+	c, err := datastoreFromSchema(d)
 
 	if err != nil {
 		return diag.FromErr(err)
@@ -322,7 +332,7 @@ func (r *Datastore) Create(ctx context.Context, d *schema.ResourceData, _ any) d
 		n.FirewallRules = c.FirewallRules
 	}
 
-	if err := schemaFromDatastore(*n, d); err != nil {
+	if err := datastoreToSchema(*n, d); err != nil {
 		errs = append(errs, fmt.Errorf("setting schema: %w", err))
 	}
 
@@ -334,7 +344,7 @@ func (r *Datastore) Create(ctx context.Context, d *schema.ResourceData, _ any) d
 }
 
 func (r *Datastore) Read(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
-	c, err := schemaToDatastore(d)
+	c, err := datastoreFromSchema(d)
 
 	if err != nil {
 		return diag.FromErr(err)
@@ -348,11 +358,11 @@ func (r *Datastore) Read(ctx context.Context, d *schema.ResourceData, _ any) dia
 		return diag.FromErr(err)
 	}
 
-	return diag.FromErr(schemaFromDatastore(*n, d))
+	return diag.FromErr(datastoreToSchema(*n, d))
 }
 
 func (r *Datastore) Update(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
-	c, err := schemaToDatastore(d)
+	c, err := datastoreFromSchema(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -379,7 +389,7 @@ func (r *Datastore) Update(ctx context.Context, d *schema.ResourceData, _ any) d
 		}
 	}
 
-	if err := schemaFromDatastore(*n, d); err != nil {
+	if err := datastoreToSchema(*n, d); err != nil {
 		errs = append(errs, fmt.Errorf("setting schema: %w", err))
 	}
 
@@ -391,7 +401,7 @@ func (r *Datastore) Update(ctx context.Context, d *schema.ResourceData, _ any) d
 }
 
 func (r *Datastore) Delete(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
-	c, err := schemaToDatastore(d)
+	c, err := datastoreFromSchema(d)
 
 	if err != nil {
 		return diag.FromErr(err)
