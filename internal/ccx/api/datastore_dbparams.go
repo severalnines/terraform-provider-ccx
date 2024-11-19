@@ -73,6 +73,10 @@ func (svc *DatastoreService) GetParameters(ctx context.Context, storeID string) 
 
 	parameters := make(map[string]string, len(rs.Parameters))
 	for k, v := range rs.Parameters {
+		if v.Value == "" { // not set, skip
+			continue
+		}
+
 		parameters[k] = v.Value
 	}
 
