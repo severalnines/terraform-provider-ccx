@@ -80,23 +80,6 @@ func getStrings(d *schema.ResourceData, key string) []string {
 	return s
 }
 
-func getMapString(d *schema.ResourceData, key string) map[string]string {
-	raw, ok := d.GetOk(key)
-	if !ok {
-		return nil
-	}
-
-	m := make(map[string]string)
-	for k, v := range raw.(map[string]interface{}) {
-		s, ok := v.(string)
-		if ok {
-			m[k] = s
-		}
-	}
-
-	return m
-}
-
 func allKeysSet(d *schema.ResourceData, keys ...string) bool {
 	for _, key := range keys {
 		if _, ok := d.GetOk(key); !ok {

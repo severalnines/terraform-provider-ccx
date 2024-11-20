@@ -12,10 +12,10 @@ import (
 )
 
 var (
-	_ TerraformResource = &Datastore{}
+	_ TerraformResource = (*Datastore)(nil)
 )
 
-func schemaToDatastore(d *schema.ResourceData) (ccx.Datastore, error) {
+func datastoreFromSchema(d *schema.ResourceData) (ccx.Datastore, error) {
 	c := ccx.Datastore{
 		ID:                d.Id(),
 		Name:              getString(d, "name"),
@@ -33,11 +33,9 @@ func schemaToDatastore(d *schema.ResourceData) (ccx.Datastore, error) {
 		NetworkType:       getString(d, "network_type"),
 		HAEnabled:         getBool(d, "network_ha_enabled"),
 		VpcUUID:           getString(d, "network_vpc_uuid"),
+		ParameterGroupID:  getString(d, "parameter_group_id"),
 		AvailabilityZones: getStrings(d, "network_az"),
 	}
-
-	dbparams := getMapString(d, "db_params")
-	c.DbParams = dbparams
 
 	firewalls, err := getFirewalls(d)
 	if err != nil {
@@ -54,64 +52,79 @@ func schemaToDatastore(d *schema.ResourceData) (ccx.Datastore, error) {
 	return c, nil
 }
 
-func schemaFromDatastore(c ccx.Datastore, d *schema.ResourceData) error {
+func datastoreToSchema(c ccx.Datastore, d *schema.ResourceData) error {
 	d.SetId(c.ID)
 
 	var err error
 	if err = d.Set("name", c.Name); err != nil {
 		return err
 	}
+
 	if err = d.Set("size", c.Size); err != nil {
 		return err
 	}
+
 	if err = d.Set("db_vendor", c.DBVendor); err != nil {
 		return err
 	}
+
 	if getString(d, "db_version") != "" {
 		if err = d.Set("db_version", c.DBVersion); err != nil {
 			return err
 		}
 	}
+
 	if getString(d, "type") != "" || c.Type != defaultType(c.DBVendor, c.Type) {
 		if err = d.Set("type", defaultType(c.DBVendor, c.Type)); err != nil {
 			return err
 		}
 	}
+
 	if err = d.Set("tags", c.Tags); err != nil {
 		return err
 	}
+
 	if err = d.Set("cloud_provider", c.CloudProvider); err != nil {
 		return err
 	}
+
 	if err = d.Set("cloud_region", c.CloudRegion); err != nil {
 		return err
 	}
+
 	if err = d.Set("instance_size", c.InstanceSize); err != nil {
 		return err
 	}
+
 	if err = d.Set("volume_type", c.VolumeType); err != nil {
 		return err
 	}
+
 	if err = d.Set("volume_size", c.VolumeSize); err != nil {
 		return err
 	}
+
 	if err = d.Set("volume_iops", c.VolumeIOPS); err != nil {
 		return err
 	}
+
 	if err = d.Set("network_type", c.NetworkType); err != nil {
 		return err
 	}
+
 	if err = d.Set("network_ha_enabled", c.HAEnabled); err != nil {
 		return err
 	}
+
 	if err = d.Set("network_vpc_uuid", c.VpcUUID); err != nil {
 		return err
 	}
-	if err = d.Set("network_az", c.AvailabilityZones); err != nil {
+
+	if err = d.Set("parameter_group_id", c.ParameterGroupID); err != nil {
 		return err
 	}
 
-	if err = d.Set("db_params", c.DbParams); err != nil {
+	if err = d.Set("network_az", c.AvailabilityZones); err != nil {
 		return err
 	}
 
@@ -241,16 +254,15 @@ func (r *Datastore) Schema() *schema.Resource {
 				Description: "VPC to use if network_type is private",
 				ForceNew:    true,
 			},
+			"parameter_group_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Parameter group ID to use",
+			},
 			"network_az": {
 				Type:        schema.TypeList,
 				Optional:    true,
 				Description: "Network availability zones",
-				Elem:        &schema.Schema{Type: schema.TypeString},
-			},
-			"db_params": {
-				Type:        schema.TypeMap,
-				Optional:    true,
-				Description: "Database parameters",
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 			"firewall": {
@@ -297,7 +309,7 @@ func (r *Datastore) Schema() *schema.Resource {
 }
 
 func (r *Datastore) Create(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
-	c, err := schemaToDatastore(d)
+	c, err := datastoreFromSchema(d)
 
 	if err != nil {
 		return diag.FromErr(err)
@@ -314,21 +326,13 @@ func (r *Datastore) Create(ctx context.Context, d *schema.ResourceData, _ any) d
 
 	var errs []error
 
-	if len(c.DbParams) != 0 {
-		if err := r.svc.SetParameters(ctx, n.ID, c.DbParams); err != nil {
-			errs = append(errs, fmt.Errorf("%w setting: %w", ccx.ParametersErr, err))
-		} else {
-			n.DbParams = c.DbParams
-		}
-	}
-
 	if err := r.svc.SetFirewallRules(ctx, n.ID, c.FirewallRules); err != nil {
 		errs = append(errs, fmt.Errorf("%w: setting: %w", ccx.FirewallRulesErr, err))
 	} else {
 		n.FirewallRules = c.FirewallRules
 	}
 
-	if err := schemaFromDatastore(*n, d); err != nil {
+	if err := datastoreToSchema(*n, d); err != nil {
 		errs = append(errs, fmt.Errorf("setting schema: %w", err))
 	}
 
@@ -340,7 +344,7 @@ func (r *Datastore) Create(ctx context.Context, d *schema.ResourceData, _ any) d
 }
 
 func (r *Datastore) Read(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
-	c, err := schemaToDatastore(d)
+	c, err := datastoreFromSchema(d)
 
 	if err != nil {
 		return diag.FromErr(err)
@@ -354,11 +358,11 @@ func (r *Datastore) Read(ctx context.Context, d *schema.ResourceData, _ any) dia
 		return diag.FromErr(err)
 	}
 
-	return diag.FromErr(schemaFromDatastore(*n, d))
+	return diag.FromErr(datastoreToSchema(*n, d))
 }
 
 func (r *Datastore) Update(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
-	c, err := schemaToDatastore(d)
+	c, err := datastoreFromSchema(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -369,21 +373,13 @@ func (r *Datastore) Update(ctx context.Context, d *schema.ResourceData, _ any) d
 	}
 
 	n := &c
-	if d.HasChangesExcept("db_params", "firewall") {
+	if d.HasChangesExcept("firewall") {
 		if n, err = r.svc.Update(ctx, *old, c); err != nil {
 			return diag.FromErr(err)
 		}
 	}
 
 	var errs []error
-
-	if d.HasChange("db_params") {
-		if err := r.svc.SetParameters(ctx, n.ID, c.DbParams); err != nil {
-			errs = append(errs, fmt.Errorf("%w setting: %w", ccx.ParametersErr, err))
-		} else {
-			n.DbParams = c.DbParams
-		}
-	}
 
 	if d.HasChange("firewall") {
 		if err := r.svc.SetFirewallRules(ctx, n.ID, c.FirewallRules); err != nil {
@@ -393,7 +389,7 @@ func (r *Datastore) Update(ctx context.Context, d *schema.ResourceData, _ any) d
 		}
 	}
 
-	if err := schemaFromDatastore(*n, d); err != nil {
+	if err := datastoreToSchema(*n, d); err != nil {
 		errs = append(errs, fmt.Errorf("setting schema: %w", err))
 	}
 
@@ -405,7 +401,7 @@ func (r *Datastore) Update(ctx context.Context, d *schema.ResourceData, _ any) d
 }
 
 func (r *Datastore) Delete(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
-	c, err := schemaToDatastore(d)
+	c, err := datastoreFromSchema(d)
 
 	if err != nil {
 		return diag.FromErr(err)

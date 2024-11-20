@@ -22,7 +22,7 @@ terraform {
   required_providers {
     ccx = {
       source  = "severalnines/ccx"
-      version = "~> 0.3.2"
+      version = "~> 0.4.0"
     }
   }
 }
@@ -89,16 +89,6 @@ in the resource "ccx_datastore" section, see also [example_datastore.tf](example
 
 ## Advanced Usage
 
-### Database Parameters
-
-Database parameters can be configured for the cluster by using the block `db_params` inside the `ccx_datastore` block as follows:
-
-```terraform
-db_params = {
-   sql_mode = "STRICT"
-}
-```
-
 The parameters will depend on the database vendor and version.
 Refer to the `Settings > DB Parameters` section for a list of available parameters.
 
@@ -164,7 +154,7 @@ Clone, build and place the plugin in the right folder.
 1. Clone: `git clone https://github.com/severalnines/terraform-provider-ccx`
 2. Build: `go build -o ./bin/terraform-provider-ccx.exe ./cmd/terraform-provider-ccx`
 3. Place: `./bin/terraform-provider-ccx.exe`
-   as `%APPDATA%/terraform.d/plugins/registry.terraform.io/severalnines/ccx/0.3.2/windows_amd64/terraform-provider-ccx.exe`
+   as `%APPDATA%/terraform.d/plugins/registry.terraform.io/severalnines/ccx/0.4.0/windows_amd64/terraform-provider-ccx.exe`
 
 ## Using the provider
 
@@ -179,7 +169,7 @@ terraform {
   required_providers {
     ccx = {
       source  = "severalnines/ccx"
-      version = "~> 0.3.2"
+      version = "~> 0.4.0"
     }
   }
 }
