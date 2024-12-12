@@ -54,7 +54,13 @@ func (svc *DatastoreService) Update(ctx context.Context, old, next ccx.Datastore
 
 	resized, err := svc.resize(ctx, old, next)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("resizing cluster: %w", err)
+	}
+
+	if old.ParameterGroupID != next.ParameterGroupID {
+		if err := svc.ApplyParameterGroup(ctx, next.ID, next.ParameterGroupID); err != nil {
+			return nil, fmt.Errorf("applying parameter group: %w", err)
+		}
 	}
 
 	if updated || resized {
