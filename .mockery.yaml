@@ -1,24 +1,21 @@
 inpackage: False
 with-expecter: True
 keeptree: False
-filename: "{{.InterfaceName | snakecase | lower }}_mock_test.go"
-mockname: "mock{{.InterfaceName}}"
+filename: "{{.InterfaceName | snakecase | lower }}_mock.go"
+mockname: "Mock{{.InterfaceName}}"
 
 packages:
   github.com/severalnines/terraform-provider-ccx/internal/ccx:
     interfaces:
       DatastoreService:
         config:
-          dir: "./internal/ccx/api"
-          outpkg: "api"
-  github.com/severalnines/terraform-provider-ccx/internal/ccx/api:
-    config:
-          inpackage: True
-    interfaces:
-      jobService:
+          dir: "./internal/ccx/mocks"
+          outpkg: "mocks"
+      ContentService:
         config:
-          dir: "./internal/ccx/api"
-      HttpClient:
+          dir: "./internal/ccx/mocks"
+          outpkg: "mocks"
+      VPCService:
         config:
-          dir: "./internal/ccx/api"
-          outpkg: "api"
+          dir: "./internal/ccx/mocks"
+          outpkg: "mocks"

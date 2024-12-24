@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 	"golang.org/x/oauth2/clientcredentials"
@@ -98,7 +99,7 @@ func NewTestHttpClient(baseURL string) *HttpClient {
 	cli := http.DefaultClient
 
 	return &HttpClient{
-		baseURL: baseURL,
+		baseURL: strings.TrimSuffix(baseURL, "/"),
 		cli:     cli,
 	}
 }

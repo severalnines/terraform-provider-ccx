@@ -19,7 +19,7 @@ func setNotifications(d *schema.ResourceData, n ccx.Notifications) error {
 		return fmt.Errorf("setting notifications_enabled: %w", err)
 	}
 
-	if err := d.Set("notifications_emails", n.Emails); err != nil {
+	if err := setStrings(d, "notifications_emails", n.Emails); err != nil {
 		return fmt.Errorf("setting notifications_emails: %w", err)
 	}
 

@@ -46,10 +46,7 @@ func getInt(d *schema.ResourceData, key string) int64 {
 }
 
 func getBool(d *schema.ResourceData, key string) bool {
-	v, ok := d.GetOk(key)
-	if !ok {
-		return false
-	}
+	v := d.Get(key)
 
 	switch b := v.(type) {
 	case bool:
@@ -63,9 +60,14 @@ func getBool(d *schema.ResourceData, key string) bool {
 
 // getStrings from ResourceData
 func getStrings(d *schema.ResourceData, key string) []string {
-	var raw []interface{}
+	var raw []any
 
-	if v, ok := d.Get(key).([]any); ok {
+	val := d.Get(key)
+
+	switch v := val.(type) {
+	case *schema.Set:
+		raw = v.List()
+	case []any:
 		raw = v
 	}
 
@@ -80,6 +82,48 @@ func getStrings(d *schema.ResourceData, key string) []string {
 	return s
 }
 
+func isSubsetOf[T comparable](a, b []T) bool {
+	m := make(map[T]any, len(b))
+	for _, v := range b {
+		m[v] = nil
+	}
+
+	for _, v := range a {
+		if _, ok := m[v]; !ok {
+			return false
+		}
+	}
+
+	return true
+}
+
+// setTags
+// the server adds additional tags
+// terraform marks the field as dirty
+// this is a hack to avoid that
+// if the tags defined in terraform are a subset of the tags returned by the server,
+// we keep the tags as is
+func setTags(d *schema.ResourceData, key string, tags []string) error {
+	old := getStrings(d, key)
+
+	ok := isSubsetOf(old, tags)
+	if ok {
+		return setStrings(d, key, old)
+	}
+
+	return setStrings(d, key, tags)
+}
+
+func setStrings(d *schema.ResourceData, key string, values []string) error {
+	var raw []any
+
+	for _, v := range values {
+		raw = append(raw, v)
+	}
+
+	return d.Set(key, raw)
+}
+
 func getMapString(d *schema.ResourceData, key string) map[string]string {
 	raw, ok := d.GetOk(key)
 	if !ok {
@@ -87,7 +131,7 @@ func getMapString(d *schema.ResourceData, key string) map[string]string {
 	}
 
 	m := make(map[string]string)
-	for k, v := range raw.(map[string]interface{}) {
+	for k, v := range raw.(map[string]any) {
 		s, ok := v.(string)
 		if ok {
 			m[k] = s

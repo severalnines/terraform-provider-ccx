@@ -47,4 +47,7 @@ var (
 
 	// FirewallRulesErr indicates failure to configure firewall rules
 	FirewallRulesErr = errors.New("failed to configure firewall rules")
+
+	// MaintenanceSettingsErr indicates failure to configure maintenance settings
+	MaintenanceSettingsErr = errors.New("failed to configure maintenance settings")
 )

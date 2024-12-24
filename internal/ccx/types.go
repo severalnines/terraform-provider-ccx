@@ -101,6 +101,7 @@ type DatastoreService interface {
 	Delete(ctx context.Context, id string) error
 	SetParameters(ctx context.Context, storeID string, parameters map[string]string) error
 	SetFirewallRules(ctx context.Context, storeID string, firewalls []FirewallRule) error
+	SetMaintenanceSettings(ctx context.Context, storeID string, settings MaintenanceSettings) error
 }
 
 type VPC struct {
@@ -126,4 +127,13 @@ type VPCService interface {
 	Read(ctx context.Context, id string) (*VPC, error)
 	Update(ctx context.Context, vpc VPC) (*VPC, error)
 	Delete(ctx context.Context, id string) error
+}
+
+type InstanceSize struct {
+	Code string `json:"code"`
+	Type string `json:"type"`
+}
+
+type ContentService interface {
+	InstanceSizes(ctx context.Context) (map[string][]InstanceSize, error)
 }
