@@ -31,12 +31,12 @@ func Provider() *schema.Provider {
 
 		httpClient := lib.NewHttpClient(cfg.BaseURL, cfg.ClientID, cfg.ClientSecret)
 
-		datastoreSvc, err := api.Datastores(httpClient, cfg.Timeout)
+		contentSvc, err := api.Content(httpClient)
 		if err != nil {
 			return nil, diag.FromErr(err)
 		}
 
-		contentSvc, err := api.Content(httpClient)
+		datastoreSvc, err := api.Datastores(httpClient, cfg.Timeout, contentSvc)
 		if err != nil {
 			return nil, diag.FromErr(err)
 		}
