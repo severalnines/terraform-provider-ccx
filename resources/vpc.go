@@ -7,62 +7,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
-	"github.com/severalnines/terraform-provider-ccx/internal/ccx/api"
 )
-
-var (
-	_ TerraformResource = &VPC{}
-)
-
-func schemaToVPC(d *schema.ResourceData) ccx.VPC {
-	return ccx.VPC{
-		ID:            d.Id(),
-		Name:          getString(d, "name"),
-		CloudSpace:    getString(d, "cloud_space"),
-		CloudProvider: getString(d, "cloud_provider"),
-		Region:        getString(d, "cloud_region"),
-		CidrIpv4Block: getString(d, "ipv4_cidr"),
-	}
-}
-
-func vpcToSchema(v ccx.VPC, d *schema.ResourceData) error {
-	d.SetId(v.ID)
-
-	if err := d.Set("name", v.Name); err != nil {
-		return err
-	}
-
-	if err := d.Set("cloud_space", v.CloudSpace); err != nil {
-		return err
-	}
-
-	if err := d.Set("cloud_provider", v.CloudProvider); err != nil {
-		return err
-	}
-
-	if err := d.Set("cloud_region", v.Region); err != nil {
-		return err
-	}
-
-	if err := d.Set("ipv4_cidr", v.CidrIpv4Block); err != nil {
-		return err
-	}
-
-	return nil
-}
 
 type VPC struct {
 	svc ccx.VPCService
-}
-
-func (r *VPC) Name() string {
-	return "ccx_vpc"
-}
-
-func (r *VPC) Configure(cfg TerraformConfiguration) error {
-	r.svc = api.Vpcs(cfg.httpClient)
-
-	return nil
 }
 
 func (r *VPC) Schema() *schema.Resource {
@@ -133,4 +81,41 @@ func (r *VPC) Update(ctx context.Context, d *schema.ResourceData, _ any) diag.Di
 func (r *VPC) Delete(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
 	v := schemaToVPC(d)
 	return diag.FromErr(r.svc.Delete(ctx, v.ID))
+}
+
+func schemaToVPC(d *schema.ResourceData) ccx.VPC {
+	return ccx.VPC{
+		ID:            d.Id(),
+		Name:          getString(d, "name"),
+		CloudSpace:    getString(d, "cloud_space"),
+		CloudProvider: getString(d, "cloud_provider"),
+		Region:        getString(d, "cloud_region"),
+		CidrIpv4Block: getString(d, "ipv4_cidr"),
+	}
+}
+
+func vpcToSchema(v ccx.VPC, d *schema.ResourceData) error {
+	d.SetId(v.ID)
+
+	if err := d.Set("name", v.Name); err != nil {
+		return err
+	}
+
+	if err := d.Set("cloud_space", v.CloudSpace); err != nil {
+		return err
+	}
+
+	if err := d.Set("cloud_provider", v.CloudProvider); err != nil {
+		return err
+	}
+
+	if err := d.Set("cloud_region", v.Region); err != nil {
+		return err
+	}
+
+	if err := d.Set("ipv4_cidr", v.CidrIpv4Block); err != nil {
+		return err
+	}
+
+	return nil
 }
