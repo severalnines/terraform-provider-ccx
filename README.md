@@ -89,19 +89,6 @@ in the resource "ccx_datastore" section, see also [example_datastore.tf](example
 
 ## Advanced Usage
 
-### Database Parameters
-
-Database parameters can be configured for the cluster by using the block `db_params` inside the `ccx_datastore` block as follows:
-
-```terraform
-db_params = {
-   sql_mode = "STRICT"
-}
-```
-
-The parameters will depend on the database vendor and version.
-Refer to the `Settings > DB Parameters` section for a list of available parameters.
-
 ### Firewall Settings
 
 Firewall settings can be configured for the cluster by using the block `firewall` inside the `ccx_datastore` block as follows:

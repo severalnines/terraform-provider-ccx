@@ -26,7 +26,6 @@ func TestDatastore_Create(t *testing.T) {
 			VolumeType:        "gp2",
 			VolumeSize:        80,
 			AvailabilityZones: nil,
-			DbParams:          nil,
 			FirewallRules:     []ccx.FirewallRule{},
 			NetworkType:       "public",
 			Notifications: ccx.Notifications{
@@ -216,7 +215,6 @@ resource "ccx_datastore" "luna" {
 			VolumeType:        "gp2",
 			VolumeSize:        80,
 			AvailabilityZones: nil,
-			DbParams:          nil,
 			FirewallRules:     []ccx.FirewallRule{},
 			NetworkType:       "public",
 			Notifications: ccx.Notifications{

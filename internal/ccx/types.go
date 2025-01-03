@@ -35,7 +35,6 @@ type Datastore struct {
 	VpcUUID           string
 	AvailabilityZones []string
 
-	DbParams      map[string]string
 	FirewallRules []FirewallRule
 	Hosts         []Host
 
@@ -99,7 +98,6 @@ type DatastoreService interface {
 	Read(ctx context.Context, id string) (*Datastore, error)
 	Update(ctx context.Context, old, next Datastore) (*Datastore, error)
 	Delete(ctx context.Context, id string) error
-	SetParameters(ctx context.Context, storeID string, parameters map[string]string) error
 	SetFirewallRules(ctx context.Context, storeID string, firewalls []FirewallRule) error
 	SetMaintenanceSettings(ctx context.Context, storeID string, settings MaintenanceSettings) error
 }
