@@ -19,3 +19,7 @@ packages:
         config:
           dir: "./internal/ccx/mocks"
           outpkg: "mocks"
+      ParameterGroupService:
+        config:
+          dir: "./internal/ccx/mocks"
+          outpkg: "mocks"

@@ -23,6 +23,54 @@ func (_m *MockDatastoreService) EXPECT() *MockDatastoreService_Expecter {
 	return &MockDatastoreService_Expecter{mock: &_m.Mock}
 }
 
+// ApplyParameterGroup provides a mock function with given fields: ctx, id, group
+func (_m *MockDatastoreService) ApplyParameterGroup(ctx context.Context, id string, group string) error {
+	ret := _m.Called(ctx, id, group)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ApplyParameterGroup")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		r0 = rf(ctx, id, group)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockDatastoreService_ApplyParameterGroup_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ApplyParameterGroup'
+type MockDatastoreService_ApplyParameterGroup_Call struct {
+	*mock.Call
+}
+
+// ApplyParameterGroup is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id string
+//   - group string
+func (_e *MockDatastoreService_Expecter) ApplyParameterGroup(ctx interface{}, id interface{}, group interface{}) *MockDatastoreService_ApplyParameterGroup_Call {
+	return &MockDatastoreService_ApplyParameterGroup_Call{Call: _e.mock.On("ApplyParameterGroup", ctx, id, group)}
+}
+
+func (_c *MockDatastoreService_ApplyParameterGroup_Call) Run(run func(ctx context.Context, id string, group string)) *MockDatastoreService_ApplyParameterGroup_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *MockDatastoreService_ApplyParameterGroup_Call) Return(_a0 error) *MockDatastoreService_ApplyParameterGroup_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockDatastoreService_ApplyParameterGroup_Call) RunAndReturn(run func(context.Context, string, string) error) *MockDatastoreService_ApplyParameterGroup_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Create provides a mock function with given fields: ctx, c
 func (_m *MockDatastoreService) Create(ctx context.Context, c ccx.Datastore) (*ccx.Datastore, error) {
 	ret := _m.Called(ctx, c)
@@ -280,54 +328,6 @@ func (_c *MockDatastoreService_SetMaintenanceSettings_Call) Return(_a0 error) *M
 }
 
 func (_c *MockDatastoreService_SetMaintenanceSettings_Call) RunAndReturn(run func(context.Context, string, ccx.MaintenanceSettings) error) *MockDatastoreService_SetMaintenanceSettings_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// SetParameters provides a mock function with given fields: ctx, storeID, parameters
-func (_m *MockDatastoreService) SetParameters(ctx context.Context, storeID string, parameters map[string]string) error {
-	ret := _m.Called(ctx, storeID, parameters)
-
-	if len(ret) == 0 {
-		panic("no return value specified for SetParameters")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, map[string]string) error); ok {
-		r0 = rf(ctx, storeID, parameters)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// MockDatastoreService_SetParameters_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetParameters'
-type MockDatastoreService_SetParameters_Call struct {
-	*mock.Call
-}
-
-// SetParameters is a helper method to define mock.On call
-//   - ctx context.Context
-//   - storeID string
-//   - parameters map[string]string
-func (_e *MockDatastoreService_Expecter) SetParameters(ctx interface{}, storeID interface{}, parameters interface{}) *MockDatastoreService_SetParameters_Call {
-	return &MockDatastoreService_SetParameters_Call{Call: _e.mock.On("SetParameters", ctx, storeID, parameters)}
-}
-
-func (_c *MockDatastoreService_SetParameters_Call) Run(run func(ctx context.Context, storeID string, parameters map[string]string)) *MockDatastoreService_SetParameters_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(map[string]string))
-	})
-	return _c
-}
-
-func (_c *MockDatastoreService_SetParameters_Call) Return(_a0 error) *MockDatastoreService_SetParameters_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *MockDatastoreService_SetParameters_Call) RunAndReturn(run func(context.Context, string, map[string]string) error) *MockDatastoreService_SetParameters_Call {
 	_c.Call.Return(run)
 	return _c
 }

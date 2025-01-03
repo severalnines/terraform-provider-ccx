@@ -78,12 +78,6 @@ func (svc *DatastoreService) Read(ctx context.Context, id string) (*ccx.Datastor
 		c.VpcUUID = rs.Vpc.VpcUUID
 	}
 
-	if p, err := svc.GetParameters(ctx, id); err == nil {
-		c.DbParams = p
-	} else {
-		return nil, fmt.Errorf("getting parameters: %w", err)
-	}
-
 	if fw, err := svc.GetFirewallRules(ctx, id); err == nil {
 		c.FirewallRules = fw
 	} else {

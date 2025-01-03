@@ -22,7 +22,7 @@ terraform {
   required_providers {
     ccx = {
       source  = "severalnines/ccx"
-      version = "~> 0.3.2"
+      version = "~> 0.4.0"
     }
   }
 }
@@ -89,18 +89,46 @@ in the resource "ccx_datastore" section, see also [example_datastore.tf](example
 
 ## Advanced Usage
 
-### Database Parameters
+### Database Parameter Groups
 
-Database parameters can be configured for the cluster by using the block `db_params` inside the `ccx_datastore` block as follows:
+A database parameter group can be created as follows.
+> Ensure that the name is unique and the database vendor and version are supported by CCX.
+>
+> The parameters are key-value pairs where the key is the parameter name and the value is the parameter value.
+> Refer to your cloud provider's documentation for the list of supported parameters.
 
 ```terraform
-db_params = {
-   sql_mode = "STRICT"
+resource "ccx_parameter_group" "asteroid" {
+    name = "asteroid"
+    database_vendor = "mariadb"
+    database_version = "10.11"
+    database_type = "galera"
+
+    parameters = {
+      max_connections = 100
+      sql_mode = "STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
+    }
 }
 ```
 
-The parameters will depend on the database vendor and version.
-Refer to the `Settings > DB Parameters` section for a list of available parameters.
+This group can be associated with a datastore as follows:
+
+```terraform
+resource "ccx_datastore" "luna_mysql" {
+	name           = "luna_mysql"
+	size           = 3
+	type           = "replication"
+	db_vendor      = "mysql"
+	tags           = ["new", "test"]
+	cloud_provider = "aws"
+	cloud_region   = "eu-north-1"
+	instance_size  = "m5.large"
+	volume_size    = 80
+	volume_type    = "gp2"
+	network_type   = "public"
+	parameter_group = ccx_parameter_group.asteroid.id
+}
+```
 
 ### Firewall Settings
 
@@ -164,7 +192,7 @@ Clone, build and place the plugin in the right folder.
 1. Clone: `git clone https://github.com/severalnines/terraform-provider-ccx`
 2. Build: `go build -o ./bin/terraform-provider-ccx.exe ./cmd/terraform-provider-ccx`
 3. Place: `./bin/terraform-provider-ccx.exe`
-   as `%APPDATA%/terraform.d/plugins/registry.terraform.io/severalnines/ccx/0.3.2/windows_amd64/terraform-provider-ccx.exe`
+   as `%APPDATA%/terraform.d/plugins/registry.terraform.io/severalnines/ccx/0.4.0/windows_amd64/terraform-provider-ccx.exe`
 
 ## Using the provider
 
@@ -179,7 +207,7 @@ terraform {
   required_providers {
     ccx = {
       source  = "severalnines/ccx"
-      version = "~> 0.3.2"
+      version = "~> 0.4.0"
     }
   }
 }

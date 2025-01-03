@@ -23,6 +23,66 @@ func (_m *MockContentService) EXPECT() *MockContentService_Expecter {
 	return &MockContentService_Expecter{mock: &_m.Mock}
 }
 
+// AvailabilityZones provides a mock function with given fields: ctx, provider, region
+func (_m *MockContentService) AvailabilityZones(ctx context.Context, provider string, region string) ([]string, error) {
+	ret := _m.Called(ctx, provider, region)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AvailabilityZones")
+	}
+
+	var r0 []string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) ([]string, error)); ok {
+		return rf(ctx, provider, region)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) []string); ok {
+		r0 = rf(ctx, provider, region)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, provider, region)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockContentService_AvailabilityZones_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AvailabilityZones'
+type MockContentService_AvailabilityZones_Call struct {
+	*mock.Call
+}
+
+// AvailabilityZones is a helper method to define mock.On call
+//   - ctx context.Context
+//   - provider string
+//   - region string
+func (_e *MockContentService_Expecter) AvailabilityZones(ctx interface{}, provider interface{}, region interface{}) *MockContentService_AvailabilityZones_Call {
+	return &MockContentService_AvailabilityZones_Call{Call: _e.mock.On("AvailabilityZones", ctx, provider, region)}
+}
+
+func (_c *MockContentService_AvailabilityZones_Call) Run(run func(ctx context.Context, provider string, region string)) *MockContentService_AvailabilityZones_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *MockContentService_AvailabilityZones_Call) Return(_a0 []string, _a1 error) *MockContentService_AvailabilityZones_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockContentService_AvailabilityZones_Call) RunAndReturn(run func(context.Context, string, string) ([]string, error)) *MockContentService_AvailabilityZones_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // InstanceSizes provides a mock function with given fields: ctx
 func (_m *MockContentService) InstanceSizes(ctx context.Context) (map[string][]ccx.InstanceSize, error) {
 	ret := _m.Called(ctx)
