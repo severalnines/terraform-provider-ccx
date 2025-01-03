@@ -13,6 +13,7 @@ import (
 func Provider() *schema.Provider {
 	datastore := &Datastore{}
 	vpc := &VPC{}
+	parameterGroup := &ParameterGroup{}
 
 	configure := func(ctx context.Context, d *schema.ResourceData) (any, diag.Diagnostics) {
 		cfg := TerraformConfiguration{
@@ -45,13 +46,16 @@ func Provider() *schema.Provider {
 		vpcSvc := api.Vpcs(httpClient)
 		vpc.svc = vpcSvc
 
+		parameterGroupSvc := api.ParameterGroups(httpClient)
+		parameterGroup.svc = parameterGroupSvc
+
 		return nil, nil
 	}
 
-	return provider(configure, datastore, vpc)
+	return provider(configure, datastore, vpc, parameterGroup)
 }
 
-func provider(configure schema.ConfigureContextFunc, datastore *Datastore, vpc *VPC) *schema.Provider {
+func provider(configure schema.ConfigureContextFunc, datastore *Datastore, vpc *VPC, parameterGroup *ParameterGroup) *schema.Provider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"client_id": {
@@ -76,8 +80,9 @@ func provider(configure schema.ConfigureContextFunc, datastore *Datastore, vpc *
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"ccx_datastore": datastore.Schema(),
-			"ccx_vpc":       vpc.Schema(),
+			"ccx_datastore":       datastore.Schema(),
+			"ccx_vpc":             vpc.Schema(),
+			"ccx_parameter_group": parameterGroup.Schema(),
 		},
 		ConfigureContextFunc: configure,
 	}

@@ -33,6 +33,7 @@ type Datastore struct {
 	NetworkType       string
 	HAEnabled         bool
 	VpcUUID           string
+	ParameterGroupID  string
 	AvailabilityZones []string
 
 	FirewallRules []FirewallRule
@@ -100,6 +101,7 @@ type DatastoreService interface {
 	Delete(ctx context.Context, id string) error
 	SetFirewallRules(ctx context.Context, storeID string, firewalls []FirewallRule) error
 	SetMaintenanceSettings(ctx context.Context, storeID string, settings MaintenanceSettings) error
+	ApplyParameterGroup(ctx context.Context, id, group string) error
 }
 
 type VPC struct {
@@ -135,4 +137,20 @@ type InstanceSize struct {
 type ContentService interface {
 	InstanceSizes(ctx context.Context) (map[string][]InstanceSize, error)
 	AvailabilityZones(ctx context.Context, provider, region string) ([]string, error)
+}
+
+type ParameterGroup struct {
+	ID              string            `json:"uuid"`
+	Name            string            `json:"name"`
+	DatabaseVendor  string            `json:"database_vendor"`
+	DatabaseVersion string            `json:"database_version"`
+	DatabaseType    string            `json:"database_type"`
+	DbParameters    map[string]string `json:"db_parameters"`
+}
+
+type ParameterGroupService interface {
+	Create(ctx context.Context, p ParameterGroup) (*ParameterGroup, error)
+	Read(ctx context.Context, id string) (*ParameterGroup, error)
+	Update(ctx context.Context, p ParameterGroup) error
+	Delete(ctx context.Context, id string) error
 }

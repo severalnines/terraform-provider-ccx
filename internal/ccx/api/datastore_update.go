@@ -57,6 +57,14 @@ func (svc *DatastoreService) Update(ctx context.Context, old, next ccx.Datastore
 		return nil, err
 	}
 
+	if old.ParameterGroupID != next.ParameterGroupID {
+		if err := svc.ApplyParameterGroup(ctx, next.ID, next.ParameterGroupID); err != nil {
+			return nil, fmt.Errorf("applying parameter group: %w", err)
+		}
+
+		updated = true
+	}
+
 	if updated || resized {
 		if out, err = svc.Read(ctx, old.ID); err != nil {
 			return nil, err

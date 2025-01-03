@@ -117,6 +117,11 @@ func (r *Datastore) Schema() *schema.Resource {
 				ForceNew:         true,
 				DiffSuppressFunc: caseInsensitiveSuppressor,
 			},
+			"parameter_group_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Parameter group ID to use",
+			},
 			"network_az": {
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -328,22 +333,23 @@ func defaultType(vendor, dbType string) string {
 
 func schemaToDatastore(d *schema.ResourceData) (ccx.Datastore, error) {
 	c := ccx.Datastore{
-		ID:            d.Id(),
-		Name:          getString(d, "name"),
-		Size:          getInt(d, "size"),
-		DBVendor:      getString(d, "db_vendor"),
-		DBVersion:     getString(d, "db_version"),
-		Type:          getString(d, "type"),
-		Tags:          getStrings(d, "tags"),
-		CloudProvider: getString(d, "cloud_provider"),
-		CloudRegion:   getString(d, "cloud_region"),
-		InstanceSize:  getString(d, "instance_size"),
-		VolumeType:    getString(d, "volume_type"),
-		VolumeSize:    uint64(getInt(d, "volume_size")),
-		VolumeIOPS:    uint64(getInt(d, "volume_iops")),
-		NetworkType:   getString(d, "network_type"),
-		HAEnabled:     getBool(d, "network_ha_enabled"),
-		VpcUUID:       getString(d, "network_vpc_uuid"),
+		ID:               d.Id(),
+		Name:             getString(d, "name"),
+		Size:             getInt(d, "size"),
+		DBVendor:         getString(d, "db_vendor"),
+		DBVersion:        getString(d, "db_version"),
+		Type:             getString(d, "type"),
+		Tags:             getStrings(d, "tags"),
+		CloudProvider:    getString(d, "cloud_provider"),
+		CloudRegion:      getString(d, "cloud_region"),
+		InstanceSize:     getString(d, "instance_size"),
+		VolumeType:       getString(d, "volume_type"),
+		VolumeSize:       uint64(getInt(d, "volume_size")),
+		VolumeIOPS:       uint64(getInt(d, "volume_iops")),
+		NetworkType:      getString(d, "network_type"),
+		HAEnabled:        getBool(d, "network_ha_enabled"),
+		ParameterGroupID: getString(d, "parameter_group_id"),
+		VpcUUID:          getString(d, "network_vpc_uuid"),
 	}
 
 	if azs, hasAzs := getAzs(d); hasAzs && len(azs) == int(c.Size) {
@@ -420,6 +426,10 @@ func schemaFromDatastore(c ccx.Datastore, d *schema.ResourceData) error {
 	}
 
 	if err = d.Set("network_vpc_uuid", c.VpcUUID); err != nil {
+		return err
+	}
+
+	if err = d.Set("parameter_group_id", c.ParameterGroupID); err != nil {
 		return err
 	}
 
