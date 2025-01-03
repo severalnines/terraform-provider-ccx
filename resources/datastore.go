@@ -117,7 +117,7 @@ func (r *Datastore) Schema() *schema.Resource {
 				ForceNew:         true,
 				DiffSuppressFunc: caseInsensitiveSuppressor,
 			},
-			"parameter_group_id": {
+			"parameter_group": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Parameter group ID to use",
@@ -348,7 +348,7 @@ func schemaToDatastore(d *schema.ResourceData) (ccx.Datastore, error) {
 		VolumeIOPS:       uint64(getInt(d, "volume_iops")),
 		NetworkType:      getString(d, "network_type"),
 		HAEnabled:        getBool(d, "network_ha_enabled"),
-		ParameterGroupID: getString(d, "parameter_group_id"),
+		ParameterGroupID: getString(d, "parameter_group"),
 		VpcUUID:          getString(d, "network_vpc_uuid"),
 	}
 
@@ -429,7 +429,7 @@ func schemaFromDatastore(c ccx.Datastore, d *schema.ResourceData) error {
 		return err
 	}
 
-	if err = d.Set("parameter_group_id", c.ParameterGroupID); err != nil {
+	if err = d.Set("parameter_group", c.ParameterGroupID); err != nil {
 		return err
 	}
 
