@@ -7,9 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx/api"
-	"github.com/severalnines/terraform-provider-ccx/internal/ccx/mocks"
 	"github.com/severalnines/terraform-provider-ccx/internal/lib"
-	"github.com/stretchr/testify/mock"
 )
 
 func Provider() *schema.Provider {
@@ -31,12 +29,12 @@ func Provider() *schema.Provider {
 
 		httpClient := lib.NewHttpClient(cfg.BaseURL, cfg.ClientID, cfg.ClientSecret)
 
-		datastoreSvc, err := api.Datastores(httpClient, cfg.Timeout)
+		contentSvc, err := api.Content(httpClient)
 		if err != nil {
 			return nil, diag.FromErr(err)
 		}
 
-		contentSvc, err := api.Content(httpClient)
+		datastoreSvc, err := api.Datastores(httpClient, cfg.Timeout, contentSvc)
 		if err != nil {
 			return nil, diag.FromErr(err)
 		}
@@ -83,33 +81,4 @@ func provider(configure schema.ConfigureContextFunc, datastore *Datastore, vpc *
 		},
 		ConfigureContextFunc: configure,
 	}
-}
-
-type mockServices struct {
-	datastore *mocks.MockDatastoreService
-	vpc       *mocks.MockVPCService
-}
-
-func (m mockServices) AssertExpectations(t mock.TestingT) {
-	m.datastore.AssertExpectations(t)
-	m.vpc.AssertExpectations(t)
-}
-
-func mockProvider() (mockServices, *schema.Provider) {
-	datastore := &Datastore{}
-	vpc := &VPC{}
-
-	services := mockServices{
-		datastore: &mocks.MockDatastoreService{},
-		vpc:       &mocks.MockVPCService{},
-	}
-
-	configure := func(ctx context.Context, d *schema.ResourceData) (any, diag.Diagnostics) {
-		datastore.svc = services.datastore
-		vpc.svc = services.vpc
-
-		return nil, nil
-	}
-
-	return services, provider(configure, datastore, vpc)
 }

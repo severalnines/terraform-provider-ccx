@@ -136,4 +136,5 @@ type InstanceSize struct {
 
 type ContentService interface {
 	InstanceSizes(ctx context.Context) (map[string][]InstanceSize, error)
+	AvailabilityZones(ctx context.Context, provider, region string) ([]string, error)
 }

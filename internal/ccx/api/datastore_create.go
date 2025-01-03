@@ -96,6 +96,36 @@ func createRequestFromDatastore(c ccx.Datastore) createStoreRequest {
 	}
 }
 
+func allocateAzs(allAzs, existing []string, n int) []string {
+	if n <= 0 {
+		return nil
+	}
+
+	m := make(map[string]int, len(allAzs))
+
+	for _, a := range allAzs {
+		m[a] = 0
+	}
+
+	for _, e := range existing {
+		if _, ok := m[e]; ok { // skip those not in the list, might be older ones no longer available
+			m[e] += 1
+		}
+	}
+
+	azs := make([]lib.CountedItem, 0, len(m))
+	for name, count := range m {
+		azs = append(azs, lib.CountedItem{
+			Name:  name,
+			Count: count,
+		})
+	}
+
+	ls := lib.AllocateN(azs, n)
+
+	return ls
+}
+
 type datastoreResponse struct {
 	UUID             string   `json:"uuid"`
 	Name             string   `json:"cluster_name"`
@@ -117,6 +147,15 @@ type datastoreResponse struct {
 
 func (svc *DatastoreService) Create(ctx context.Context, c ccx.Datastore) (*ccx.Datastore, error) {
 	cr := createRequestFromDatastore(c)
+
+	if n, h := len(c.AvailabilityZones), int(c.Size); c.NetworkType == "public" && n < h { // allocate AZs if public and need is less than have
+		allAzs, err := svc.contentSvc.AvailabilityZones(ctx, c.CloudProvider, c.CloudRegion)
+		if err != nil {
+			return nil, fmt.Errorf("allocating availability zones: %w: %w", ccx.CreateFailedErr, err)
+		}
+
+		c.AvailabilityZones = allocateAzs(allAzs, nil, h-n)
+	}
 
 	res, err := svc.client.Do(ctx, http.MethodPost, "/api/prov/api/v2/cluster", cr)
 	if err != nil {
