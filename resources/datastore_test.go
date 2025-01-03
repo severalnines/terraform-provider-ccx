@@ -25,7 +25,7 @@ func TestDatastore_Create(t *testing.T) {
 			InstanceSize:      "m5.large",
 			VolumeType:        "gp2",
 			VolumeSize:        80,
-			AvailabilityZones: []string{},
+			AvailabilityZones: nil,
 			DbParams:          nil,
 			FirewallRules:     []ccx.FirewallRule{},
 			NetworkType:       "public",
@@ -195,7 +195,7 @@ resource "ccx_datastore" "luna" {
 				Emails:  []string{"user@getccx.com"},
 			},
 			NetworkType:       "public",
-			AvailabilityZones: []string{},
+			AvailabilityZones: nil,
 			FirewallRules:     []ccx.FirewallRule{},
 			MaintenanceSettings: &ccx.MaintenanceSettings{
 				DayOfWeek: 1,
@@ -215,7 +215,7 @@ resource "ccx_datastore" "luna" {
 			InstanceSize:      "m5.large",
 			VolumeType:        "gp2",
 			VolumeSize:        80,
-			AvailabilityZones: []string{},
+			AvailabilityZones: nil,
 			DbParams:          nil,
 			FirewallRules:     []ccx.FirewallRule{},
 			NetworkType:       "public",
@@ -280,7 +280,7 @@ resource "ccx_datastore" "luna" {
 					Emails:  []string{"user@getccx.com"},
 				},
 				NetworkType:       "public",
-				AvailabilityZones: []string{},
+				AvailabilityZones: nil,
 				FirewallRules:     []ccx.FirewallRule{},
 			}).RunAndReturn(func(_ context.Context, _, _ ccx.Datastore) (*ccx.Datastore, error) {
 			updated = true
