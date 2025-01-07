@@ -150,3 +150,12 @@ func allKeysSet(d *schema.ResourceData, keys ...string) bool {
 
 	return true
 }
+
+func getAzs(d *schema.ResourceData) ([]string, bool) {
+	if _, ok := d.GetOk("network_az"); ok {
+		azs := getStrings(d, "network_az")
+		return azs, true
+	}
+
+	return nil, false
+}

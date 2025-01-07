@@ -94,6 +94,19 @@ func (svc *DatastoreService) resize(ctx context.Context, old, next ccx.Datastore
 		return false, nil
 	}
 
+	adding := old.Size < next.Size
+
+	if adding {
+		if n, h := len(next.AvailabilityZones), int(next.Size); next.NetworkType == "public" && n < h { // allocate AZs if public and need is less than have
+			allAzs, err := svc.contentSvc.AvailabilityZones(ctx, next.CloudProvider, next.CloudRegion)
+			if err != nil {
+				return false, fmt.Errorf("allocating availability zones: %w: %w", ccx.CreateFailedErr, err)
+			}
+
+			next.AvailabilityZones = allocateAzs(allAzs, nil, h-n)
+		}
+	}
+
 	res, err := svc.client.Do(ctx, http.MethodPatch, "/api/prov/api/v2/cluster/"+next.ID, ur)
 	if err != nil {
 		return false, errors.Join(ccx.RequestSendingErr, err)
@@ -108,14 +121,10 @@ func (svc *DatastoreService) resize(ctx context.Context, old, next ccx.Datastore
 	}
 
 	var jt jobType
-
-	if old.Size > next.Size {
-		jt = removeNodeJob
-	} else if old.Size < next.Size {
+	if adding {
 		jt = addNodeJob
 	} else {
-		// should not be here
-		return false, nil
+		jt = removeNodeJob
 	}
 
 	status, err := svc.jobs.Await(ctx, old.ID, jt)
@@ -129,10 +138,7 @@ func (svc *DatastoreService) resize(ctx context.Context, old, next ccx.Datastore
 }
 
 func (svc *DatastoreService) updateSizeRequest(old, next ccx.Datastore) (updateRequest, bool) {
-	var (
-		ur updateRequest
-		ok bool
-	)
+	var ur updateRequest
 
 	if old.Size > next.Size { // remove the oldest non-primary nodes
 		ids, err := oldestRemovableNodeIds(old.Hosts, int(old.Size-next.Size))
@@ -141,18 +147,18 @@ func (svc *DatastoreService) updateSizeRequest(old, next ccx.Datastore) (updateR
 		}
 
 		ur.Remove = &removeHosts{HostIDs: ids}
-		ok = true
-	} else if old.Size < next.Size { // add new hosts based on newest node spec
-		specs, err := newestNodeSpecs(old.Hosts, int(next.Size-old.Size))
-		if err != nil {
-			return ur, false
-		}
-
-		ur.Add = &addHosts{Specs: specs}
-		ok = true
+		return ur, true
 	}
 
-	return ur, ok
+	// add new hosts based on newest node spec
+	specs, err := newestNodeSpecs(old.Hosts, int(next.Size-old.Size))
+	if err != nil {
+		return ur, false
+	}
+
+	ur.Add = &addHosts{Specs: specs}
+
+	return ur, true
 }
 
 func (svc *DatastoreService) updateRequest(old, next ccx.Datastore) (updateRequest, bool) {

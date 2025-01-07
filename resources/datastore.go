@@ -350,23 +350,28 @@ func defaultType(vendor, dbType string) string {
 
 func schemaToDatastore(d *schema.ResourceData) (ccx.Datastore, error) {
 	c := ccx.Datastore{
-		ID:                d.Id(),
-		Name:              getString(d, "name"),
-		Size:              getInt(d, "size"),
-		DBVendor:          getString(d, "db_vendor"),
-		DBVersion:         getString(d, "db_version"),
-		Type:              getString(d, "type"),
-		Tags:              getStrings(d, "tags"),
-		CloudProvider:     getString(d, "cloud_provider"),
-		CloudRegion:       getString(d, "cloud_region"),
-		InstanceSize:      getString(d, "instance_size"),
-		VolumeType:        getString(d, "volume_type"),
-		VolumeSize:        uint64(getInt(d, "volume_size")),
-		VolumeIOPS:        uint64(getInt(d, "volume_iops")),
-		NetworkType:       getString(d, "network_type"),
-		HAEnabled:         getBool(d, "network_ha_enabled"),
-		VpcUUID:           getString(d, "network_vpc_uuid"),
-		AvailabilityZones: getStrings(d, "network_az"),
+		ID:            d.Id(),
+		Name:          getString(d, "name"),
+		Size:          getInt(d, "size"),
+		DBVendor:      getString(d, "db_vendor"),
+		DBVersion:     getString(d, "db_version"),
+		Type:          getString(d, "type"),
+		Tags:          getStrings(d, "tags"),
+		CloudProvider: getString(d, "cloud_provider"),
+		CloudRegion:   getString(d, "cloud_region"),
+		InstanceSize:  getString(d, "instance_size"),
+		VolumeType:    getString(d, "volume_type"),
+		VolumeSize:    uint64(getInt(d, "volume_size")),
+		VolumeIOPS:    uint64(getInt(d, "volume_iops")),
+		NetworkType:   getString(d, "network_type"),
+		HAEnabled:     getBool(d, "network_ha_enabled"),
+		VpcUUID:       getString(d, "network_vpc_uuid"),
+	}
+
+	if azs, hasAzs := getAzs(d); hasAzs && len(azs) == int(c.Size) {
+		c.AvailabilityZones = azs
+	} else if hasAzs {
+		return c, fmt.Errorf("number of availability zones (%d) must match the size of the cluster (%d)", len(azs), c.Size)
 	}
 
 	dbparams := getMapString(d, "db_params")
@@ -447,8 +452,10 @@ func schemaFromDatastore(c ccx.Datastore, d *schema.ResourceData) error {
 		return err
 	}
 
-	if err = setStrings(d, "network_az", c.AvailabilityZones); err != nil {
-		return err
+	if azs, ok := getAzs(d); ok { // do not set azs from upstream
+		if err = setStrings(d, "network_az", azs); err != nil {
+			return err
+		}
 	}
 
 	if err = d.Set("db_params", c.DbParams); err != nil {
