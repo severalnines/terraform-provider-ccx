@@ -35,6 +35,59 @@ func TestAllocateN(t *testing.T) {
 			want: nil,
 		},
 		{
+			name: "two, one 1, need 1",
+			items: []CountedItem{
+				{
+					Name:  "a",
+					Count: 1,
+				},
+				{
+					Name:  "b",
+					Count: 0,
+				},
+			},
+			n:    1,
+			want: []string{"b"},
+		},
+		{
+			name: "three, single 1, need 3",
+			items: []CountedItem{
+				{
+					Name:  "a",
+					Count: 1,
+				},
+				{
+					Name:  "b",
+					Count: 0,
+				},
+				{
+					Name:  "c",
+					Count: 0,
+				},
+			},
+			n:    3,
+			want: []string{"b", "b", "c"},
+		},
+		{
+			name: "3 all zeroes, need 3",
+			items: []CountedItem{
+				{
+					Name:  "a",
+					Count: 0,
+				},
+				{
+					Name:  "b",
+					Count: 0,
+				},
+				{
+					Name:  "c",
+					Count: 0,
+				},
+			},
+			n:    3,
+			want: []string{"a", "b", "c"},
+		},
+		{
 			name: "n less than number of entries",
 			items: []CountedItem{
 				{

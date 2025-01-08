@@ -97,22 +97,32 @@ func (svc *DatastoreService) update(ctx context.Context, old, next ccx.Datastore
 }
 
 func (svc *DatastoreService) resize(ctx context.Context, old, next ccx.Datastore) (bool, error) {
-	ur, ok := svc.updateSizeRequest(old, next)
-	if !ok {
-		return false, nil
-	}
-
 	adding := old.Size < next.Size
 
 	if adding {
-		if n, h := len(next.AvailabilityZones), int(next.Size); next.NetworkType == "public" && n < h { // allocate AZs if public and need is less than have
+		have := len(next.AvailabilityZones)
+		need := int(next.Size - old.Size)
+		missing := need - have
+
+		if next.NetworkType == "public" && missing > 0 { // allocate AZs if public and need is less than have
 			allAzs, err := svc.contentSvc.AvailabilityZones(ctx, next.CloudProvider, next.CloudRegion)
 			if err != nil {
 				return false, fmt.Errorf("allocating availability zones: %w: %w", ccx.CreateFailedErr, err)
 			}
 
-			next.AvailabilityZones = allocateAzs(allAzs, nil, h-n)
+			existing := make([]string, 0, len(old.Hosts))
+
+			for i := range old.Hosts {
+				existing = append(existing, old.Hosts[i].AZ)
+			}
+
+			next.AvailabilityZones = append(next.AvailabilityZones, allocateAzs(allAzs, existing, missing)...)
 		}
+	}
+
+	ur, err := svc.updateSizeRequest(ctx, old, next)
+	if err != nil {
+		return false, fmt.Errorf("computing resize: %w", err)
 	}
 
 	res, err := svc.client.Do(ctx, http.MethodPatch, "/api/prov/api/v2/cluster/"+next.ID, ur)
@@ -145,28 +155,48 @@ func (svc *DatastoreService) resize(ctx context.Context, old, next ccx.Datastore
 	return true, nil
 }
 
-func (svc *DatastoreService) updateSizeRequest(old, next ccx.Datastore) (updateRequest, bool) {
+func (svc *DatastoreService) updateSizeRequest(ctx context.Context, old, next ccx.Datastore) (updateRequest, error) {
 	var ur updateRequest
 
 	if old.Size > next.Size { // remove the oldest non-primary nodes
 		ids, err := oldestRemovableNodeIds(old.Hosts, int(old.Size-next.Size))
 		if err != nil {
-			return ur, false
+			return ur, err
 		}
 
 		ur.Remove = &removeHosts{HostIDs: ids}
-		return ur, true
+		return ur, nil
+	}
+
+	have := len(next.AvailabilityZones)
+	need := int(next.Size - old.Size)
+	missing := need - have
+
+	if next.NetworkType == "public" && missing > 0 { // allocate AZs if public and need is less than have
+		allAzs, err := svc.contentSvc.AvailabilityZones(ctx, next.CloudProvider, next.CloudRegion)
+		if err != nil {
+			return ur, fmt.Errorf("allocating availability zones: %w: %w", ccx.CreateFailedErr, err)
+		}
+
+		existing := make([]string, 0, len(old.Hosts))
+
+		for i := range old.Hosts {
+			existing = append(existing, old.Hosts[i].AZ)
+		}
+
+		ls := allocateAzs(allAzs, existing, missing)
+		next.AvailabilityZones = append(next.AvailabilityZones, ls...)
 	}
 
 	// add new hosts based on newest node spec
-	specs, err := newestNodeSpecs(old.Hosts, int(next.Size-old.Size))
+	specs, err := newestNodeSpecs(old.Hosts, int(next.Size-old.Size), next.AvailabilityZones)
 	if err != nil {
-		return ur, false
+		return ur, err
 	}
 
 	ur.Add = &addHosts{Specs: specs}
 
-	return ur, true
+	return ur, nil
 }
 
 func (svc *DatastoreService) updateRequest(old, next ccx.Datastore) (updateRequest, bool) {
@@ -228,9 +258,13 @@ func oldestRemovableNodeIds(hosts []ccx.Host, count int) ([]string, error) {
 	return ls, nil
 }
 
-func newestNodeSpecs(hosts []ccx.Host, count int) ([]hostSpecs, error) {
+func newestNodeSpecs(hosts []ccx.Host, count int, azs []string) ([]hostSpecs, error) {
 	if len(hosts) == 0 {
 		return nil, fmt.Errorf("no nodes available")
+	}
+
+	if len(azs) != count {
+		return nil, fmt.Errorf("not enough azs available")
 	}
 
 	slices.SortStableFunc(hosts, func(a, b ccx.Host) int {
@@ -243,6 +277,7 @@ func newestNodeSpecs(hosts []ccx.Host, count int) ([]hostSpecs, error) {
 	for i := 0; i < count; i++ {
 		ls = append(ls, hostSpecs{
 			InstanceType: h.InstanceType,
+			AZ:           azs[i],
 		})
 	}
 

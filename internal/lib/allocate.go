@@ -3,12 +3,17 @@ package lib
 import (
 	"math"
 	"slices"
+	"strconv"
 	"strings"
 )
 
 type CountedItem struct {
 	Name  string
 	Count int
+}
+
+func (c CountedItem) String() string {
+	return c.Name + " (" + strconv.Itoa(c.Count) + ")"
 }
 
 func AllocateN(entries []CountedItem, n int) []string {
