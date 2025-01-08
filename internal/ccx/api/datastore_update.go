@@ -97,6 +97,10 @@ func (svc *DatastoreService) update(ctx context.Context, old, next ccx.Datastore
 }
 
 func (svc *DatastoreService) resize(ctx context.Context, old, next ccx.Datastore) (bool, error) {
+	if old.Size == next.Size {
+		return false, nil
+	}
+
 	adding := old.Size < next.Size
 
 	if adding {
