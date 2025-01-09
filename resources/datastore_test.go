@@ -689,13 +689,13 @@ resource "ccx_datastore" "luna" {
   network_type   = "public"
 
   firewall {
-    source = "2.2.2.0/24"
-    description = "One"
+    source = "2.2.2.1/32"
+    description = "Two"
   }
 
   firewall {
-    source = "2.2.2.1/32"
-    description = "Two"
+    source = "2.2.2.0/24"
+    description = "One"
   }
 }
 `,

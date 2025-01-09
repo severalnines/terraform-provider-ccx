@@ -53,3 +53,13 @@ func checkInstanceSizeEquivalence(ctx context.Context, svc ccx.ContentService, c
 
 	return false
 }
+
+func firewallDiffSupressor(_, _, _ string, d *schema.ResourceData) bool {
+	old, nw, err := getFirewallsOldNew(d)
+	if err != nil {
+		tflog.Error(context.Background(), "failed to get old and new firewalls", map[string]any{"err": err.Error()})
+		return false
+	}
+
+	return firewallsSame(old, nw)
+}

@@ -129,10 +129,11 @@ func (r *Datastore) Schema() *schema.Resource {
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 			"firewall": {
-				Type:        schema.TypeList,
-				Optional:    true,
-				Description: "FirewallRule rules to allow",
-				Elem:        (firewall{}).Schema(),
+				Type:             schema.TypeList,
+				Optional:         true,
+				Description:      "FirewallRule rules to allow",
+				Elem:             (firewall{}).Schema(),
+				DiffSuppressFunc: firewallDiffSupressor,
 			},
 			"notifications_enabled": {
 				Type:        schema.TypeBool,

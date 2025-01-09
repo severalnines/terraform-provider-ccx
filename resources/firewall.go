@@ -35,13 +35,7 @@ func (f firewall) Schema() *schema.Resource {
 	}
 }
 
-func getFirewalls(d *schema.ResourceData) ([]ccx.FirewallRule, error) {
-	var raw []interface{}
-
-	if v, ok := d.Get("firewall").([]any); ok {
-		raw = v
-	}
-
+func parseRawFirewalls(raw []any) ([]ccx.FirewallRule, error) {
 	ls := make([]ccx.FirewallRule, len(raw))
 
 	for i := range raw {
@@ -60,6 +54,51 @@ func getFirewalls(d *schema.ResourceData) ([]ccx.FirewallRule, error) {
 	})
 
 	return ls, nil
+}
+
+func getFirewallsOldNew(d *schema.ResourceData) (old, nw []ccx.FirewallRule, err error) {
+	oldValue, newValue := d.GetChange("firewall")
+	if o, ok := oldValue.([]any); !ok {
+		return nil, nil, fmt.Errorf("failed to read old firewalls")
+	} else if old, err = parseRawFirewalls(o); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse old firewalls: %w", err)
+	}
+
+	if n, ok := newValue.([]any); !ok {
+		return nil, nil, fmt.Errorf("failed to read new firewalls")
+	} else if nw, err = parseRawFirewalls(n); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse new firewalls: %w", err)
+	}
+
+	return
+}
+
+func getFirewalls(d *schema.ResourceData) ([]ccx.FirewallRule, error) {
+	v, ok := d.Get("firewall").([]any)
+	if !ok {
+		return nil, fmt.Errorf("failed to read firewalls")
+	}
+
+	return parseRawFirewalls(v)
+}
+
+func firewallsSame(ls1, ls2 []ccx.FirewallRule) bool {
+	if len(ls1) != len(ls2) {
+		return false
+	}
+
+	haveM := make(map[ccx.FirewallRule]struct{}, len(ls1))
+	for _, f := range ls1 {
+		haveM[f] = struct{}{}
+	}
+
+	for _, f := range ls2 {
+		if _, ok := haveM[f]; !ok {
+			return false
+		}
+	}
+
+	return true
 }
 
 func setFirewalls(d *schema.ResourceData, firewalls []ccx.FirewallRule) error {
