@@ -2,7 +2,7 @@ terraform {
   required_providers {
     ccx = {
       source  = "severalnines/ccx"
-      version = "~> 0.4.1"
+      version = "~> 0.4.2"
     }
   }
 }

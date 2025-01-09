@@ -2,6 +2,8 @@ package resources
 
 import (
 	"fmt"
+	"slices"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
@@ -53,11 +55,19 @@ func getFirewalls(d *schema.ResourceData) ([]ccx.FirewallRule, error) {
 		}
 	}
 
+	slices.SortStableFunc(ls, func(a, b ccx.FirewallRule) int {
+		return strings.Compare(a.Source, b.Source)
+	})
+
 	return ls, nil
 }
 
 func setFirewalls(d *schema.ResourceData, firewalls []ccx.FirewallRule) error {
 	value := make([]map[string]any, 0, len(firewalls))
+
+	slices.SortStableFunc(firewalls, func(a, b ccx.FirewallRule) int {
+		return strings.Compare(a.Source, b.Source)
+	})
 
 	for _, f := range firewalls {
 		value = append(value, map[string]any{
