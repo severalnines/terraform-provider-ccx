@@ -32,7 +32,7 @@ resource "ccx_datastore" "luna" {
   }
 
   firewall {
-    source = "2.2.2.2/24"
+    source = "2.2.2.0/24"
     description = "world"
   }
 
