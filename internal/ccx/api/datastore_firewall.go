@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
+	"strings"
 
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 	"github.com/severalnines/terraform-provider-ccx/internal/lib"
@@ -39,6 +41,10 @@ func (svc *DatastoreService) GetFirewallRules(ctx context.Context, storeID strin
 			Description: r.Description,
 		})
 	}
+
+	slices.SortStableFunc(ls, func(a, b ccx.FirewallRule) int {
+		return strings.Compare(a.Source, b.Source)
+	})
 
 	return ls, nil
 }
@@ -149,6 +155,10 @@ func (svc *DatastoreService) DeleteFirewallRules(ctx context.Context, storeID st
 }
 
 func (svc *DatastoreService) SetFirewallRules(ctx context.Context, storeID string, firewalls []ccx.FirewallRule) error {
+	slices.SortStableFunc(firewalls, func(a, b ccx.FirewallRule) int {
+		return strings.Compare(a.Source, b.Source)
+	})
+
 	have, err := svc.GetFirewallRules(ctx, storeID)
 	if err != nil {
 		return fmt.Errorf("getting firewalls: %w", err)

@@ -560,4 +560,186 @@ resource "ccx_datastore" "luna" {
 
 		m.AssertExpectations(t)
 	})
+
+	t.Run("basic with firewalls", func(t *testing.T) {
+		m, p := mockProvider()
+
+		m.datastore.EXPECT().Create(mock.Anything, ccx.Datastore{
+			Name:              "luna",
+			Size:              1,
+			DBVendor:          "postgres",
+			Type:              "postgres_streaming",
+			Tags:              []string{"new", "test"},
+			CloudProvider:     "aws",
+			CloudRegion:       "eu-north-1",
+			InstanceSize:      "m5.large",
+			VolumeType:        "gp2",
+			VolumeSize:        80,
+			AvailabilityZones: nil,
+			FirewallRules: []ccx.FirewallRule{
+				{
+					Source:      "2.2.2.0/24",
+					Description: "One",
+				},
+				{
+					Source:      "2.2.2.1/32",
+					Description: "Two",
+				},
+			},
+			NetworkType: "public",
+			Notifications: ccx.Notifications{
+				Enabled: false,
+				Emails:  []string{},
+			},
+		}).Return(&ccx.Datastore{
+			ID:            "datastore-id",
+			Name:          "luna",
+			Size:          1,
+			DBVendor:      "postgres",
+			DBVersion:     "15",
+			Type:          "postgres_streaming",
+			Tags:          []string{"new", "test", "postgres", "15", "postgres_streaming", "aws", "eu-north-1"},
+			CloudProvider: "aws",
+			CloudRegion:   "eu-north-1",
+			InstanceSize:  "m5.large",
+			VolumeType:    "gp2",
+			VolumeSize:    80,
+			VolumeIOPS:    0,
+			Notifications: ccx.Notifications{
+				Enabled: false,
+				Emails:  []string{"user@getccx.com"},
+			},
+			MaintenanceSettings: &ccx.MaintenanceSettings{
+				DayOfWeek: 1,
+				StartHour: 0,
+				EndHour:   2,
+			},
+		}, nil)
+
+		m.datastore.EXPECT().SetFirewallRules(mock.Anything, "datastore-id", []ccx.FirewallRule{
+			{
+				Source:      "2.2.2.0/24",
+				Description: "One",
+			},
+			{
+				Source:      "2.2.2.1/32",
+				Description: "Two",
+			},
+		}).Return(nil)
+
+		m.datastore.EXPECT().Read(mock.Anything, "datastore-id").Return(&ccx.Datastore{
+			ID:            "datastore-id",
+			Name:          "luna",
+			Size:          1,
+			DBVendor:      "postgres",
+			DBVersion:     "15",
+			Type:          "postgres_streaming",
+			Tags:          []string{"new", "test", "postgres", "15", "postgres_streaming", "aws", "eu-north-1"},
+			CloudProvider: "aws",
+			CloudRegion:   "eu-north-1",
+			InstanceSize:  "m5.large",
+			VolumeType:    "gp2",
+			VolumeSize:    80,
+			VolumeIOPS:    0,
+			Notifications: ccx.Notifications{
+				Enabled: false,
+				Emails:  []string{"user@getccx.com"},
+			},
+			MaintenanceSettings: &ccx.MaintenanceSettings{
+				DayOfWeek: 1,
+				StartHour: 0,
+				EndHour:   2,
+			},
+			FirewallRules: []ccx.FirewallRule{
+				{
+					Source:      "2.2.2.1/32",
+					Description: "Two",
+				},
+				{
+					Source:      "2.2.2.0/24",
+					Description: "One",
+				},
+			},
+		}, nil)
+
+		m.datastore.EXPECT().Delete(mock.Anything, "datastore-id").Return(nil)
+
+		resource.Test(t, resource.TestCase{
+			IsUnitTest: true,
+			PreCheck: func() {
+			},
+			ProviderFactories: map[string]func() (*schema.Provider, error){
+				"ccx": func() (*schema.Provider, error) {
+					return p, nil
+				},
+			},
+			Steps: []resource.TestStep{
+				{
+					Config: `
+resource "ccx_datastore" "luna" {
+  name           = "luna"
+  size           = 1
+  db_vendor      = "postgres"
+  tags           = ["new", "test"]
+  cloud_provider = "aws"
+  cloud_region   = "eu-north-1"
+  instance_size  = "m5.large"
+  volume_size    = 80
+  volume_type    = "gp2"
+  network_type   = "public"
+
+  firewall {
+    source = "2.2.2.0/24"
+    description = "One"
+  }
+
+  firewall {
+    source = "2.2.2.1/32"
+    description = "Two"
+  }
+}
+`,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "id", "datastore-id"),
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "size", "1"),
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "db_vendor", "postgres"),
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "db_version", "15"),
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "type", "postgres_streaming"),
+
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "tags.#", "2"),
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "tags.0", "new"),
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "tags.1", "test"),
+
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "cloud_provider", "aws"),
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "cloud_region", "eu-north-1"),
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "instance_size", "m5.large"),
+
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "volume_type", "gp2"),
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "volume_size", "80"),
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "volume_iops", "0"),
+
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "network_type", "public"),
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "network_vpc_uuid", ""),
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "network_ha_enabled", "false"),
+
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "notifications_enabled", "false"),
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "notifications_emails.#", "1"),
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "notifications_emails.0", "user@getccx.com"),
+
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "maintenance_day_of_week", "1"),
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "maintenance_start_hour", "0"),
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "maintenance_end_hour", "2"),
+
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "firewall.#", "2"),
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "firewall.0.source", "2.2.2.0/24"),
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "firewall.0.description", "One"),
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "firewall.1.source", "2.2.2.1/32"),
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "firewall.1.description", "Two"),
+					),
+				},
+			},
+		})
+
+		m.AssertExpectations(t)
+	})
 }
