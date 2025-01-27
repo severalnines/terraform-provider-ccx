@@ -7,6 +7,7 @@ import (
 
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx/mocks"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -119,6 +120,54 @@ func Test_checkInstanceSizeEquivalence(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("checkInstanceSizeEquivalence() = %v, want %v", got, tt.want)
 			}
+		})
+	}
+}
+
+func Test_vendorSuppressor(t *testing.T) {
+	tests := []struct {
+		name     string
+		oldValue string
+		newValue string
+		want     bool
+	}{
+		{
+			name:     "old and new values are exactly the same unaliased",
+			oldValue: "percona",
+			newValue: "percona",
+			want:     true,
+		},
+		{
+			name:     "old and new values are exactly the same aliased",
+			oldValue: "mysql",
+			newValue: "mysql",
+			want:     true,
+		},
+		{
+			name:     "old and new values are equivalent, alias + non-alias",
+			oldValue: "mysql",
+			newValue: "percona",
+			want:     true,
+		},
+		{
+			name:     "old and new values are equivalent, non-alias + alias",
+			oldValue: "percona",
+			newValue: "mysql",
+			want:     true,
+		},
+		{
+			name:     "old and new values are not equivalent",
+			oldValue: "percona",
+			newValue: "mariadb",
+			want:     false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := vendorSuppressor("", tt.oldValue, tt.newValue, nil)
+
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

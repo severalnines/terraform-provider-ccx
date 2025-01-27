@@ -63,3 +63,8 @@ func firewallDiffSupressor(_, _, _ string, d *schema.ResourceData) bool {
 
 	return firewallsSame(old, nw)
 }
+
+func vendorSuppressor(_, oldValue, newValue string, _ *schema.ResourceData) bool {
+	o, n := vendorFromAlias(oldValue), vendorFromAlias(newValue)
+	return o == n
+}
