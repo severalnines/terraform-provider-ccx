@@ -24,7 +24,6 @@ resource "ccx_datastore" "luna" {
   instance_size  = "m5.large"
   volume_size    = 80
   volume_type    = "gp2"
-  network_type   = "public"
 
   firewall {
     source = "2.3.41.5/32"

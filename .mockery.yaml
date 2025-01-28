@@ -3,23 +3,18 @@ with-expecter: True
 keeptree: False
 filename: "{{.InterfaceName | snakecase | lower }}_mock.go"
 mockname: "Mock{{.InterfaceName}}"
+dir: "./internal/ccx/mocks"
+outpkg: "mocks"
 
 packages:
-  github.com/severalnines/terraform-provider-ccx/internal/ccx:
+  "github.com/severalnines/terraform-provider-ccx/internal/ccx/api":
     interfaces:
-      DatastoreService:
-        config:
-          dir: "./internal/ccx/mocks"
-          outpkg: "mocks"
-      ContentService:
-        config:
-          dir: "./internal/ccx/mocks"
-          outpkg: "mocks"
-      VPCService:
-        config:
-          dir: "./internal/ccx/mocks"
-          outpkg: "mocks"
-      ParameterGroupService:
-        config:
-          dir: "./internal/ccx/mocks"
-          outpkg: "mocks"
+      HttpClient: {}
+
+  "github.com/severalnines/terraform-provider-ccx/internal/ccx":
+    interfaces:
+      DatastoreService: {}
+      ContentService: {}
+      VPCService: {}
+      ParameterGroupService: {}
+      JobService: {}

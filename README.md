@@ -42,7 +42,6 @@ resource "ccx_datastore" "luna_postgres" {
   instance_size  = "m5.large"
   volume_size    = 80
   volume_type    = "gp2"
-  network_type   = "public"
 }
 
 resource "ccx_datastore" "luna_mysql" {
@@ -56,7 +55,6 @@ resource "ccx_datastore" "luna_mysql" {
   instance_size  = "m5.large"
   volume_size    = 80
   volume_type    = "gp2"
-  network_type   = "public"
 }
 ```
 
@@ -74,7 +72,6 @@ resource "ccx_vpc" "venus" {
 In that case set:
 
 ```terraform
-    network_type = "private"
     network_vpc_uuid = ccx_vpc.venus.id
 ```
 
@@ -125,7 +122,6 @@ resource "ccx_datastore" "luna_mysql" {
 	instance_size  = "m5.large"
 	volume_size    = 80
 	volume_type    = "gp2"
-	network_type   = "public"
 	parameter_group = ccx_parameter_group.asteroid.id
 }
 ```
@@ -246,7 +242,6 @@ resource "ccx_datastore" "luna" {
   instance_size  = "m5.large"
   volume_size    = 80
   volume_type    = "gp2"
-  network_type   = "public"
 }
 ```
 or for mysql, replication (primary and two replicas, i.e size=3)
@@ -262,7 +257,6 @@ resource "ccx_datastore" "luna_mysql" {
   instance_size  = "m5.large"
   volume_size    = 80
   volume_type    = "gp2"
-  network_type   = "public"
 }
 ```
 ### Create VPC

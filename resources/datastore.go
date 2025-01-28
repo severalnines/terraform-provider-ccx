@@ -98,13 +98,6 @@ func (r *Datastore) Schema() *schema.Resource {
 				Description: "Volume IOPS",
 				Default:     0,
 			},
-			"network_type": {
-				Type:             schema.TypeString,
-				Optional:         true,
-				Description:      "Type of network: public/private",
-				DiffSuppressFunc: caseInsensitiveSuppressor,
-				ForceNew:         true,
-			},
 			"network_ha_enabled": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -114,7 +107,7 @@ func (r *Datastore) Schema() *schema.Resource {
 			"network_vpc_uuid": {
 				Type:             schema.TypeString,
 				Optional:         true,
-				Description:      "VPC to use if network_type is private",
+				Description:      "VPC to use",
 				ForceNew:         true,
 				DiffSuppressFunc: caseInsensitiveSuppressor,
 			},
@@ -361,7 +354,6 @@ func schemaToDatastore(d *schema.ResourceData) (ccx.Datastore, error) {
 		VolumeType:       getString(d, "volume_type"),
 		VolumeSize:       uint64(getInt(d, "volume_size")),
 		VolumeIOPS:       uint64(getInt(d, "volume_iops")),
-		NetworkType:      getString(d, "network_type"),
 		HAEnabled:        getBool(d, "network_ha_enabled"),
 		ParameterGroupID: getString(d, "parameter_group"),
 		VpcUUID:          getString(d, "network_vpc_uuid"),

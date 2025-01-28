@@ -75,8 +75,14 @@ func createRequestFromDatastore(c ccx.Datastore) createStoreRequest {
 		VolumeIOPS:   c.VolumeIOPS,
 	}
 
+	networkType := "public"
+
+	if c.VpcUUID != "" {
+		networkType = "private"
+	}
+
 	network := createStoreNetwork{
-		NetworkType:       c.NetworkType,
+		NetworkType:       networkType,
 		HAEnabled:         c.HAEnabled,
 		VpcUUID:           c.VpcUUID,
 		AvailabilityZones: c.AvailabilityZones,
@@ -148,7 +154,7 @@ type datastoreResponse struct {
 func (svc *DatastoreService) Create(ctx context.Context, c ccx.Datastore) (*ccx.Datastore, error) {
 	cr := createRequestFromDatastore(c)
 
-	if n, h := len(c.AvailabilityZones), int(c.Size); c.NetworkType == "public" && n < h { // allocate AZs if public and need is less than have
+	if n, h := len(c.AvailabilityZones), int(c.Size); c.VpcUUID == "" && n < h { // allocate AZs if public and need is less than have
 		allAzs, err := svc.contentSvc.AvailabilityZones(ctx, c.CloudProvider, c.CloudRegion)
 		if err != nil {
 			return nil, fmt.Errorf("allocating availability zones: %w: %w", ccx.CreateFailedErr, err)
@@ -177,10 +183,10 @@ func (svc *DatastoreService) Create(ctx context.Context, c ccx.Datastore) (*ccx.
 
 	partialDatastore := &ccx.Datastore{ID: rs.UUID}
 
-	status, err := svc.jobs.Await(ctx, rs.UUID, deployStoreJob)
+	status, err := svc.jobs.Await(ctx, rs.UUID, ccx.DeployStoreJob)
 	if err != nil {
 		return partialDatastore, fmt.Errorf("%w: awaiting deploy job: %w", ccx.CreateFailedReadErr, err)
-	} else if status != jobStatusFinished {
+	} else if status != ccx.JobStatusFinished {
 		return partialDatastore, fmt.Errorf("%w: deploy job failed: %s", ccx.CreateFailedReadErr, status)
 	}
 

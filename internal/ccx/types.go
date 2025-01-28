@@ -29,7 +29,6 @@ type Datastore struct {
 	VolumeType        string
 	VolumeSize        uint64
 	VolumeIOPS        uint64
-	NetworkType       string
 	HAEnabled         bool
 	VpcUUID           string
 	ParameterGroupID  string
@@ -144,4 +143,28 @@ type ParameterGroupService interface {
 	Read(ctx context.Context, id string) (*ParameterGroup, error)
 	Update(ctx context.Context, p ParameterGroup) error
 	Delete(ctx context.Context, id string) error
+}
+
+type JobType string
+
+const (
+	DeployStoreJob    JobType = "JOB_TYPE_DEPLOY_DATASTORE"
+	ModifyDbConfigJob JobType = "JOB_TYPE_MODIFYDBCONFIG"
+	DestroyStoreJob   JobType = "JOB_TYPE_DESTROY_DATASTORE"
+	AddNodeJob        JobType = "JOB_TYPE_ADD_NODE"
+	RemoveNodeJob     JobType = "JOB_TYPE_REMOVE_NODE"
+)
+
+type JobStatus string
+
+const (
+	JobStatusUnknown  JobStatus = "JOB_STATUS_UNKNOWN"
+	JobStatusRunning  JobStatus = "JOB_STATUS_RUNNING"
+	JobStatusFinished JobStatus = "JOB_STATUS_FINISHED"
+	JobStatusErrored  JobStatus = "JOB_STATUS_ERRORED"
+)
+
+type JobService interface {
+	Await(ctx context.Context, storeID string, job JobType) (JobStatus, error)
+	GetStatus(_ context.Context, storeID string, job JobType) (JobStatus, error)
 }
