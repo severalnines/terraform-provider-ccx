@@ -19,10 +19,10 @@ func (svc *DatastoreService) Delete(ctx context.Context, id string) error {
 		return fmt.Errorf("%w: status = %d", ccx.ResponseStatusFailedErr, res.StatusCode)
 	}
 
-	status, err := svc.jobs.Await(ctx, id, deployStoreJob)
+	status, err := svc.jobs.Await(ctx, id, ccx.DeployStoreJob)
 	if err != nil {
 		return fmt.Errorf("awaiting destroy job: %w", err)
-	} else if status != jobStatusFinished {
+	} else if status != ccx.JobStatusFinished {
 		return fmt.Errorf("destroy job failed: %s", status)
 	}
 

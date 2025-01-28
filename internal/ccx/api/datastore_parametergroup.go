@@ -23,10 +23,10 @@ func (svc *DatastoreService) ApplyParameterGroup(ctx context.Context, id, group 
 		return errors.New("failed to apply parameter group")
 	}
 
-	status, err := svc.jobs.Await(ctx, id, modifyDbConfigJob)
+	status, err := svc.jobs.Await(ctx, id, ccx.ModifyDbConfigJob)
 	if err != nil {
 		return fmt.Errorf("%w: awaiting modify parameter job: %w", ccx.CreateFailedErr, err)
-	} else if status != jobStatusFinished {
+	} else if status != ccx.JobStatusFinished {
 		return fmt.Errorf("%w: modify parameter job failed: %s", ccx.CreateFailedErr, status)
 	}
 

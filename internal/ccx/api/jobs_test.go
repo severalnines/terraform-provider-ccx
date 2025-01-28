@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 	"github.com/severalnines/terraform-provider-ccx/internal/lib"
 	"github.com/stretchr/testify/require"
 )
@@ -21,74 +22,74 @@ func Test_jobs_GetStatus(t *testing.T) {
 	tests := []struct {
 		name     string
 		storeID  string
-		job      jobType
+		job      ccx.JobType
 		response serverResponse
-		want     jobStatus
+		want     ccx.JobStatus
 		wantErr  bool
 	}{
 		{
 			name:    "status done",
 			storeID: "123",
-			job:     deployStoreJob,
+			job:     ccx.DeployStoreJob,
 			response: serverResponse{
 				Response: jobsResponse{
 					Jobs: []jobsResponseJobItem{
 						{
 							JobID:  "456",
-							Type:   deployStoreJob,
-							Status: jobStatusFinished,
+							Type:   ccx.DeployStoreJob,
+							Status: ccx.JobStatusFinished,
 						},
 						{
 							JobID:  "789",
-							Type:   modifyDbConfigJob,
-							Status: jobStatusRunning,
+							Type:   ccx.ModifyDbConfigJob,
+							Status: ccx.JobStatusRunning,
 						},
 					},
 					Total: 2,
 				},
 				StatusCode: http.StatusOK,
 			},
-			want:    jobStatusFinished,
+			want:    ccx.JobStatusFinished,
 			wantErr: false,
 		},
 		{
 			name:    "status running",
 			storeID: "123",
-			job:     deployStoreJob,
+			job:     ccx.DeployStoreJob,
 			response: serverResponse{
 				Response: jobsResponse{
 					Jobs: []jobsResponseJobItem{
 						{
 							JobID:  "456",
-							Type:   deployStoreJob,
-							Status: jobStatusRunning,
+							Type:   ccx.DeployStoreJob,
+							Status: ccx.JobStatusRunning,
 						},
 					},
 					Total: 1,
 				},
 				StatusCode: http.StatusOK,
 			},
-			want:    jobStatusRunning,
+			want:    ccx.JobStatusRunning,
 			wantErr: false,
 		},
 		{
 			name:    "job failed",
 			storeID: "123",
-			job:     deployStoreJob,
+			job:     ccx.DeployStoreJob,
 			response: serverResponse{
 				Response: jobsResponse{
 					Jobs: []jobsResponseJobItem{
 						{
 							JobID:  "456",
-							Type:   deployStoreJob,
-							Status: jobStatusErrored,
+							Type:   ccx.DeployStoreJob,
+							Status: ccx.JobStatusErrored,
 						},
 					},
 					Total: 1,
 				},
 				StatusCode: http.StatusOK,
 			},
-			want:    jobStatusErrored,
+			want:    ccx.JobStatusErrored,
 			wantErr: false,
 		},
 		{
@@ -98,7 +99,7 @@ func Test_jobs_GetStatus(t *testing.T) {
 				Response:   jobsResponse{},
 				StatusCode: http.StatusInternalServerError,
 			},
-			want:    jobStatusUnknown,
+			want:    ccx.JobStatusUnknown,
 			wantErr: true,
 		},
 	}
@@ -118,7 +119,7 @@ func Test_jobs_GetStatus(t *testing.T) {
 
 			defer srv.Close()
 
-			svc := jobs{
+			svc := JobsService{
 				httpcli: lib.NewTestHttpClient(srv.URL),
 			}
 
@@ -146,28 +147,28 @@ func Test_jobs_Await(t *testing.T) {
 	tests := []struct {
 		name      string
 		storeID   string
-		job       jobType
+		job       ccx.JobType
 		responses []serverResponse
-		want      jobStatus
+		want      ccx.JobStatus
 		wantErr   bool
 	}{
 		{
 			name:    "single time: job found, status done",
 			storeID: "123",
-			job:     deployStoreJob,
+			job:     ccx.DeployStoreJob,
 			responses: []serverResponse{
 				{
 					Response: jobsResponse{
 						Jobs: []jobsResponseJobItem{
 							{
 								JobID:  "456",
-								Type:   deployStoreJob,
-								Status: jobStatusFinished,
+								Type:   ccx.DeployStoreJob,
+								Status: ccx.JobStatusFinished,
 							},
 							{
 								JobID:  "789",
-								Type:   modifyDbConfigJob,
-								Status: jobStatusRunning,
+								Type:   ccx.ModifyDbConfigJob,
+								Status: ccx.JobStatusRunning,
 							},
 						},
 						Total: 2,
@@ -175,21 +176,21 @@ func Test_jobs_Await(t *testing.T) {
 					StatusCode: http.StatusOK,
 				},
 			},
-			want:    jobStatusFinished,
+			want:    ccx.JobStatusFinished,
 			wantErr: false,
 		},
 		{
 			name:    "job running, then job done",
 			storeID: "123",
-			job:     deployStoreJob,
+			job:     ccx.DeployStoreJob,
 			responses: []serverResponse{
 				{
 					Response: jobsResponse{
 						Jobs: []jobsResponseJobItem{
 							{
 								JobID:  "456",
-								Type:   deployStoreJob,
-								Status: jobStatusRunning,
+								Type:   ccx.DeployStoreJob,
+								Status: ccx.JobStatusRunning,
 							},
 						},
 						Total: 1,
@@ -201,8 +202,8 @@ func Test_jobs_Await(t *testing.T) {
 						Jobs: []jobsResponseJobItem{
 							{
 								JobID:  "456",
-								Type:   deployStoreJob,
-								Status: jobStatusFinished,
+								Type:   ccx.DeployStoreJob,
+								Status: ccx.JobStatusFinished,
 							},
 						},
 						Total: 1,
@@ -210,21 +211,21 @@ func Test_jobs_Await(t *testing.T) {
 					StatusCode: http.StatusOK,
 				},
 			},
-			want:    jobStatusFinished,
+			want:    ccx.JobStatusFinished,
 			wantErr: false,
 		},
 		{
 			name:    "job running, then job failed",
 			storeID: "123",
-			job:     deployStoreJob,
+			job:     ccx.DeployStoreJob,
 			responses: []serverResponse{
 				{
 					Response: jobsResponse{
 						Jobs: []jobsResponseJobItem{
 							{
 								JobID:  "456",
-								Type:   deployStoreJob,
-								Status: jobStatusRunning,
+								Type:   ccx.DeployStoreJob,
+								Status: ccx.JobStatusRunning,
 							},
 						},
 						Total: 1,
@@ -236,8 +237,8 @@ func Test_jobs_Await(t *testing.T) {
 						Jobs: []jobsResponseJobItem{
 							{
 								JobID:  "456",
-								Type:   deployStoreJob,
-								Status: jobStatusErrored,
+								Type:   ccx.DeployStoreJob,
+								Status: ccx.JobStatusErrored,
 							},
 						},
 						Total: 1,
@@ -245,20 +246,20 @@ func Test_jobs_Await(t *testing.T) {
 					StatusCode: http.StatusOK,
 				},
 			},
-			want:    jobStatusErrored,
+			want:    ccx.JobStatusErrored,
 			wantErr: false,
 		},
 		{
 			name:    "http error",
 			storeID: "123",
-			job:     deployStoreJob,
+			job:     ccx.DeployStoreJob,
 			responses: []serverResponse{
 				{
 					Response:   jobsResponse{},
 					StatusCode: http.StatusGatewayTimeout,
 				},
 			},
-			want:    jobStatusUnknown,
+			want:    ccx.JobStatusUnknown,
 			wantErr: true,
 		},
 	}
@@ -290,7 +291,7 @@ func Test_jobs_Await(t *testing.T) {
 
 			defer srv.Close()
 
-			svc := jobs{
+			svc := JobsService{
 				httpcli: lib.NewTestHttpClient(srv.URL),
 				tick:    time.Second / 2,
 				timeout: time.Second,

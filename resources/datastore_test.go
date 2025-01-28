@@ -27,7 +27,6 @@ func TestDatastore_Create(t *testing.T) {
 			VolumeSize:        80,
 			AvailabilityZones: nil,
 			FirewallRules:     []ccx.FirewallRule{},
-			NetworkType:       "public",
 			Notifications: ccx.Notifications{
 				Enabled: false,
 				Emails:  []string{},
@@ -106,7 +105,6 @@ resource "ccx_datastore" "luna" {
   instance_size  = "m5.large"
   volume_size    = 80
   volume_type    = "gp2"
-  network_type   = "public"
 }
 `,
 					Check: resource.ComposeTestCheckFunc(
@@ -124,7 +122,6 @@ resource "ccx_datastore" "luna" {
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "volume_type", "gp2"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "volume_size", "80"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "volume_iops", "0"),
-						resource.TestCheckResourceAttr("ccx_datastore.luna", "network_type", "public"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "network_vpc_uuid", ""),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "network_ha_enabled", "false"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "notifications_enabled", "false"),
@@ -193,7 +190,6 @@ resource "ccx_datastore" "luna" {
 				Enabled: false,
 				Emails:  []string{"user@getccx.com"},
 			},
-			NetworkType:       "public",
 			AvailabilityZones: nil,
 			FirewallRules:     []ccx.FirewallRule{},
 			MaintenanceSettings: &ccx.MaintenanceSettings{
@@ -216,7 +212,6 @@ resource "ccx_datastore" "luna" {
 			VolumeSize:        80,
 			AvailabilityZones: nil,
 			FirewallRules:     []ccx.FirewallRule{},
-			NetworkType:       "public",
 			Notifications: ccx.Notifications{
 				Enabled: false,
 				Emails:  []string{},
@@ -277,7 +272,6 @@ resource "ccx_datastore" "luna" {
 					Enabled: false,
 					Emails:  []string{"user@getccx.com"},
 				},
-				NetworkType:       "public",
 				AvailabilityZones: nil,
 				FirewallRules:     []ccx.FirewallRule{},
 			}).RunAndReturn(func(_ context.Context, _, _ ccx.Datastore) (*ccx.Datastore, error) {
@@ -310,7 +304,6 @@ resource "ccx_datastore" "luna" {
   instance_size  = "m5.large"
   volume_size    = 80
   volume_type    = "gp2"
-  network_type   = "public"
 }
 `,
 					Check: resource.ComposeTestCheckFunc(
@@ -328,7 +321,6 @@ resource "ccx_datastore" "luna" {
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "volume_type", "gp2"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "volume_size", "80"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "volume_iops", "0"),
-						resource.TestCheckResourceAttr("ccx_datastore.luna", "network_type", "public"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "network_vpc_uuid", ""),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "network_ha_enabled", "false"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "notifications_enabled", "false"),
@@ -352,7 +344,6 @@ resource "ccx_datastore" "luna" {
   instance_size  = "m5.large"
   volume_size    = 80
   volume_type    = "gp2"
-  network_type   = "public"
 }
 `,
 					Check: resource.ComposeTestCheckFunc(
@@ -370,7 +361,6 @@ resource "ccx_datastore" "luna" {
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "volume_type", "gp2"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "volume_size", "80"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "volume_iops", "0"),
-						resource.TestCheckResourceAttr("ccx_datastore.luna", "network_type", "public"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "network_vpc_uuid", ""),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "network_ha_enabled", "false"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "notifications_enabled", "false"),
@@ -431,7 +421,6 @@ resource "ccx_datastore" "luna" {
 			AvailabilityZones: nil,
 			ParameterGroupID:  "parameter-group-id",
 			FirewallRules:     []ccx.FirewallRule{},
-			NetworkType:       "public",
 			Notifications: ccx.Notifications{
 				Enabled: false,
 				Emails:  []string{},
@@ -524,7 +513,6 @@ resource "ccx_datastore" "luna" {
   instance_size   = "m5.large"
   volume_size     = 80
   volume_type     = "gp2"
-  network_type    = "public"
   parameter_group = ccx_parameter_group.asteroid.id
 }
 `,
@@ -543,7 +531,6 @@ resource "ccx_datastore" "luna" {
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "volume_type", "gp2"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "volume_size", "80"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "volume_iops", "0"),
-						resource.TestCheckResourceAttr("ccx_datastore.luna", "network_type", "public"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "network_vpc_uuid", ""),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "network_ha_enabled", "false"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "notifications_enabled", "false"),
@@ -586,7 +573,6 @@ resource "ccx_datastore" "luna" {
 					Description: "Two",
 				},
 			},
-			NetworkType: "public",
 			Notifications: ccx.Notifications{
 				Enabled: false,
 				Emails:  []string{},
@@ -686,7 +672,6 @@ resource "ccx_datastore" "luna" {
   instance_size  = "m5.large"
   volume_size    = 80
   volume_type    = "gp2"
-  network_type   = "public"
 
   firewall {
     source = "2.2.2.1/32"
@@ -718,7 +703,6 @@ resource "ccx_datastore" "luna" {
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "volume_size", "80"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "volume_iops", "0"),
 
-						resource.TestCheckResourceAttr("ccx_datastore.luna", "network_type", "public"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "network_vpc_uuid", ""),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "network_ha_enabled", "false"),
 
@@ -760,7 +744,6 @@ resource "ccx_datastore" "luna" {
 			VolumeSize:        80,
 			AvailabilityZones: nil,
 			FirewallRules:     []ccx.FirewallRule{},
-			NetworkType:       "public",
 			Notifications: ccx.Notifications{
 				Enabled: false,
 				Emails:  []string{},
@@ -839,7 +822,6 @@ resource "ccx_datastore" "luna" {
   instance_size  = "m5.large"
   volume_size    = 80
   volume_type    = "gp2"
-  network_type   = "public"
 }
 `,
 					Check: resource.ComposeTestCheckFunc(
@@ -857,7 +839,6 @@ resource "ccx_datastore" "luna" {
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "volume_type", "gp2"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "volume_size", "80"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "volume_iops", "0"),
-						resource.TestCheckResourceAttr("ccx_datastore.luna", "network_type", "public"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "network_vpc_uuid", ""),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "network_ha_enabled", "false"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "notifications_enabled", "false"),

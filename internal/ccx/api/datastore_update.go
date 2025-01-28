@@ -40,7 +40,7 @@ type maintenance struct {
 }
 
 type hostSpecs struct {
-	InstanceType string `json:"instance_size"`
+	InstanceSize string `json:"instance_size"`
 	AZ           string `json:"availability_zone"`
 }
 
@@ -108,7 +108,7 @@ func (svc *DatastoreService) resize(ctx context.Context, old, next ccx.Datastore
 		need := int(next.Size - old.Size)
 		missing := need - have
 
-		if next.NetworkType == "public" && missing > 0 { // allocate AZs if public and need is less than have
+		if next.VpcUUID == "" && missing > 0 { // allocate AZs if public and need is less than have
 			allAzs, err := svc.contentSvc.AvailabilityZones(ctx, next.CloudProvider, next.CloudRegion)
 			if err != nil {
 				return false, fmt.Errorf("allocating availability zones: %w: %w", ccx.CreateFailedErr, err)
@@ -142,17 +142,17 @@ func (svc *DatastoreService) resize(ctx context.Context, old, next ccx.Datastore
 		return false, fmt.Errorf("%w: status = %d", ccx.ResponseStatusFailedErr, res.StatusCode)
 	}
 
-	var jt jobType
+	var jt ccx.JobType
 	if adding {
-		jt = addNodeJob
+		jt = ccx.AddNodeJob
 	} else {
-		jt = removeNodeJob
+		jt = ccx.RemoveNodeJob
 	}
 
 	status, err := svc.jobs.Await(ctx, old.ID, jt)
 	if err != nil {
 		return false, fmt.Errorf("%w: awaiting resize job: %w", ccx.CreateFailedErr, err)
-	} else if status != jobStatusFinished {
+	} else if status != ccx.JobStatusFinished {
 		return false, fmt.Errorf("%w: resize job failed: %s", ccx.CreateFailedErr, status)
 	}
 
@@ -176,7 +176,7 @@ func (svc *DatastoreService) updateSizeRequest(ctx context.Context, old, next cc
 	need := int(next.Size - old.Size)
 	missing := need - have
 
-	if next.NetworkType == "public" && missing > 0 { // allocate AZs if public and need is less than have
+	if old.VpcUUID == "" && missing > 0 { // allocate AZs if public and need is less than have
 		allAzs, err := svc.contentSvc.AvailabilityZones(ctx, next.CloudProvider, next.CloudRegion)
 		if err != nil {
 			return ur, fmt.Errorf("allocating availability zones: %w: %w", ccx.CreateFailedErr, err)
@@ -280,7 +280,7 @@ func newestNodeSpecs(hosts []ccx.Host, count int, azs []string) ([]hostSpecs, er
 
 	for i := 0; i < count; i++ {
 		ls = append(ls, hostSpecs{
-			InstanceType: h.InstanceType,
+			InstanceSize: h.InstanceType,
 			AZ:           azs[i],
 		})
 	}
