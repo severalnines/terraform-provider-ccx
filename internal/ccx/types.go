@@ -2,7 +2,6 @@ package ccx
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -66,11 +65,7 @@ func (h Host) IsPrimary() bool {
 
 // String representation of the Datastore, useful for debugging
 func (c Datastore) String() string {
-	b, err := json.Marshal(c)
-	if err != nil {
-		return fmt.Sprintf(`{"id": "%s", "name": "%s"}`, c.ID, c.Name)
-	}
-	return string(b)
+	return fmt.Sprintf(`{"id": "%s", "name": "%s"}`, c.ID, c.Name)
 }
 
 type FirewallRule struct {
@@ -115,11 +110,7 @@ type VPC struct {
 
 // String representation of the VPC, useful for debugging
 func (v VPC) String() string {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return fmt.Sprintf(`{"id": "%s", "name": "%s"}`, v.ID, v.Name)
-	}
-	return string(b)
+	return fmt.Sprintf(`{"id": "%s", "name": "%s"}`, v.ID, v.Name)
 }
 
 type VPCService interface {

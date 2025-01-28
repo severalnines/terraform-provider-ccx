@@ -2,6 +2,7 @@ package resources
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -19,7 +20,7 @@ func Provider() *schema.Provider {
 		cfg := TerraformConfiguration{
 			ClientID:     getString(d, "client_id"),
 			ClientSecret: getString(d, "client_secret"),
-			BaseURL:      getString(d, "base_url"),
+			BaseURL:      strings.Trim(getString(d, "base_url"), "/"),
 		}
 
 		if t, err := time.ParseDuration(getString(d, "timeout")); err == nil {

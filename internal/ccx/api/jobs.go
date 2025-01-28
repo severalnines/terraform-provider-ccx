@@ -79,7 +79,7 @@ func (svc jobs) Await(ctx context.Context, storeID string, job jobType) (jobStat
 		status, err = svc.GetStatus(ctx, storeID, job)
 
 		if err != nil {
-			continue
+			return jobStatusUnknown, fmt.Errorf("getting job status: %w", err)
 		}
 
 		switch status {

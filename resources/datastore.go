@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -42,7 +43,7 @@ func (r *Datastore) Schema() *schema.Resource {
 				Required:         true,
 				Description:      "Database Vendor",
 				ForceNew:         true,
-				DiffSuppressFunc: caseInsensitiveSuppressor,
+				DiffSuppressFunc: vendorSuppressor,
 			},
 			"db_version": {
 				Type:             schema.TypeString,
@@ -323,13 +324,26 @@ func defaultType(vendor, dbType string) string {
 	switch vendor {
 	case "mariadb", "percona":
 		return "replication"
-	case "psql", "postgres":
+	case "postgres":
 		return "postgres_streaming"
 	case "redis":
 		return "redis"
 	}
 
 	return ""
+}
+
+func vendorFromAlias(s string) string {
+	s = strings.ToLower(strings.TrimSpace(s))
+
+	switch s {
+	case "mysql":
+		return "percona"
+	case "psql":
+		return "postgres"
+	}
+
+	return s
 }
 
 func schemaToDatastore(d *schema.ResourceData) (ccx.Datastore, error) {
@@ -366,6 +380,7 @@ func schemaToDatastore(d *schema.ResourceData) (ccx.Datastore, error) {
 
 	c.FirewallRules = firewalls
 
+	c.DBVendor = vendorFromAlias(c.DBVendor)
 	c.Type = defaultType(c.DBVendor, c.Type)
 
 	c.Notifications = getNotifications(d)
