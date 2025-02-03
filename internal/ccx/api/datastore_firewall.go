@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
-	"github.com/severalnines/terraform-provider-ccx/internal/lib"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -76,17 +75,9 @@ func firewallsDiff(have, want []ccx.FirewallRule) (create, del []ccx.FirewallRul
 }
 
 func (svc *DatastoreService) CreateFirewallRule(ctx context.Context, storeID string, firewall ccx.FirewallRule) error {
-	res, err := svc.client.Do(ctx, http.MethodPost, "/api/firewall/api/v1/firewall/"+storeID, firewall)
+	_, err := svc.client.Do(ctx, http.MethodPost, "/api/firewall/api/v1/firewall/"+storeID, firewall)
 	if err != nil {
-		return errors.Join(ccx.RequestSendingErr, err)
-	}
-
-	if res.StatusCode == http.StatusBadRequest {
-		return lib.ErrorFromErrorResponse(res.Body)
-	}
-
-	if res.StatusCode != http.StatusCreated {
-		return fmt.Errorf("%w: status = %d", lib.ErrorFromErrorResponse(res.Body), res.StatusCode)
+		return err
 	}
 
 	return nil
@@ -111,17 +102,11 @@ func (svc *DatastoreService) CreateFirewallRules(ctx context.Context, storeID st
 }
 
 func (svc *DatastoreService) DeleteFirewallRule(ctx context.Context, storeID string, firewall ccx.FirewallRule) error {
-	res, err := svc.client.Do(ctx, http.MethodDelete, "/api/firewall/api/v1/firewall/"+storeID, firewall)
-	if err != nil {
-		return errors.Join(ccx.RequestSendingErr, err)
-	}
-
-	if res.StatusCode == http.StatusBadRequest {
-		return lib.ErrorFromErrorResponse(res.Body)
-	}
-
-	if res.StatusCode != http.StatusAccepted {
-		return fmt.Errorf("%w: status = %d", lib.ErrorFromErrorResponse(res.Body), res.StatusCode)
+	_, err := svc.client.Do(ctx, http.MethodDelete, "/api/firewall/api/v1/firewall/"+storeID, firewall)
+	if errors.Is(err, ccx.ResourceNotFoundErr) {
+		return nil
+	} else if err != nil {
+		return fmt.Errorf("deleting rule (source=%s, description=%s): %w", firewall.Source, firewall.Description, err)
 	}
 
 	return nil

@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 
@@ -33,15 +32,7 @@ func (svc *VpcService) Create(ctx context.Context, vpc ccx.VPC) (*ccx.VPC, error
 
 	res, err := svc.httpcli.Do(ctx, http.MethodPost, "/api/vpc/api/v2/vpcs", cr)
 	if err != nil {
-		return nil, errors.Join(ccx.RequestSendingErr, err)
-	}
-
-	if res.StatusCode == http.StatusBadRequest {
-		return nil, lib.ErrorFromErrorResponse(res.Body)
-	}
-
-	if res.StatusCode != http.StatusCreated {
-		return nil, fmt.Errorf("%w: status = %d", ccx.ResponseStatusFailedErr, res.StatusCode)
+		return nil, fmt.Errorf("creating vpc: %w", err)
 	}
 
 	var rs vpcResponse

@@ -27,8 +27,11 @@ var (
 	// ResourceNotFoundErr occurs when trying to get a resource that does not exist
 	ResourceNotFoundErr = errors.New("resource not found")
 
-	// ResourcesLoadFailedErr occurs when trying to load resources fails
-	ResourcesLoadFailedErr = errors.New("failed to load resources")
+	// AllocatingAZsErr occurs when failing to allocate availability zones
+	AllocatingAZsErr = errors.New("allocating availability zones")
+
+	// ApiErr occurs when an error is returned from the api, typically when status code is 4xx or 5xx
+	ApiErr = errors.New("api error")
 
 	// UpdateNotSupportedErr occurs when trying to update a resource which might be destructive if attempted
 	UpdateNotSupportedErr = errors.New("updates for this resource are not supported")
@@ -36,14 +39,8 @@ var (
 	// AuthenticationFailedErr indicates failure to authenticate with the api server
 	AuthenticationFailedErr = errors.New("authentication failed")
 
-	// CreateFailedErr indicates failure to create a resource
-	CreateFailedErr = errors.New("failed to create resource")
-
 	// CreateFailedReadErr indicates failure to read a newly created resource. The resource may exist, but we have the id and terraform can possibly read it on next apply.
 	CreateFailedReadErr = errors.New("reading newly created resource failed")
-
-	// ParametersErr indicates failure to configure parameters
-	ParametersErr = errors.New("failed to configure parameters")
 
 	// FirewallRulesErr indicates failure to configure firewall rules
 	FirewallRulesErr = errors.New("failed to configure firewall rules")

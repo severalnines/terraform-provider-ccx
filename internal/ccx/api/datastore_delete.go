@@ -10,16 +10,14 @@ import (
 )
 
 func (svc *DatastoreService) Delete(ctx context.Context, id string) error {
-	res, err := svc.client.Do(ctx, http.MethodDelete, "/api/prov/api/v2/cluster"+"/"+id, nil)
-	if err != nil {
-		return errors.Join(ccx.RequestSendingErr, err)
+	_, err := svc.client.Do(ctx, http.MethodDelete, "/api/prov/api/v2/cluster"+"/"+id, nil)
+	if errors.Is(err, ccx.ResourceNotFoundErr) {
+		return nil
+	} else if err != nil {
+		return fmt.Errorf("deleting datastore: %w", err)
 	}
 
-	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("%w: status = %d", ccx.ResponseStatusFailedErr, res.StatusCode)
-	}
-
-	status, err := svc.jobs.Await(ctx, id, ccx.DeployStoreJob)
+	status, err := svc.jobs.Await(ctx, id, ccx.DestroyStoreJob)
 	if err != nil {
 		return fmt.Errorf("awaiting destroy job: %w", err)
 	} else if status != ccx.JobStatusFinished {

@@ -2,13 +2,11 @@ package api
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"slices"
 
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
-	"github.com/severalnines/terraform-provider-ccx/internal/lib"
 )
 
 type updateRequest struct {
@@ -54,7 +52,7 @@ func (svc *DatastoreService) Update(ctx context.Context, old, next ccx.Datastore
 
 	resized, err := svc.resize(ctx, old, next)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("resizing datastore: %w", err)
 	}
 
 	if old.ParameterGroupID != next.ParameterGroupID {
@@ -80,17 +78,9 @@ func (svc *DatastoreService) update(ctx context.Context, old, next ccx.Datastore
 		return false, nil
 	}
 
-	res, err := svc.client.Do(ctx, http.MethodPatch, "/api/prov/api/v2/cluster/"+next.ID, ur)
+	_, err := svc.client.Do(ctx, http.MethodPatch, "/api/prov/api/v2/cluster/"+next.ID, ur)
 	if err != nil {
-		return false, errors.Join(ccx.RequestSendingErr, err)
-	}
-
-	if res.StatusCode == http.StatusBadRequest {
-		return false, lib.ErrorFromErrorResponse(res.Body)
-	}
-
-	if res.StatusCode != http.StatusOK {
-		return false, fmt.Errorf("%w: status = %d", ccx.ResponseStatusFailedErr, res.StatusCode)
+		return false, fmt.Errorf("updating datastore: %w", err)
 	}
 
 	return true, nil
@@ -111,7 +101,7 @@ func (svc *DatastoreService) resize(ctx context.Context, old, next ccx.Datastore
 		if next.VpcUUID == "" && missing > 0 { // allocate AZs if public and need is less than have
 			allAzs, err := svc.contentSvc.AvailabilityZones(ctx, next.CloudProvider, next.CloudRegion)
 			if err != nil {
-				return false, fmt.Errorf("allocating availability zones: %w: %w", ccx.CreateFailedErr, err)
+				return false, fmt.Errorf("%w: %w", ccx.AllocatingAZsErr, err)
 			}
 
 			existing := make([]string, 0, len(old.Hosts))
@@ -129,17 +119,9 @@ func (svc *DatastoreService) resize(ctx context.Context, old, next ccx.Datastore
 		return false, fmt.Errorf("computing resize: %w", err)
 	}
 
-	res, err := svc.client.Do(ctx, http.MethodPatch, "/api/prov/api/v2/cluster/"+next.ID, ur)
+	_, err = svc.client.Do(ctx, http.MethodPatch, "/api/prov/api/v2/cluster/"+next.ID, ur)
 	if err != nil {
-		return false, errors.Join(ccx.RequestSendingErr, err)
-	}
-
-	if res.StatusCode == http.StatusBadRequest {
-		return false, lib.ErrorFromErrorResponse(res.Body)
-	}
-
-	if res.StatusCode != http.StatusOK {
-		return false, fmt.Errorf("%w: status = %d", ccx.ResponseStatusFailedErr, res.StatusCode)
+		return false, err
 	}
 
 	var jt ccx.JobType
@@ -151,9 +133,9 @@ func (svc *DatastoreService) resize(ctx context.Context, old, next ccx.Datastore
 
 	status, err := svc.jobs.Await(ctx, old.ID, jt)
 	if err != nil {
-		return false, fmt.Errorf("%w: awaiting resize job: %w", ccx.CreateFailedErr, err)
+		return false, fmt.Errorf("awaiting resize job: %w", err)
 	} else if status != ccx.JobStatusFinished {
-		return false, fmt.Errorf("%w: resize job failed: %s", ccx.CreateFailedErr, status)
+		return false, fmt.Errorf("resize job failed: %s", status)
 	}
 
 	return true, nil
@@ -179,7 +161,7 @@ func (svc *DatastoreService) updateSizeRequest(ctx context.Context, old, next cc
 	if old.VpcUUID == "" && missing > 0 { // allocate AZs if public and need is less than have
 		allAzs, err := svc.contentSvc.AvailabilityZones(ctx, next.CloudProvider, next.CloudRegion)
 		if err != nil {
-			return ur, fmt.Errorf("allocating availability zones: %w: %w", ccx.CreateFailedErr, err)
+			return ur, fmt.Errorf("%w: %w", ccx.AllocatingAZsErr, err)
 		}
 
 		existing := make([]string, 0, len(old.Hosts))

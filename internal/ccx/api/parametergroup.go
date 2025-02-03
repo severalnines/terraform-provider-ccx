@@ -50,20 +50,12 @@ func (svc *ParameterGroupService) Create(ctx context.Context, p ccx.ParameterGro
 	res, err := svc.client.Do(ctx, http.MethodPost, "/api/db-configuration/v1/parameter-groups", req)
 
 	if err != nil {
-		return nil, errors.Join(ccx.RequestSendingErr, err)
-	}
-
-	if res.StatusCode == http.StatusBadRequest {
-		return nil, fmt.Errorf("%w: %w", ccx.CreateFailedErr, lib.ErrorFromErrorResponse(res.Body))
-	}
-
-	if res.StatusCode != http.StatusCreated {
-		return nil, fmt.Errorf("%w :%w: status = %d", ccx.CreateFailedErr, lib.ErrorFromErrorResponse(res.Body), res.StatusCode)
+		return nil, err
 	}
 
 	var rs createParameterGroupResponse
 	if err := lib.DecodeJsonInto(res.Body, &rs); err != nil {
-		return nil, fmt.Errorf("%w: %w", ccx.CreateFailedErr, err)
+		return nil, fmt.Errorf("creating parameter group: %w", err)
 	}
 
 	p.ID = rs.ID
@@ -91,30 +83,20 @@ func (svc *ParameterGroupService) Update(ctx context.Context, p ccx.ParameterGro
 		Parameters: p.DbParameters,
 	}
 
-	res, err := svc.client.Do(ctx, http.MethodPatch, "/api/db-configuration/v1/parameter-groups/"+p.ID+"sync=true", req)
+	_, err := svc.client.Do(ctx, http.MethodPatch, "/api/db-configuration/v1/parameter-groups/"+p.ID+"sync=true", req)
 	if err != nil {
-		return errors.Join(ccx.RequestSendingErr, err)
-	}
-
-	if res.StatusCode == http.StatusBadRequest {
-		return lib.ErrorFromErrorResponse(res.Body)
-	}
-
-	if res.StatusCode != http.StatusAccepted {
-		return fmt.Errorf("%w: status = %d", ccx.ResponseStatusFailedErr, res.StatusCode)
+		return err
 	}
 
 	return nil
 }
 
 func (svc *ParameterGroupService) Delete(ctx context.Context, id string) error {
-	res, err := svc.client.Do(ctx, http.MethodDelete, "/api/db-configuration/v1/parameter-groups/"+id, nil)
-	if err != nil {
-		return errors.Join(ccx.RequestSendingErr, err)
-	}
-
-	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("%w: status = %d", ccx.ResponseStatusFailedErr, res.StatusCode)
+	_, err := svc.client.Do(ctx, http.MethodDelete, "/api/db-configuration/v1/parameter-groups/"+id, nil)
+	if errors.Is(err, ccx.ResourceNotFoundErr) {
+		return nil
+	} else if err != nil {
+		return fmt.Errorf("deleting parameter group: %w", err)
 	}
 
 	return nil

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
@@ -19,34 +20,61 @@ type ErrorResponse struct {
 	Code    json.Number `json:"code"`
 	Err     string      `json:"err"`
 	ErrLong string      `json:"error"`
+	status  int
 }
 
 func (r ErrorResponse) Error() string {
-	prefix := r.Code.String()
-	if prefix != "" {
-		prefix += ": "
+	s := r.Err
+
+	if s == "" && r.ErrLong != "" {
+		s = r.ErrLong
 	}
-	if r.Err != "" {
-		return prefix + r.Err
+
+	if s == "" {
+		s = "an error occurred"
 	}
-	return prefix + r.ErrLong
+
+	s += " ("
+
+	if r.Code != "" {
+		s += "code: " + r.Code.String() + ", "
+	}
+
+	s += "response: " + strconv.Itoa(r.status)
+
+	if t := http.StatusText(r.status); t != "" {
+		s += " - " + t
+	}
+
+	s += ")"
+
+	return s
 }
 
-// ErrorFromErrorResponse decodes the body of type ErrorResponse and returns an error
-func ErrorFromErrorResponse(body io.ReadCloser) error {
-	defer Closed(body)
-	b, err := io.ReadAll(body)
-	if err != nil {
-		return fmt.Errorf("%w: reason could not be read", err)
+// ErrorFromResponse decodes the body of type ErrorResponse and returns an error
+func ErrorFromResponse(rs *http.Response) error {
+	var e ErrorResponse
+
+	e.status = rs.StatusCode
+
+	if rs.Body == nil {
+		return e
 	}
 
-	var r ErrorResponse
-	err = json.Unmarshal(b, &r)
+	defer Closed(rs.Body)
+	b, err := io.ReadAll(rs.Body)
 	if err != nil {
-		return fmt.Errorf("%w: reason could not be decoded", err)
+		e.ErrLong = fmt.Sprintf("could not read reason: %s", err.Error())
+		return e
 	}
 
-	return r
+	err = json.Unmarshal(b, &e)
+	if err != nil {
+		e.ErrLong = fmt.Sprintf("could not decode reason: %s", err.Error())
+		return e
+	}
+
+	return e
 }
 
 // DecodeJsonInto is a helper to decode JSON body into a target type
@@ -109,6 +137,13 @@ type HttpClient struct {
 	cli     *http.Client
 }
 
+// Do sends a request to the ccx api
+// errors returned are:
+// - ccx.RequestEncodingErr (if body encoding fails)
+// - ccx.RequestInitializationErr (if request creation fails)
+// - ccx.RequestSendingErr (if request sending fails)
+// - ccx.ResourceNotFoundErr (if API returns 404)
+// - ccx.ApiErr (if API returns 4xx or 5xx)
 func (h *HttpClient) Do(ctx context.Context, method, path string, body any) (*http.Response, error) {
 	var b bytes.Buffer
 	if body != nil {
@@ -122,31 +157,48 @@ func (h *HttpClient) Do(ctx context.Context, method, path string, body any) (*ht
 		return nil, errors.Join(ccx.RequestInitializationErr, err)
 	}
 
-	return h.cli.Do(req)
+	rs, err := h.cli.Do(req)
+
+	if err != nil {
+		return nil, errors.Join(ccx.RequestSendingErr, err)
+	} else if rs.StatusCode == http.StatusNotFound {
+		return nil, ccx.ResourceNotFoundErr
+	} else if rs.StatusCode >= http.StatusBadRequest {
+		return nil, fmt.Errorf("%w: %w", ccx.ApiErr, ErrorFromResponse(rs))
+	}
+
+	return rs, nil
 }
 
+// Get sends a GET request to the ccx api
+// errors returned are:
+// - ccx.RequestInitializationErr (if request creation fails)
+// - ccx.RequestSendingErr (if request sending fails)
+// - ccx.ResourceNotFoundErr (if API returns 404)
+// - ccx.ApiErr (if API returns 4xx or 5xx)
 func (h *HttpClient) Get(ctx context.Context, path string, target any) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, h.baseURL+path, nil)
 	if err != nil {
 		return errors.Join(ccx.RequestInitializationErr, err)
 	}
 
-	res, err := h.cli.Do(req)
+	rs, err := h.cli.Do(req)
+
 	if err != nil {
 		return errors.Join(ccx.RequestSendingErr, err)
-	}
-
-	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("%w: status = %d", ErrorFromErrorResponse(res.Body), res.StatusCode)
+	} else if rs.StatusCode == http.StatusNotFound {
+		return ccx.ResourceNotFoundErr
+	} else if rs.StatusCode >= http.StatusBadRequest {
+		return fmt.Errorf("%w: %w", ccx.ApiErr, ErrorFromResponse(rs))
 	}
 
 	defer func() {
-		if res.Body != nil {
-			_ = res.Body.Close()
+		if rs.Body != nil {
+			_ = rs.Body.Close()
 		}
 	}()
 
-	b, err := io.ReadAll(res.Body)
+	b, err := io.ReadAll(rs.Body)
 	if err != nil {
 		return errors.Join(ccx.ResponseReadFailedErr, err)
 	}
