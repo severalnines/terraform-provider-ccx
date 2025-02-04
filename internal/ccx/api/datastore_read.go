@@ -4,8 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 	"github.com/severalnines/terraform-provider-ccx/internal/lib"
 )
@@ -45,6 +48,52 @@ type getDatastoreResponse struct {
 
 	MaintenanceSettings *ccx.MaintenanceSettings `json:"maintenance_settings"`
 	Notifications       ccx.Notifications        `json:"notifications"`
+
+	PrimaryUrl string `json:"primary_url"`
+	ReplicaUrl string `json:"replica_url"`
+
+	DbAccount struct {
+		Username   string `json:"database_username"`
+		Password   string `json:"database_password"`
+		Host       string `json:"database_host"`
+		Database   string `json:"database_database"`
+		Privileges string `json:"database_privileges"`
+	} `json:"db_account"`
+}
+
+type getDatastoreNodesResponse struct {
+	DatabaseNodes []struct {
+		Port int    `json:"port"`
+		Role string `json:"role"`
+	} `json:"database_nodes"`
+}
+
+func (svc *DatastoreService) getPort(ctx context.Context, id string) (string, error) {
+	var rs getDatastoreNodesResponse
+
+	err := svc.client.Get(ctx, "/api/deployment/v2/data-stores/"+id+"/nodes", &rs)
+	if err != nil {
+		return "", err
+	}
+
+	var port string
+
+	for _, n := range rs.DatabaseNodes {
+		if n.Role == "primary" && n.Port != 0 {
+			port = strconv.Itoa(n.Port)
+			break
+		}
+
+		if port == "" && n.Port != 0 {
+			port = strconv.Itoa(n.Port)
+		}
+	}
+
+	if port == "" {
+		return "", errors.New("no port found")
+	}
+
+	return port, nil
 }
 
 func (svc *DatastoreService) Read(ctx context.Context, id string) (*ccx.Datastore, error) {
@@ -61,6 +110,14 @@ func (svc *DatastoreService) Read(ctx context.Context, id string) (*ccx.Datastor
 		"DELETE_FAILED",
 		"DELETED":
 		return nil, ccx.ResourceNotFoundErr
+	}
+
+	port, err := svc.getPort(ctx, id)
+	if err != nil {
+		tflog.Warn(ctx, "failed to get port for store, reported dsn might be incorrect", map[string]any{
+			"id":  id,
+			"err": err.Error(),
+		})
 	}
 
 	c := ccx.Datastore{
@@ -81,7 +138,14 @@ func (svc *DatastoreService) Read(ctx context.Context, id string) (*ccx.Datastor
 		AvailabilityZones:   rs.AZS,
 		Notifications:       rs.Notifications,
 		MaintenanceSettings: rs.MaintenanceSettings,
+		PrimaryUrl:          rs.PrimaryUrl,
+		ReplicaUrl:          rs.ReplicaUrl,
+		Username:            rs.DbAccount.Username,
+		Password:            rs.DbAccount.Password,
 	}
+
+	c.PrimaryDsn = dsn(rs.DbVendor, c.PrimaryUrl, port, rs.DbAccount.Username, rs.DbAccount.Password, rs.DbAccount.Database)
+	c.ReplicaUrl = dsn(rs.DbVendor, c.ReplicaUrl, port, rs.DbAccount.Username, rs.DbAccount.Password, rs.DbAccount.Database)
 
 	if rs.Vpc != nil {
 		c.VpcUUID = rs.Vpc.VpcUUID
@@ -100,4 +164,27 @@ func (svc *DatastoreService) Read(ctx context.Context, id string) (*ccx.Datastor
 	}
 
 	return &c, nil
+}
+
+func dsn(vendor string, host, port, username, password, dbname string) string {
+	var service string
+
+	if !strings.Contains(host, ":") {
+		host += ":" + port
+	}
+
+	switch vendor {
+	default:
+		return ""
+	case "mysql", "mariadb", "percona":
+		service = "mysql"
+	case "postgres", "pgsql":
+		service = "postgres"
+	case "redis", "valkey":
+		service = "rediss"
+	case "microsoft":
+		return `Data Source=` + host + `;User ID=` + username + `;Password=` + password + `;Database=` + dbname
+	}
+
+	return service + "://" + username + ":" + password + "@" + host + "/" + dbname
 }

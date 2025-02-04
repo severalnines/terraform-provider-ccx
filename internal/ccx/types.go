@@ -39,6 +39,13 @@ type Datastore struct {
 
 	Notifications       Notifications
 	MaintenanceSettings *MaintenanceSettings
+
+	PrimaryUrl string
+	PrimaryDsn string
+	ReplicaUrl string
+	ReplicaDsn string
+	Username   string
+	Password   string
 }
 
 type Host struct {
