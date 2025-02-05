@@ -39,6 +39,14 @@ type Datastore struct {
 
 	Notifications       Notifications
 	MaintenanceSettings *MaintenanceSettings
+
+	PrimaryUrl string
+	PrimaryDsn string
+	ReplicaUrl string
+	ReplicaDsn string
+	Username   string
+	Password   string
+	DbName     string
 }
 
 type Host struct {
@@ -51,6 +59,7 @@ type Host struct {
 	DiskSize      uint64
 	Role          string
 	Region        string
+	Port          int
 }
 
 func (h Host) IsPrimary() bool {

@@ -159,6 +159,48 @@ func (r *Datastore) Schema() *schema.Resource {
 				Computed:    true,
 				Description: "Hour of the day to end the maintenance. 0-23. Must be start_hour + 2",
 			},
+			"primary_url": {
+				Type:        schema.TypeString,
+				Optional:    false,
+				Computed:    true,
+				Description: "URL to the primary host(s)",
+			},
+			"primary_dsn": {
+				Type:        schema.TypeString,
+				Optional:    false,
+				Computed:    true,
+				Description: "DSN to the primary host(s)",
+			},
+			"replica_url": {
+				Type:        schema.TypeString,
+				Optional:    false,
+				Computed:    true,
+				Description: "URL to the replica host(s)",
+			},
+			"replica_dsn": {
+				Type:        schema.TypeString,
+				Optional:    false,
+				Computed:    true,
+				Description: "DSN to the replica host(s)",
+			},
+			"username": {
+				Type:        schema.TypeString,
+				Optional:    false,
+				Computed:    true,
+				Description: "Username to connect to the datastore",
+			},
+			"password": {
+				Type:        schema.TypeString,
+				Optional:    false,
+				Computed:    true,
+				Description: "Password to connect to the datastore",
+			},
+			"dbname": {
+				Type:        schema.TypeString,
+				Optional:    false,
+				Computed:    true,
+				Description: "Database name",
+			},
 		},
 		CreateContext: r.Create,
 		ReadContext:   r.Read,
@@ -321,6 +363,8 @@ func defaultType(vendor, dbType string) string {
 		return "postgres_streaming"
 	case "redis":
 		return "redis"
+	case "microsoft":
+		return "mssql_ao_async"
 	}
 
 	return ""
@@ -442,6 +486,34 @@ func schemaFromDatastore(c ccx.Datastore, d *schema.ResourceData) error {
 	}
 
 	if err = d.Set("network_ha_enabled", c.HAEnabled); err != nil {
+		return err
+	}
+
+	if err = d.Set("primary_url", c.PrimaryUrl); err != nil {
+		return err
+	}
+
+	if err = d.Set("primary_dsn", c.PrimaryDsn); err != nil {
+		return err
+	}
+
+	if err = d.Set("replica_url", c.ReplicaUrl); err != nil {
+		return err
+	}
+
+	if err = d.Set("replica_dsn", c.ReplicaDsn); err != nil {
+		return err
+	}
+
+	if err = d.Set("username", c.Username); err != nil {
+		return err
+	}
+
+	if err = d.Set("password", c.Password); err != nil {
+		return err
+	}
+
+	if err = d.Set("dbname", c.DbName); err != nil {
 		return err
 	}
 
