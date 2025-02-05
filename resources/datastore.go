@@ -195,6 +195,12 @@ func (r *Datastore) Schema() *schema.Resource {
 				Computed:    true,
 				Description: "Password to connect to the datastore",
 			},
+			"dbname": {
+				Type:        schema.TypeString,
+				Optional:    false,
+				Computed:    true,
+				Description: "Database name",
+			},
 		},
 		CreateContext: r.Create,
 		ReadContext:   r.Read,
@@ -357,6 +363,8 @@ func defaultType(vendor, dbType string) string {
 		return "postgres_streaming"
 	case "redis":
 		return "redis"
+	case "microsoft":
+		return "mssql_ao_async"
 	}
 
 	return ""
@@ -502,6 +510,10 @@ func schemaFromDatastore(c ccx.Datastore, d *schema.ResourceData) error {
 	}
 
 	if err = d.Set("password", c.Password); err != nil {
+		return err
+	}
+
+	if err = d.Set("dbname", c.DbName); err != nil {
 		return err
 	}
 

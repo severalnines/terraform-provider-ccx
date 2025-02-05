@@ -61,36 +61,22 @@ type getDatastoreResponse struct {
 	} `json:"db_account"`
 }
 
-type getDatastoreNodesResponse struct {
-	DatabaseNodes []struct {
-		Port int    `json:"port"`
-		Role string `json:"role"`
-	} `json:"database_nodes"`
-}
+func getPortFromDatastore(c ccx.Datastore) (int, error) {
+	var port int
 
-func (svc *DatastoreService) getPort(ctx context.Context, id string) (string, error) {
-	var rs getDatastoreNodesResponse
-
-	err := svc.client.Get(ctx, "/api/deployment/v2/data-stores/"+id+"/nodes", &rs)
-	if err != nil {
-		return "", err
-	}
-
-	var port string
-
-	for _, n := range rs.DatabaseNodes {
+	for _, n := range c.Hosts {
 		if n.Role == "primary" && n.Port != 0 {
-			port = strconv.Itoa(n.Port)
+			port = n.Port
 			break
 		}
 
-		if port == "" && n.Port != 0 {
-			port = strconv.Itoa(n.Port)
+		if port == 0 && n.Port != 0 {
+			port = n.Port
 		}
 	}
 
-	if port == "" {
-		return "", errors.New("no port found")
+	if port == 0 {
+		return 0, errors.New("no port found")
 	}
 
 	return port, nil
@@ -110,14 +96,6 @@ func (svc *DatastoreService) Read(ctx context.Context, id string) (*ccx.Datastor
 		"DELETE_FAILED",
 		"DELETED":
 		return nil, ccx.ResourceNotFoundErr
-	}
-
-	port, err := svc.getPort(ctx, id)
-	if err != nil {
-		tflog.Warn(ctx, "failed to get port for store, reported dsn might be incorrect", map[string]any{
-			"id":  id,
-			"err": err.Error(),
-		})
 	}
 
 	c := ccx.Datastore{
@@ -142,10 +120,8 @@ func (svc *DatastoreService) Read(ctx context.Context, id string) (*ccx.Datastor
 		ReplicaUrl:          rs.ReplicaUrl,
 		Username:            rs.DbAccount.Username,
 		Password:            rs.DbAccount.Password,
+		DbName:              rs.DbAccount.Database,
 	}
-
-	c.PrimaryDsn = dsn(rs.DbVendor, c.PrimaryUrl, port, rs.DbAccount.Username, rs.DbAccount.Password, rs.DbAccount.Database)
-	c.ReplicaUrl = dsn(rs.DbVendor, c.ReplicaUrl, port, rs.DbAccount.Username, rs.DbAccount.Password, rs.DbAccount.Database)
 
 	if rs.Vpc != nil {
 		c.VpcUUID = rs.Vpc.VpcUUID
@@ -163,14 +139,25 @@ func (svc *DatastoreService) Read(ctx context.Context, id string) (*ccx.Datastor
 		return nil, fmt.Errorf("getting hosts: %w", err)
 	}
 
+	port, err := getPortFromDatastore(c)
+	if err != nil {
+		tflog.Warn(ctx, "failed to get port for store, reported dsn might be incorrect", map[string]any{
+			"id":  id,
+			"err": err.Error(),
+		})
+	}
+
+	c.PrimaryDsn = dsn(rs.DbVendor, c.PrimaryUrl, port, rs.DbAccount.Username, rs.DbAccount.Password, rs.DbAccount.Database)
+	c.ReplicaDsn = dsn(rs.DbVendor, c.ReplicaUrl, port, rs.DbAccount.Username, rs.DbAccount.Password, rs.DbAccount.Database)
+
 	return &c, nil
 }
 
-func dsn(vendor string, host, port, username, password, dbname string) string {
+func dsn(vendor string, host string, port int, username, password, dbname string) string {
 	var service string
 
 	if !strings.Contains(host, ":") {
-		host += ":" + port
+		host += ":" + strconv.Itoa(port)
 	}
 
 	switch vendor {

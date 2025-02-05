@@ -18,6 +18,7 @@ type getHostsResponse struct {
 		DiskType      string    `json:"disk_type"`
 		DiskSize      uint64    `json:"disk_size"`
 		Role          string    `json:"role"`
+		Port          int       `json:"port"`
 		Region        struct {
 			Code string `json:"code"`
 		} `json:"region"`
@@ -45,6 +46,7 @@ func (svc *DatastoreService) GetHosts(ctx context.Context, clusterID string) ([]
 			DiskSize:      rs.Hosts[i].DiskSize,
 			Role:          rs.Hosts[i].Role,
 			Region:        rs.Hosts[i].Region.Code,
+			Port:          rs.Hosts[i].Port,
 		}
 
 		ls = append(ls, h)

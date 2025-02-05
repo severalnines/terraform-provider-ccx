@@ -1,21 +1,19 @@
 package api
 
 import (
-	"context"
-	"errors"
 	"testing"
 
-	"github.com/severalnines/terraform-provider-ccx/internal/ccx/mocks"
+	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestDsn(t *testing.T) {
+func Test_dsn(t *testing.T) {
 	tests := []struct {
 		name     string
 		vendor   string
 		host     string
-		port     string
+		port     int
 		username string
 		password string
 		dbname   string
@@ -25,7 +23,7 @@ func TestDsn(t *testing.T) {
 			name:     "mysql",
 			vendor:   "mysql",
 			host:     "00000000-0000-0000-0000-000000000001.app.mydbservice.net",
-			port:     "3306",
+			port:     3306,
 			username: "user",
 			password: "pass",
 			dbname:   "testdb",
@@ -35,7 +33,7 @@ func TestDsn(t *testing.T) {
 			name:     "mysql with host containing port",
 			vendor:   "mysql",
 			host:     "00000000-0000-0000-0000-000000000001.app.mydbservice.net:3306",
-			port:     "1234",
+			port:     1234,
 			username: "user",
 			password: "pass",
 			dbname:   "testdb",
@@ -45,7 +43,7 @@ func TestDsn(t *testing.T) {
 			name:     "percona",
 			vendor:   "percona",
 			host:     "00000000-0000-0000-0000-000000000001.app.mydbservice.net",
-			port:     "3306",
+			port:     3306,
 			username: "user",
 			password: "pass",
 			dbname:   "testdb",
@@ -55,7 +53,7 @@ func TestDsn(t *testing.T) {
 			name:     "percona with host containing port",
 			vendor:   "percona",
 			host:     "00000000-0000-0000-0000-000000000001.app.mydbservice.net:3306",
-			port:     "1234",
+			port:     1234,
 			username: "user",
 			password: "pass",
 			dbname:   "testdb",
@@ -65,7 +63,7 @@ func TestDsn(t *testing.T) {
 			name:     "mariadb",
 			vendor:   "mariadb",
 			host:     "00000000-0000-0000-0000-000000000001.app.mydbservice.net",
-			port:     "3306",
+			port:     3306,
 			username: "user",
 			password: "pass",
 			dbname:   "testdb",
@@ -75,7 +73,7 @@ func TestDsn(t *testing.T) {
 			name:     "mariadb with host containing port",
 			vendor:   "mariadb",
 			host:     "00000000-0000-0000-0000-000000000001.app.mydbservice.net:3306",
-			port:     "1234",
+			port:     1234,
 			username: "user",
 			password: "pass",
 			dbname:   "testdb",
@@ -85,7 +83,7 @@ func TestDsn(t *testing.T) {
 			name:     "postgres",
 			vendor:   "postgres",
 			host:     "00000000-0000-0000-0000-000000000001.app.mydbservice.net",
-			port:     "5432",
+			port:     5432,
 			username: "user",
 			password: "pass",
 			dbname:   "testdb",
@@ -95,7 +93,7 @@ func TestDsn(t *testing.T) {
 			name:     "postgres with host containing port",
 			vendor:   "postgres",
 			host:     "00000000-0000-0000-0000-000000000001.app.mydbservice.net:5432",
-			port:     "9999",
+			port:     9999,
 			username: "user",
 			password: "pass",
 			dbname:   "testdb",
@@ -105,7 +103,7 @@ func TestDsn(t *testing.T) {
 			name:     "redis",
 			vendor:   "redis",
 			host:     "00000000-0000-0000-0000-000000000001.app.mydbservice.net",
-			port:     "6379",
+			port:     6379,
 			username: "user",
 			password: "pass",
 			dbname:   "testdb",
@@ -115,7 +113,7 @@ func TestDsn(t *testing.T) {
 			name:     "redis with host containing port",
 			vendor:   "redis",
 			host:     "00000000-0000-0000-0000-000000000001.app.mydbservice.net:6379",
-			port:     "8888",
+			port:     8888,
 			username: "user",
 			password: "pass",
 			dbname:   "testdb",
@@ -125,7 +123,7 @@ func TestDsn(t *testing.T) {
 			name:     "microsoft",
 			vendor:   "microsoft",
 			host:     "00000000-0000-0000-0000-000000000001.app.mydbservice.net",
-			port:     "1433",
+			port:     1433,
 			username: "user",
 			password: "pass",
 			dbname:   "testdb",
@@ -135,7 +133,7 @@ func TestDsn(t *testing.T) {
 			name:     "microsoft with host containing port",
 			vendor:   "microsoft",
 			host:     "00000000-0000-0000-0000-000000000001.app.mydbservice.net:1433",
-			port:     "9999",
+			port:     9999,
 			username: "user",
 			password: "pass",
 			dbname:   "testdb",
@@ -145,7 +143,7 @@ func TestDsn(t *testing.T) {
 			name:     "unknown vendor",
 			vendor:   "unknown",
 			host:     "00000000-0000-0000-0000-000000000001.app.mydbservice.net",
-			port:     "3306",
+			port:     3306,
 			username: "user",
 			password: "pass",
 			dbname:   "testdb",
@@ -155,7 +153,7 @@ func TestDsn(t *testing.T) {
 			name:     "unknown vendor with host containing port",
 			vendor:   "unknown",
 			host:     "00000000-0000-0000-0000-000000000001.app.mydbservice.net:3306",
-			port:     "1234",
+			port:     1234,
 			username: "user",
 			password: "pass",
 			dbname:   "testdb",
@@ -172,168 +170,95 @@ func TestDsn(t *testing.T) {
 	}
 }
 
-func mockGetDatastoreNodesResponse(t *getDatastoreNodesResponse) func(rs *getDatastoreNodesResponse) bool {
-	return func(rs *getDatastoreNodesResponse) bool {
-		rs.DatabaseNodes = t.DatabaseNodes
-		return true
-	}
-}
-
-func TestDatastoreService_getPort(t *testing.T) {
-	path := "/api/deployment/v2/data-stores/datastore-id/nodes"
-
+func Test_getPortFromDatastore(t *testing.T) {
 	tests := []struct {
 		name    string
-		id      string
-		mock    func(h *mocks.MockHttpClient)
-		want    string
+		c       ccx.Datastore
+		want    int
 		wantErr bool
 	}{
 		{
 			name: "single node, success",
-			id:   "datastore-id",
-			mock: func(h *mocks.MockHttpClient) {
-				mocks.MockHttpClientExpectGet(h, path, mockGetDatastoreNodesResponse(&getDatastoreNodesResponse{
-					DatabaseNodes: []struct {
-						Port int    `json:"port"`
-						Role string `json:"role"`
-					}{
-						{
-							Port: 3306,
-							Role: "primary",
-						},
+			c: ccx.Datastore{
+				Hosts: []ccx.Host{
+					{
+						Port: 3306,
+						Role: "primary",
 					},
-				}), nil)
+				},
 			},
-			want:    "3306",
+			want:    3306,
 			wantErr: false,
 		},
 		{
 			name: "multiple nodes, success",
-			id:   "datastore-id",
-			mock: func(h *mocks.MockHttpClient) {
-				mocks.MockHttpClientExpectGet(h, path, mockGetDatastoreNodesResponse(&getDatastoreNodesResponse{
-					DatabaseNodes: []struct {
-						Port int    `json:"port"`
-						Role string `json:"role"`
-					}{
-						{
-							Port: 13306,
-							Role: "replica",
-						},
-						{
-							Port: 3306,
-							Role: "primary",
-						},
+			c: ccx.Datastore{
+				Hosts: []ccx.Host{
+					{
+						Port: 3306,
+						Role: "primary",
 					},
-				}), nil)
+				},
 			},
-			want:    "3306",
+			want:    3306,
 			wantErr: false,
 		},
 		{
 			name: "multiple nodes, no port in primary, return port of replica",
-			id:   "datastore-id",
-			mock: func(h *mocks.MockHttpClient) {
-				mocks.MockHttpClientExpectGet(h, path, mockGetDatastoreNodesResponse(&getDatastoreNodesResponse{
-					DatabaseNodes: []struct {
-						Port int    `json:"port"`
-						Role string `json:"role"`
-					}{
-						{
-							Port: 3306,
-							Role: "replica",
-						},
-						{
-							Port: 0,
-							Role: "primary",
-						},
+			c: ccx.Datastore{
+				Hosts: []ccx.Host{
+					{
+						Port: 0,
+						Role: "primary",
 					},
-				}), nil)
+				},
 			},
-			want:    "3306",
+			want:    3306,
 			wantErr: false,
 		},
 		{
 			name: "multiple nodes, no port in primary and port in 1 replica, return port of replica",
-			id:   "datastore-id",
-			mock: func(h *mocks.MockHttpClient) {
-				mocks.MockHttpClientExpectGet(h, path, mockGetDatastoreNodesResponse(&getDatastoreNodesResponse{
-					DatabaseNodes: []struct {
-						Port int    `json:"port"`
-						Role string `json:"role"`
-					}{
-						{
-							Port: 0,
-							Role: "primary",
-						},
-						{
-							Port: 0,
-							Role: "replica",
-						},
-						{
-							Port: 3306,
-							Role: "replica",
-						},
+			c: ccx.Datastore{
+				Hosts: []ccx.Host{
+					{
+						Port: 0,
+						Role: "primary",
 					},
-				}), nil)
+					{
+						Port: 0,
+						Role: "replica",
+					},
+					{
+						Port: 3306,
+						Role: "replica",
+					},
+				},
 			},
-			want:    "3306",
+			want:    3306,
 			wantErr: false,
 		},
 		{
 			name: "multiple nodes, no port at all, return error",
-			id:   "datastore-id",
-			mock: func(h *mocks.MockHttpClient) {
-				mocks.MockHttpClientExpectGet(h, path, mockGetDatastoreNodesResponse(&getDatastoreNodesResponse{
-					DatabaseNodes: []struct {
-						Port int    `json:"port"`
-						Role string `json:"role"`
-					}{
-						{
-							Port: 0,
-							Role: "replica",
-						},
-						{
-							Port: 0,
-							Role: "primary",
-						},
+			c: ccx.Datastore{
+				Hosts: []ccx.Host{
+					{
+						Port: 0,
+						Role: "replica",
 					},
-				}), nil)
+					{
+						Port: 0,
+						Role: "primary",
+					},
+				},
 			},
-			want:    "",
-			wantErr: true,
-		},
-		{
-			name: "request error, return error",
-			id:   "datastore-id",
-			mock: func(h *mocks.MockHttpClient) {
-				mocks.MockHttpClientExpectGet(h, path, mockGetDatastoreNodesResponse(&getDatastoreNodesResponse{}), errors.New("request error"))
-			},
-			want:    "",
+			want:    0,
 			wantErr: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := context.Background()
-
-			httpcli := mocks.NewMockHttpClient(t)
-			jobsSvc := mocks.NewMockJobService(t)
-			contentSvc := mocks.NewMockContentService(t)
-
-			svc := &DatastoreService{
-				client:     httpcli,
-				jobs:       jobsSvc,
-				contentSvc: contentSvc,
-			}
-
-			if tt.mock != nil {
-				tt.mock(httpcli)
-			}
-
-			got, err := svc.getPort(ctx, tt.id)
+			got, err := getPortFromDatastore(tt.c)
 
 			if tt.wantErr {
 				assert.Error(t, err)

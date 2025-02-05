@@ -126,127 +126,125 @@ func TestDatastoreService_Update(t *testing.T) {
 
 				j.EXPECT().Await(mock.Anything, "datastore-id", ccx.AddNodeJob).Return(ccx.JobStatusFinished, nil)
 
-				h.EXPECT().Get(mock.Anything, "/api/deployment/v3/data-stores/datastore-id",
-					mock.MatchedBy(func(r *getDatastoreResponse) bool {
-						r.ID = "datastore-id"
-						r.CloudProvider = "aws"
-						r.Region = struct {
+				mocks.MockHttpClientExpectGet(h, "/api/deployment/v3/data-stores/datastore-id", getDatastoreResponse{
+					ID:            "datastore-id",
+					CloudProvider: "aws",
+					Region: struct {
+						Code string `json:"code"`
+					}{
+						Code: "eu-north-1",
+					},
+					InstanceSize:     "m5.large",
+					InstanceIOPS:     nil,
+					DiskSize:         lib.Uint64P(80),
+					DiskType:         lib.StringP("gp2"),
+					DbVendor:         "percona",
+					DbVersion:        "8",
+					Name:             "luna",
+					Status:           "STARTED",
+					StatusText:       "There are no failed nodes, there are started nodes",
+					Type:             "Replication",
+					TypeName:         "Streaming Replication",
+					Size:             3,
+					SSLEnabled:       true,
+					HighAvailability: false,
+					Tags: []string{
+						"percona",
+						"8",
+						"replication",
+						"aws",
+						"eu-north-1",
+					},
+					AZS: []string{
+						"eu-north-1a",
+						"eu-north-1b",
+					},
+					Notifications: ccx.Notifications{
+						Enabled: false,
+						Emails:  []string{"user@getccx.com"},
+					},
+					CreatedAt:  time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+					UpdatedAt:  time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
+					PrimaryUrl: "cluster.mydbservice.net",
+					ReplicaUrl: "replica.mydbservice.net",
+
+					DbAccount: struct {
+						Username   string `json:"database_username"`
+						Password   string `json:"database_password"`
+						Host       string `json:"database_host"`
+						Database   string `json:"database_database"`
+						Privileges string `json:"database_privileges"`
+					}{Username: "ccx", Password: "top-secret", Database: "mydb"},
+				}, nil)
+
+				mocks.MockHttpClientExpectGet(h, "/api/firewall/api/v1/firewalls/datastore-id", getFirewallsResponse{}, nil)
+
+				mocks.MockHttpClientExpectGet(h, "/api/deployment/v2/data-stores/datastore-id/nodes", getHostsResponse{
+					UUID: "datastore-id",
+					Hosts: []struct {
+						ID            string    `json:"host_uuid"`
+						CreatedAt     time.Time `json:"created_at"`
+						CloudProvider string    `json:"cloud_provider"`
+						AZ            string    `json:"host_az"`
+						InstanceType  string    `json:"instance_type"`
+						DiskType      string    `json:"disk_type"`
+						DiskSize      uint64    `json:"disk_size"`
+						Role          string    `json:"role"`
+						Port          int       `json:"port"`
+						Region        struct {
 							Code string `json:"code"`
-						}{
-							Code: "eu-north-1",
-						}
-
-						r.InstanceSize = "m5.large"
-						r.InstanceIOPS = nil
-						r.DiskSize = lib.Uint64P(80)
-						r.DiskType = lib.StringP("gp2")
-						r.DbVendor = "percona"
-						r.DbVersion = "8"
-						r.Name = "luna"
-						r.Status = "STARTED"
-						r.StatusText = "There are no failed nodes, there are started nodes"
-						r.Type = "Replication"
-						r.TypeName = "Streaming Replication"
-						r.Size = 3
-						r.SSLEnabled = true
-						r.HighAvailability = false
-						r.Tags = []string{
-							"percona",
-							"8",
-							"replication",
-							"aws",
-							"eu-north-1",
-						}
-
-						r.AZS = []string{
-							"eu-north-1a",
-							"eu-north-1b",
-						}
-
-						r.Notifications = ccx.Notifications{
-							Enabled: false,
-							Emails:  []string{"user@getccx.com"},
-						}
-
-						r.CreatedAt = time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)
-						r.UpdatedAt = time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC)
-						return true
-					}),
-				).
-					Return(nil)
-
-				h.EXPECT().Get(mock.Anything, "/api/firewall/api/v1/firewalls/datastore-id",
-					mock.MatchedBy(func(r *getFirewallsResponse) bool {
-						return true
-					}),
-				).Return(nil)
-
-				h.EXPECT().Get(mock.Anything, "/api/deployment/v2/data-stores/datastore-id/nodes",
-					mock.MatchedBy(func(r *getHostsResponse) bool {
-						r.UUID = "datastore-id"
-						r.Hosts = []struct {
-							ID            string    `json:"host_uuid"`
-							CreatedAt     time.Time `json:"created_at"`
-							CloudProvider string    `json:"cloud_provider"`
-							AZ            string    `json:"host_az"`
-							InstanceType  string    `json:"instance_type"`
-							DiskType      string    `json:"disk_type"`
-							DiskSize      uint64    `json:"disk_size"`
-							Role          string    `json:"role"`
-							Region        struct {
+						} `json:"region"`
+					}{
+						{
+							ID:            "host-1",
+							CreatedAt:     time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+							CloudProvider: "aws",
+							AZ:            "eu-north-1a",
+							InstanceType:  "m5.large",
+							DiskType:      "gp2",
+							DiskSize:      80,
+							Role:          "primary",
+							Port:          3306,
+							Region: struct {
 								Code string `json:"code"`
-							} `json:"region"`
-						}{
-							{
-								ID:            "host-1",
-								CreatedAt:     time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
-								CloudProvider: "aws",
-								AZ:            "eu-north-1a",
-								InstanceType:  "m5.large",
-								DiskType:      "gp2",
-								DiskSize:      80,
-								Role:          "primary",
-								Region: struct {
-									Code string `json:"code"`
-								}{
-									Code: "eu-north-1",
-								},
+							}{
+								Code: "eu-north-1",
 							},
-							{
-								ID:            "host-2",
-								CreatedAt:     time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
-								CloudProvider: "aws",
-								AZ:            "eu-north-1b",
-								InstanceType:  "m5.large",
-								DiskType:      "gp2",
-								DiskSize:      80,
-								Role:          "replica",
-								Region: struct {
-									Code string `json:"code"`
-								}{
-									Code: "eu-north-1",
-								},
+						},
+						{
+							ID:            "host-2",
+							CreatedAt:     time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
+							CloudProvider: "aws",
+							AZ:            "eu-north-1b",
+							InstanceType:  "m5.large",
+							DiskType:      "gp2",
+							DiskSize:      80,
+							Role:          "replica",
+							Port:          3306,
+							Region: struct {
+								Code string `json:"code"`
+							}{
+								Code: "eu-north-1",
 							},
-							{
-								ID:            "host-3",
-								CreatedAt:     time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
-								CloudProvider: "aws",
-								AZ:            "eu-north-1b",
-								InstanceType:  "m5.large",
-								DiskType:      "gp2",
-								DiskSize:      80,
-								Role:          "replica",
-								Region: struct {
-									Code string `json:"code"`
-								}{
-									Code: "eu-north-1",
-								},
+						},
+						{
+							ID:            "host-3",
+							CreatedAt:     time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
+							CloudProvider: "aws",
+							AZ:            "eu-north-1b",
+							InstanceType:  "m5.large",
+							DiskType:      "gp2",
+							DiskSize:      80,
+							Role:          "replica",
+							Port:          3306,
+							Region: struct {
+								Code string `json:"code"`
+							}{
+								Code: "eu-north-1",
 							},
-						}
-
-						return true
-					}),
-				).Return(nil)
+						},
+					},
+				}, nil)
 			},
 			want: &ccx.Datastore{
 				ID:            "datastore-id",
@@ -273,6 +271,7 @@ func TestDatastoreService_Update(t *testing.T) {
 						DiskSize:      80,
 						DiskType:      "gp2",
 						Region:        "eu-north-1",
+						Port:          3306,
 					},
 					{
 						ID:            "host-2",
@@ -284,6 +283,7 @@ func TestDatastoreService_Update(t *testing.T) {
 						DiskSize:      80,
 						DiskType:      "gp2",
 						Region:        "eu-north-1",
+						Port:          3306,
 					},
 					{
 						ID:            "host-3",
@@ -295,6 +295,7 @@ func TestDatastoreService_Update(t *testing.T) {
 						DiskSize:      80,
 						DiskType:      "gp2",
 						Region:        "eu-north-1",
+						Port:          3306,
 					},
 				},
 				Notifications: ccx.Notifications{
@@ -306,6 +307,13 @@ func TestDatastoreService_Update(t *testing.T) {
 					"eu-north-1b",
 				},
 				FirewallRules: []ccx.FirewallRule{},
+				PrimaryUrl:    "cluster.mydbservice.net",
+				PrimaryDsn:    "mysql://ccx:top-secret@cluster.mydbservice.net:3306/mydb",
+				ReplicaUrl:    "replica.mydbservice.net",
+				ReplicaDsn:    "mysql://ccx:top-secret@replica.mydbservice.net:3306/mydb",
+				Username:      "ccx",
+				Password:      "top-secret",
+				DbName:        "mydb",
 			},
 			wantErr: false,
 		},

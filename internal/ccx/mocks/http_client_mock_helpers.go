@@ -4,8 +4,9 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func MockHttpClientExpectGet[T any](m *MockHttpClient, path string, r func(t *T) bool, wantErr error) {
+func MockHttpClientExpectGet[T any](m *MockHttpClient, path string, t T, wantErr error) {
 	m.EXPECT().Get(mock.Anything, path, mock.MatchedBy(func(rs *T) bool {
-		return r(rs)
+		*rs = t
+		return true
 	})).Return(wantErr)
 }

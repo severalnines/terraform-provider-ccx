@@ -46,6 +46,7 @@ type Datastore struct {
 	ReplicaDsn string
 	Username   string
 	Password   string
+	DbName     string
 }
 
 type Host struct {
@@ -58,6 +59,7 @@ type Host struct {
 	DiskSize      uint64
 	Role          string
 	Region        string
+	Port          int
 }
 
 func (h Host) IsPrimary() bool {

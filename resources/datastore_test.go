@@ -60,6 +60,7 @@ func TestDatastore_Create(t *testing.T) {
 			ReplicaDsn: "postgres://user:secret@replica.00000000-0000-0000-0000-000000000001.app.mydbservice.net:5432",
 			Username:   "user",
 			Password:   "secret",
+			DbName:     "mydb",
 		}, nil)
 
 		m.datastore.EXPECT().Read(mock.Anything, "datastore-id").Return(&ccx.Datastore{
@@ -91,6 +92,7 @@ func TestDatastore_Create(t *testing.T) {
 			ReplicaDsn: "postgres://user:secret@replica.00000000-0000-0000-0000-000000000001.app.mydbservice.net:5432",
 			Username:   "user",
 			Password:   "secret",
+			DbName:     "mydb",
 		}, nil)
 
 		m.datastore.EXPECT().Delete(mock.Anything, "datastore-id").Return(nil)
@@ -148,6 +150,7 @@ resource "ccx_datastore" "luna" {
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "replica_dsn", "postgres://user:secret@replica.00000000-0000-0000-0000-000000000001.app.mydbservice.net:5432"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "username", "user"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "password", "secret"),
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "dbname", "mydb"),
 					),
 				},
 			},
@@ -194,6 +197,7 @@ resource "ccx_datastore" "luna" {
 			ReplicaDsn: "mysql://user:secret@replica.00000000-0000-0000-0000-000000000001.app.mydbservice.net:3306",
 			Username:   "user",
 			Password:   "secret",
+			DbName:     "mydb",
 		}
 
 		updatedDatastore := &ccx.Datastore{
@@ -227,6 +231,7 @@ resource "ccx_datastore" "luna" {
 			ReplicaDsn: "mysql://user:secret@replica.00000000-0000-0000-0000-000000000001.app.mydbservice.net:3306",
 			Username:   "user",
 			Password:   "secret",
+			DbName:     "mydb",
 		}
 
 		m.datastore.EXPECT().Create(mock.Anything, ccx.Datastore{
@@ -289,6 +294,7 @@ resource "ccx_datastore" "luna" {
 				ReplicaDsn: "mysql://user:secret@replica.00000000-0000-0000-0000-000000000001.app.mydbservice.net:3306",
 				Username:   "user",
 				Password:   "secret",
+				DbName:     "mydb",
 			},
 			ccx.Datastore{
 				ID:            "datastore-id",
@@ -371,6 +377,7 @@ resource "ccx_datastore" "luna" {
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "replica_dsn", "mysql://user:secret@replica.00000000-0000-0000-0000-000000000001.app.mydbservice.net:3306"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "username", "user"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "password", "secret"),
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "dbname", "mydb"),
 					),
 				},
 				{
@@ -417,6 +424,7 @@ resource "ccx_datastore" "luna" {
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "replica_dsn", "mysql://user:secret@replica.00000000-0000-0000-0000-000000000001.app.mydbservice.net:3306"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "username", "user"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "password", "secret"),
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "dbname", "mydb"),
 					),
 				},
 			},
@@ -503,6 +511,7 @@ resource "ccx_datastore" "luna" {
 			ReplicaDsn: "mysql://user:secret@replica.00000000-0000-0000-0000-000000000001.app.mydbservice.net:3306",
 			Username:   "user",
 			Password:   "secret",
+			DbName:     "mydb",
 		}, nil)
 
 		m.datastore.EXPECT().Read(mock.Anything, "datastore-id").Return(&ccx.Datastore{
@@ -535,6 +544,7 @@ resource "ccx_datastore" "luna" {
 			ReplicaDsn: "mysql://user:secret@replica.00000000-0000-0000-0000-000000000001.app.mydbservice.net:3306",
 			Username:   "user",
 			Password:   "secret",
+			DbName:     "mydb",
 		}, nil)
 
 		m.datastore.EXPECT().Delete(mock.Anything, "datastore-id").Return(nil)
@@ -606,6 +616,7 @@ resource "ccx_datastore" "luna" {
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "replica_dsn", "mysql://user:secret@replica.00000000-0000-0000-0000-000000000001.app.mydbservice.net:3306"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "username", "user"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "password", "secret"),
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "dbname", "mydb"),
 					),
 				},
 			},
@@ -672,6 +683,7 @@ resource "ccx_datastore" "luna" {
 			ReplicaDsn: "postgres://user:secret@replica.00000000-0000-0000-0000-000000000001.app.mydbservice.net:5432",
 			Username:   "user",
 			Password:   "secret",
+			DbName:     "mydb",
 		}, nil)
 
 		m.datastore.EXPECT().SetFirewallRules(mock.Anything, "datastore-id", []ccx.FirewallRule{
@@ -724,6 +736,7 @@ resource "ccx_datastore" "luna" {
 			ReplicaDsn: "postgres://user:secret@replica.00000000-0000-0000-0000-000000000001.app.mydbservice.net:5432",
 			Username:   "user",
 			Password:   "secret",
+			DbName:     "mydb",
 		}, nil)
 
 		m.datastore.EXPECT().Delete(mock.Anything, "datastore-id").Return(nil)
@@ -804,6 +817,7 @@ resource "ccx_datastore" "luna" {
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "replica_dsn", "postgres://user:secret@replica.00000000-0000-0000-0000-000000000001.app.mydbservice.net:5432"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "username", "user"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "password", "secret"),
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "dbname", "mydb"),
 					),
 				},
 			},
@@ -862,6 +876,7 @@ resource "ccx_datastore" "luna" {
 			ReplicaDsn: "mysql://user:secret@replica.00000000-0000-0000-0000-000000000001.app.mydbservice.net:3306",
 			Username:   "user",
 			Password:   "secret",
+			DbName:     "mydb",
 		}, nil)
 
 		m.datastore.EXPECT().Read(mock.Anything, "datastore-id").Return(&ccx.Datastore{
@@ -893,6 +908,7 @@ resource "ccx_datastore" "luna" {
 			ReplicaDsn: "mysql://user:secret@replica.00000000-0000-0000-0000-000000000001.app.mydbservice.net:3306",
 			Username:   "user",
 			Password:   "secret",
+			DbName:     "mydb",
 		}, nil)
 
 		m.datastore.EXPECT().Delete(mock.Anything, "datastore-id").Return(nil)
@@ -951,6 +967,7 @@ resource "ccx_datastore" "luna" {
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "replica_dsn", "mysql://user:secret@replica.00000000-0000-0000-0000-000000000001.app.mydbservice.net:3306"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "username", "user"),
 						resource.TestCheckResourceAttr("ccx_datastore.luna", "password", "secret"),
+						resource.TestCheckResourceAttr("ccx_datastore.luna", "dbname", "mydb"),
 					),
 				},
 			},
