@@ -6,17 +6,17 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 )
 
 func (svc *VpcService) Delete(ctx context.Context, id string) error {
-	res, err := svc.httpcli.Do(ctx, http.MethodDelete, "/api/vpc/api/v2/vpcs"+"/"+id, nil)
-	if err != nil {
-		return errors.Join(ccx.RequestSendingErr, err)
-	}
-
-	if res.StatusCode != http.StatusAccepted {
-		return fmt.Errorf("%w: status = %d", ccx.ResponseStatusFailedErr, res.StatusCode)
+	_, err := svc.httpcli.Do(ctx, http.MethodDelete, "/api/vpc/api/v2/vpcs"+"/"+id, nil)
+	if errors.Is(err, ccx.ResourceNotFoundErr) {
+		tflog.Warn(ctx, "deleting vpc: not found", map[string]interface{}{"id": id})
+		return nil
+	} else if err != nil {
+		return fmt.Errorf("deleting vpc: %w", err)
 	}
 
 	return nil

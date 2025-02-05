@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 
@@ -157,7 +156,7 @@ func (svc *DatastoreService) Create(ctx context.Context, c ccx.Datastore) (*ccx.
 	if n, h := len(c.AvailabilityZones), int(c.Size); c.VpcUUID == "" && n < h { // allocate AZs if public and need is less than have
 		allAzs, err := svc.contentSvc.AvailabilityZones(ctx, c.CloudProvider, c.CloudRegion)
 		if err != nil {
-			return nil, fmt.Errorf("allocating availability zones: %w: %w", ccx.CreateFailedErr, err)
+			return nil, fmt.Errorf("creating datastore: %w: %w", ccx.AllocatingAZsErr, err)
 		}
 
 		c.AvailabilityZones = allocateAzs(allAzs, nil, h-n)
@@ -165,20 +164,12 @@ func (svc *DatastoreService) Create(ctx context.Context, c ccx.Datastore) (*ccx.
 
 	res, err := svc.client.Do(ctx, http.MethodPost, "/api/prov/api/v2/cluster", cr)
 	if err != nil {
-		return nil, errors.Join(ccx.RequestSendingErr, err)
-	}
-
-	if res.StatusCode == http.StatusBadRequest {
-		return nil, fmt.Errorf("%w: %w", ccx.CreateFailedErr, lib.ErrorFromErrorResponse(res.Body))
-	}
-
-	if res.StatusCode != http.StatusCreated {
-		return nil, fmt.Errorf("%w :%w: status = %d", ccx.CreateFailedErr, lib.ErrorFromErrorResponse(res.Body), res.StatusCode)
+		return nil, fmt.Errorf("creating datastore: %w", err)
 	}
 
 	var rs datastoreResponse
 	if err := lib.DecodeJsonInto(res.Body, &rs); err != nil {
-		return nil, fmt.Errorf("%w: %w", ccx.CreateFailedErr, err)
+		return nil, fmt.Errorf("creating datastore: %w", err)
 	}
 
 	partialDatastore := &ccx.Datastore{ID: rs.UUID}

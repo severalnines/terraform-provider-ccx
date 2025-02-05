@@ -2,6 +2,7 @@ package resources
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -81,7 +82,10 @@ func (r *ParameterGroup) Read(ctx context.Context, d *schema.ResourceData, _ any
 	id := d.Id()
 
 	p, err := r.svc.Read(ctx, id)
-	if err != nil {
+	if errors.Is(err, ccx.ResourceNotFoundErr) {
+		d.SetId("")
+		return nil
+	} else if err != nil {
 		return diag.FromErr(err)
 	}
 
