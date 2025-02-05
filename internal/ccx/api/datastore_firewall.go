@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 	"golang.org/x/sync/errgroup"
 )
@@ -104,6 +105,9 @@ func (svc *DatastoreService) CreateFirewallRules(ctx context.Context, storeID st
 func (svc *DatastoreService) DeleteFirewallRule(ctx context.Context, storeID string, firewall ccx.FirewallRule) error {
 	_, err := svc.client.Do(ctx, http.MethodDelete, "/api/firewall/api/v1/firewall/"+storeID, firewall)
 	if errors.Is(err, ccx.ResourceNotFoundErr) {
+		tflog.Warn(ctx, "deleting firewall rule: not found", map[string]any{
+			"source": firewall.Source, "description": firewall.Description,
+		})
 		return nil
 	} else if err != nil {
 		return fmt.Errorf("deleting rule (source=%s, description=%s): %w", firewall.Source, firewall.Description, err)
