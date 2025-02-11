@@ -24,6 +24,7 @@ resource "ccx_datastore" "luna" {
   instance_size  = "m5.large"
   volume_size    = 80
   volume_type    = "gp2"
+  parameter_group = ccx_parameter_group.asteroid.id
 
   firewall {
     source = "2.3.41.5/32"
@@ -41,6 +42,18 @@ resource "ccx_datastore" "luna" {
   maintenance_day_of_week = 1 # 1-7, 1 is Monday
   maintenance_start_hour = 2 # 0-23
   maintenance_end_hour = 4
+}
+
+resource "ccx_parameter_group" "asteroid" {
+    name = "asteroid"
+    database_vendor = "mariadb"
+    database_version = "10.11"
+    database_type = "galera"
+
+    parameters = {
+      table_open_cache = 8000
+      sql_mode = "STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
+    }
 }
 
 output "MOTD" {
