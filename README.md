@@ -102,7 +102,7 @@ resource "ccx_parameter_group" "asteroid" {
     database_type = "galera"
 
     parameters = {
-      max_connections = 100
+      table_open_cache = 8000
       sql_mode = "STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
     }
 }
