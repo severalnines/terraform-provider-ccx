@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -212,11 +214,128 @@ func (r *Datastore) Schema() *schema.Resource {
 	}
 }
 
+func validateCloud(cloudInstances map[string][]ccx.InstanceSize, c ccx.Datastore) error {
+	prov, ok := cloudInstances[c.CloudProvider]
+	if !ok {
+		ls := make([]string, 0, len(cloudInstances))
+		for k := range cloudInstances {
+			ls = append(ls, k)
+		}
+
+		return fmt.Errorf("cloud provider %q not found. available cloud providers: %s", c.CloudProvider, strings.Join(ls, ", "))
+	}
+
+	ok = slices.ContainsFunc(prov, func(i ccx.InstanceSize) bool {
+		return i.Code == c.InstanceSize || i.Type == c.InstanceSize
+	})
+
+	if !ok {
+		ls := make([]string, 0, len(prov))
+		for _, i := range prov {
+			ls = append(ls, i.Code+" / "+i.Type)
+		}
+
+		return fmt.Errorf("instance size %q not found for provider %q. available sizes: %s", c.InstanceSize, c.CloudProvider, strings.Join(ls, ", "))
+	}
+
+	return nil
+}
+
+func validateDBVendor(vendors []ccx.DBVendorInfo, c ccx.Datastore) error {
+	var vendor ccx.DBVendorInfo
+
+	if i := slices.IndexFunc(vendors, func(info ccx.DBVendorInfo) bool {
+		return info.Code == c.DBVendor
+	}); i == -1 {
+		ls := make([]string, 0, len(vendors))
+		for _, v := range vendors {
+			ls = append(ls, fmt.Sprintf("%q (%s)", v.Code, v.Name))
+		}
+
+		return fmt.Errorf("database vendor %q not found. available vendors: %s", c.DBVendor, strings.Join(ls, ", "))
+	} else {
+		vendor = vendors[i]
+	}
+
+	if c.DBVersion != "" {
+		if i := slices.IndexFunc(vendor.Versions, func(v string) bool {
+			return v == c.DBVersion
+		}); i == -1 {
+			return fmt.Errorf("database version %q not found for vendor %q. available versions: %s", c.DBVersion, c.DBVendor, strings.Join(vendor.Versions, ", "))
+		}
+	}
+
+	if c.Type != "" {
+		ok := slices.ContainsFunc(vendor.Types, func(t ccx.DBVendorInfoType) bool {
+			return t.Code == c.Type
+		})
+
+		ls := make([]string, 0, len(vendor.Types))
+		for _, t := range vendor.Types {
+			ls = append(ls, fmt.Sprintf("%q (%s)", t.Code, t.Name))
+		}
+
+		if !ok {
+			return fmt.Errorf("database type %q not found for vendor %q. available types: %s", c.Type, c.DBVendor, strings.Join(ls, ", "))
+		}
+	}
+
+	if ok := slices.Contains(vendor.NumNodes, int(c.Size)); !ok {
+		ls := make([]string, 0, len(vendor.NumNodes))
+		for _, n := range vendor.NumNodes {
+			ls = append(ls, strconv.Itoa(n))
+		}
+
+		return fmt.Errorf("number of nodes %d not supported for vendor %q. available sizes: %s", c.Size, c.DBVendor, strings.Join(ls, ", "))
+	}
+
+	return nil
+}
+
+func validateVolumeType(volumeTypes []string, volumeType string) error {
+	if volumeType == "" {
+		return errors.New("volume type is required")
+	}
+
+	if !slices.Contains(volumeTypes, volumeType) {
+		return fmt.Errorf("volume type %q not found. available types: %s", volumeType, `"`+strings.Join(volumeTypes, `", "`)+`"`)
+	}
+
+	return nil
+}
+
 func (r *Datastore) Create(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
 	c, err := schemaToDatastore(d)
 
 	if err != nil {
 		return diag.FromErr(err)
+	}
+
+	cloudInstances, err := r.contentSvc.InstanceSizes(ctx)
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("loading instance sizes: %w", err))
+	}
+
+	if err := validateCloud(cloudInstances, c); err != nil {
+		return diag.FromErr(fmt.Errorf("validating cloud provider: %w", err))
+	}
+
+	vendors, err := r.contentSvc.DBVendors(ctx)
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("loading db vendor information: %w", err))
+	}
+
+	if err := validateDBVendor(vendors, c); err != nil {
+		return diag.FromErr(fmt.Errorf("validating db vendor: %w", err))
+	}
+
+	volumes, err := r.contentSvc.VolumeTypes(ctx, c.CloudProvider)
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("loading volume types: %w", err))
+	}
+
+	if err := validateVolumeType(volumes, c.VolumeType); err != nil {
+		return diag.FromErr(fmt.Errorf("validating volume type: %w", err))
 	}
 
 	n, err := r.svc.Create(ctx, c)
@@ -328,7 +447,7 @@ func (r *Datastore) Delete(ctx context.Context, d *schema.ResourceData, _ any) d
 	}
 
 	err = r.svc.Delete(ctx, c.ID)
-	if err != nil {
+	if err != nil && !errors.Is(err, ccx.ResourceNotFoundErr) {
 		return diag.FromErr(err)
 	}
 

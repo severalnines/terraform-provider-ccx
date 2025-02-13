@@ -11,7 +11,7 @@ import (
 
 func TestParameterGroup_Create(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
-		m, p := mockProvider()
+		m, p := mockProvider(t)
 
 		pgCreated := ccx.ParameterGroup{
 			ID:              "parameter-group-id",

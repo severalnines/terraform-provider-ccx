@@ -147,13 +147,13 @@ func (svc *DatastoreService) Read(ctx context.Context, id string) (*ccx.Datastor
 		})
 	}
 
-	c.PrimaryDsn = dsn(rs.DbVendor, c.PrimaryUrl, port, rs.DbAccount.Username, rs.DbAccount.Password, rs.DbAccount.Database)
-	c.ReplicaDsn = dsn(rs.DbVendor, c.ReplicaUrl, port, rs.DbAccount.Username, rs.DbAccount.Password, rs.DbAccount.Database)
+	c.PrimaryDsn = Dsn(rs.DbVendor, c.PrimaryUrl, port, rs.DbAccount.Username, rs.DbAccount.Password, rs.DbAccount.Database)
+	c.ReplicaDsn = Dsn(rs.DbVendor, c.ReplicaUrl, port, rs.DbAccount.Username, rs.DbAccount.Password, rs.DbAccount.Database)
 
 	return &c, nil
 }
 
-func dsn(vendor string, host string, port int, username, password, dbname string) string {
+func Dsn(vendor string, host string, port int, username, password, dbname string) string {
 	var service string
 
 	if !strings.Contains(host, ":") {
