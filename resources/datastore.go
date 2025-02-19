@@ -87,11 +87,13 @@ func (r *Datastore) Schema() *schema.Resource {
 			"volume_type": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				Computed:    true,
 				Description: "Volume type",
 			},
 			"volume_size": {
 				Type:        schema.TypeInt,
 				Optional:    true,
+				Computed:    true,
 				Description: "Volume size",
 			},
 			"volume_iops": {
@@ -292,13 +294,41 @@ func validateDBVendor(vendors []ccx.DBVendorInfo, c ccx.Datastore) error {
 	return nil
 }
 
-func validateVolumeType(volumeTypes []string, volumeType string) error {
+func validateVolume(vendor string, volumeTypes []string, volumeType string, volumeSize uint64) error {
 	if volumeType == "" {
 		return errors.New("volume type is required")
 	}
 
 	if !slices.Contains(volumeTypes, volumeType) {
 		return fmt.Errorf("volume type %q not found. available types: %s", volumeType, `"`+strings.Join(volumeTypes, `", "`)+`"`)
+	}
+
+	if (vendor == "redis" || vendor == "cache22") && volumeSize != 0 {
+		return fmt.Errorf("volume_size is not supported for vendor %q", vendor)
+	}
+
+	return nil
+}
+
+func validateMaintenanceSettings(m *ccx.MaintenanceSettings) error {
+	if m == nil {
+		return nil
+	}
+
+	if m.DayOfWeek < 1 || m.DayOfWeek > 7 {
+		return fmt.Errorf("maintenance_day_of week must be between 1 and 7: %d", m.DayOfWeek)
+	}
+
+	if m.StartHour < 0 || m.StartHour > 23 {
+		return fmt.Errorf("maintenance_start_hour must be between 0 and 23: %d", m.StartHour)
+	}
+
+	if m.EndHour < 0 || m.EndHour > 23 {
+		return fmt.Errorf("maintenance_end_hour must be between 0 and 23: %d", m.EndHour)
+	}
+
+	if m.EndHour != m.StartHour+2 {
+		return fmt.Errorf("maintenance_end_hour must be start hour + 2: %d - %d", m.StartHour, m.EndHour)
 	}
 
 	return nil
@@ -309,6 +339,10 @@ func (r *Datastore) Create(ctx context.Context, d *schema.ResourceData, _ any) d
 
 	if err != nil {
 		return diag.FromErr(err)
+	}
+
+	if err := validateMaintenanceSettings(c.MaintenanceSettings); err != nil {
+		return diag.FromErr(fmt.Errorf("validating maintenance settings: %w", err))
 	}
 
 	cloudInstances, err := r.contentSvc.InstanceSizes(ctx)
@@ -334,7 +368,7 @@ func (r *Datastore) Create(ctx context.Context, d *schema.ResourceData, _ any) d
 		return diag.FromErr(fmt.Errorf("loading volume types: %w", err))
 	}
 
-	if err := validateVolumeType(volumes, c.VolumeType); err != nil {
+	if err := validateVolume(c.DBVendor, volumes, c.VolumeType, c.VolumeSize); err != nil {
 		return diag.FromErr(fmt.Errorf("validating volume type: %w", err))
 	}
 
@@ -414,6 +448,10 @@ func (r *Datastore) Update(ctx context.Context, d *schema.ResourceData, _ any) d
 
 	if d.HasChanges("maintenance_day_of_week", "maintenance_start_hour", "maintenance_end_hour") {
 		n.MaintenanceSettings = getMaintenanceSettings(d)
+
+		if err := validateMaintenanceSettings(n.MaintenanceSettings); err != nil {
+			return diag.FromErr(fmt.Errorf("validating maintenance settings: %w", err))
+		}
 	}
 
 	var errs []error
