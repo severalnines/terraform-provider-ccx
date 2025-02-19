@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -280,15 +279,6 @@ func validateDBVendor(vendors []ccx.DBVendorInfo, c ccx.Datastore) error {
 		if !ok {
 			return fmt.Errorf("database type %q not found for vendor %q. available types: %s", c.Type, c.DBVendor, strings.Join(ls, ", "))
 		}
-	}
-
-	if ok := slices.Contains(vendor.NumNodes, int(c.Size)); !ok {
-		ls := make([]string, 0, len(vendor.NumNodes))
-		for _, n := range vendor.NumNodes {
-			ls = append(ls, strconv.Itoa(n))
-		}
-
-		return fmt.Errorf("number of nodes %d not supported for vendor %q. available sizes: %s", c.Size, c.DBVendor, strings.Join(ls, ", "))
 	}
 
 	return nil

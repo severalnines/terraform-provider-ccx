@@ -59,6 +59,8 @@ type getDatastoreResponse struct {
 		Database   string `json:"database_database"`
 		Privileges string `json:"database_privileges"`
 	} `json:"db_account"`
+
+	ParameterGroupID string `json:"parameter_group_id"`
 }
 
 func getPortFromDatastore(c ccx.Datastore) (int, error) {
@@ -121,6 +123,7 @@ func (svc *DatastoreService) Read(ctx context.Context, id string) (*ccx.Datastor
 		Username:            rs.DbAccount.Username,
 		Password:            rs.DbAccount.Password,
 		DbName:              rs.DbAccount.Database,
+		ParameterGroupID:    rs.ParameterGroupID,
 	}
 
 	if rs.Vpc != nil {
