@@ -56,7 +56,7 @@ func (svc JobsService) Await(ctx context.Context, storeID string, job ccx.JobTyp
 
 		status, err = svc.GetStatus(ctx, storeID, job)
 
-		if err != nil && !errors.Is(err, ccx.ResourceNotFoundErr) { // ignore not found errors, give it some time to appear
+		if err != nil {
 			return ccx.JobStatusUnknown, fmt.Errorf("getting job status: %w", err)
 		}
 

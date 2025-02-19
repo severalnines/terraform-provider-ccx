@@ -133,9 +133,25 @@ type InstanceSize struct {
 	Type string `json:"type"`
 }
 
+type DBVendorInfoType struct {
+	Name string
+	Code string
+}
+
+type DBVendorInfo struct {
+	Name           string
+	Code           string
+	DefaultVersion string
+	Versions       []string
+	Types          []DBVendorInfoType
+	NumNodes       []int
+}
+
 type ContentService interface {
 	InstanceSizes(ctx context.Context) (map[string][]InstanceSize, error)
 	AvailabilityZones(ctx context.Context, provider, region string) ([]string, error)
+	DBVendors(ctx context.Context) ([]DBVendorInfo, error)
+	VolumeTypes(ctx context.Context, cloud string) ([]string, error)
 }
 
 type ParameterGroup struct {

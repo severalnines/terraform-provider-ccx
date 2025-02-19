@@ -45,7 +45,14 @@ description: |-
 
 ### Read-Only
 
+- `dbname` (String) Database name
 - `id` (String) The ID of this resource.
+- `password` (String) Password to connect to the datastore
+- `primary_dsn` (String) DSN to the primary host(s)
+- `primary_url` (String) URL to the primary host(s)
+- `replica_dsn` (String) DSN to the replica host(s)
+- `replica_url` (String) URL to the replica host(s)
+- `username` (String) Username to connect to the datastore
 
 <a id="nestedblock--firewall"></a>
 ### Nested Schema for `firewall`

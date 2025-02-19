@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -85,11 +86,13 @@ func (r *Datastore) Schema() *schema.Resource {
 			"volume_type": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				Computed:    true,
 				Description: "Volume type",
 			},
 			"volume_size": {
 				Type:        schema.TypeInt,
 				Optional:    true,
+				Computed:    true,
 				Description: "Volume size",
 			},
 			"volume_iops": {
@@ -212,11 +215,151 @@ func (r *Datastore) Schema() *schema.Resource {
 	}
 }
 
+func validateCloud(cloudInstances map[string][]ccx.InstanceSize, c ccx.Datastore) error {
+	prov, ok := cloudInstances[c.CloudProvider]
+	if !ok {
+		ls := make([]string, 0, len(cloudInstances))
+		for k := range cloudInstances {
+			ls = append(ls, k)
+		}
+
+		return fmt.Errorf("cloud provider %q not found. available cloud providers: %s", c.CloudProvider, strings.Join(ls, ", "))
+	}
+
+	ok = slices.ContainsFunc(prov, func(i ccx.InstanceSize) bool {
+		return i.Code == c.InstanceSize || i.Type == c.InstanceSize
+	})
+
+	if !ok {
+		ls := make([]string, 0, len(prov))
+		for _, i := range prov {
+			ls = append(ls, i.Code+" / "+i.Type)
+		}
+
+		return fmt.Errorf("instance size %q not found for provider %q. available sizes: %s", c.InstanceSize, c.CloudProvider, strings.Join(ls, ", "))
+	}
+
+	return nil
+}
+
+func validateDBVendor(vendors []ccx.DBVendorInfo, c ccx.Datastore) error {
+	var vendor ccx.DBVendorInfo
+
+	if i := slices.IndexFunc(vendors, func(info ccx.DBVendorInfo) bool {
+		return info.Code == c.DBVendor
+	}); i == -1 {
+		ls := make([]string, 0, len(vendors))
+		for _, v := range vendors {
+			ls = append(ls, fmt.Sprintf("%q (%s)", v.Code, v.Name))
+		}
+
+		return fmt.Errorf("database vendor %q not found. available vendors: %s", c.DBVendor, strings.Join(ls, ", "))
+	} else {
+		vendor = vendors[i]
+	}
+
+	if c.DBVersion != "" {
+		if i := slices.IndexFunc(vendor.Versions, func(v string) bool {
+			return v == c.DBVersion
+		}); i == -1 {
+			return fmt.Errorf("database version %q not found for vendor %q. available versions: %s", c.DBVersion, c.DBVendor, strings.Join(vendor.Versions, ", "))
+		}
+	}
+
+	if c.Type != "" {
+		ok := slices.ContainsFunc(vendor.Types, func(t ccx.DBVendorInfoType) bool {
+			return t.Code == c.Type
+		})
+
+		ls := make([]string, 0, len(vendor.Types))
+		for _, t := range vendor.Types {
+			ls = append(ls, fmt.Sprintf("%q (%s)", t.Code, t.Name))
+		}
+
+		if !ok {
+			return fmt.Errorf("database type %q not found for vendor %q. available types: %s", c.Type, c.DBVendor, strings.Join(ls, ", "))
+		}
+	}
+
+	return nil
+}
+
+func validateVolume(vendor string, volumeTypes []string, volumeType string, volumeSize uint64) error {
+	if volumeType == "" {
+		return errors.New("volume type is required")
+	}
+
+	if !slices.Contains(volumeTypes, volumeType) {
+		return fmt.Errorf("volume type %q not found. available types: %s", volumeType, `"`+strings.Join(volumeTypes, `", "`)+`"`)
+	}
+
+	if (vendor == "redis" || vendor == "cache22") && volumeSize != 0 {
+		return fmt.Errorf("volume_size is not supported for vendor %q", vendor)
+	}
+
+	return nil
+}
+
+func validateMaintenanceSettings(m *ccx.MaintenanceSettings) error {
+	if m == nil {
+		return nil
+	}
+
+	if m.DayOfWeek < 1 || m.DayOfWeek > 7 {
+		return fmt.Errorf("maintenance_day_of week must be between 1 and 7: %d", m.DayOfWeek)
+	}
+
+	if m.StartHour < 0 || m.StartHour > 23 {
+		return fmt.Errorf("maintenance_start_hour must be between 0 and 23: %d", m.StartHour)
+	}
+
+	if m.EndHour < 0 || m.EndHour > 23 {
+		return fmt.Errorf("maintenance_end_hour must be between 0 and 23: %d", m.EndHour)
+	}
+
+	if m.EndHour != m.StartHour+2 {
+		return fmt.Errorf("maintenance_end_hour must be start hour + 2: %d - %d", m.StartHour, m.EndHour)
+	}
+
+	return nil
+}
+
 func (r *Datastore) Create(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
 	c, err := schemaToDatastore(d)
 
 	if err != nil {
 		return diag.FromErr(err)
+	}
+
+	if err := validateMaintenanceSettings(c.MaintenanceSettings); err != nil {
+		return diag.FromErr(fmt.Errorf("validating maintenance settings: %w", err))
+	}
+
+	cloudInstances, err := r.contentSvc.InstanceSizes(ctx)
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("loading instance sizes: %w", err))
+	}
+
+	if err := validateCloud(cloudInstances, c); err != nil {
+		return diag.FromErr(fmt.Errorf("validating cloud provider: %w", err))
+	}
+
+	vendors, err := r.contentSvc.DBVendors(ctx)
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("loading db vendor information: %w", err))
+	}
+
+	if err := validateDBVendor(vendors, c); err != nil {
+		return diag.FromErr(fmt.Errorf("validating db vendor: %w", err))
+	}
+
+	volumes, err := r.contentSvc.VolumeTypes(ctx, c.CloudProvider)
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("loading volume types: %w", err))
+	}
+
+	if err := validateVolume(c.DBVendor, volumes, c.VolumeType, c.VolumeSize); err != nil {
+		return diag.FromErr(fmt.Errorf("validating volume type: %w", err))
 	}
 
 	n, err := r.svc.Create(ctx, c)
@@ -295,6 +438,10 @@ func (r *Datastore) Update(ctx context.Context, d *schema.ResourceData, _ any) d
 
 	if d.HasChanges("maintenance_day_of_week", "maintenance_start_hour", "maintenance_end_hour") {
 		n.MaintenanceSettings = getMaintenanceSettings(d)
+
+		if err := validateMaintenanceSettings(n.MaintenanceSettings); err != nil {
+			return diag.FromErr(fmt.Errorf("validating maintenance settings: %w", err))
+		}
 	}
 
 	var errs []error
@@ -328,7 +475,7 @@ func (r *Datastore) Delete(ctx context.Context, d *schema.ResourceData, _ any) d
 	}
 
 	err = r.svc.Delete(ctx, c.ID)
-	if err != nil {
+	if err != nil && !errors.Is(err, ccx.ResourceNotFoundErr) {
 		return diag.FromErr(err)
 	}
 

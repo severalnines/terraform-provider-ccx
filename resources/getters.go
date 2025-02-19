@@ -82,6 +82,7 @@ func getStrings(d *schema.ResourceData, key string) []string {
 	return s
 }
 
+// isSubsetOf checks if a is a subset of b
 func isSubsetOf[T comparable](a, b []T) bool {
 	m := make(map[T]any, len(b))
 	for _, v := range b {
@@ -125,8 +126,28 @@ func setStrings(d *schema.ResourceData, key string, values []string) error {
 }
 
 func allKeysSet(d *schema.ResourceData, keys ...string) bool {
+	if d.IsNewResource() {
+		c := d.GetRawConfig()
+		m := c.AsValueMap()
+
+		for _, key := range keys {
+			if v, ok := m[key]; !ok || v.IsNull() {
+				return false
+			}
+		}
+
+		return true
+	}
+
+	state := d.State()
+	if state == nil {
+		return false
+	}
+
+	d.Get("")
+
 	for _, key := range keys {
-		if _, ok := d.GetOk(key); !ok {
+		if _, ok := state.Attributes[key]; !ok {
 			return false
 		}
 	}

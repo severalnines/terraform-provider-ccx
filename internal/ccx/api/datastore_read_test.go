@@ -163,7 +163,7 @@ func Test_dsn(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := dsn(tt.vendor, tt.host, tt.port, tt.username, tt.password, tt.dbname); got != tt.want {
+			if got := Dsn(tt.vendor, tt.host, tt.port, tt.username, tt.password, tt.dbname); got != tt.want {
 				t.Errorf("dsn() = %v, want %v", got, tt.want)
 			}
 		})
@@ -210,6 +210,10 @@ func Test_getPortFromDatastore(t *testing.T) {
 					{
 						Port: 0,
 						Role: "primary",
+					},
+					{
+						Port: 3306,
+						Role: "replica",
 					},
 				},
 			},

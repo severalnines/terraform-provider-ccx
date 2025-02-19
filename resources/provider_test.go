@@ -2,6 +2,7 @@ package resources
 
 import (
 	"context"
+	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -13,6 +14,7 @@ type mockServices struct {
 	datastore      *mocks.MockDatastoreService
 	vpc            *mocks.MockVPCService
 	parameterGroup *mocks.MockParameterGroupService
+	content        *mocks.MockContentService
 }
 
 func (m mockServices) AssertExpectations(t mock.TestingT) {
@@ -21,19 +23,21 @@ func (m mockServices) AssertExpectations(t mock.TestingT) {
 	m.parameterGroup.AssertExpectations(t)
 }
 
-func mockProvider() (mockServices, *schema.Provider) {
+func mockProvider(t *testing.T) (mockServices, *schema.Provider) {
 	datastore := &Datastore{}
 	vpc := &VPC{}
 	parameterGroup := &ParameterGroup{}
 
 	services := mockServices{
-		datastore:      &mocks.MockDatastoreService{},
-		vpc:            &mocks.MockVPCService{},
-		parameterGroup: &mocks.MockParameterGroupService{},
+		datastore:      mocks.NewMockDatastoreService(t),
+		vpc:            mocks.NewMockVPCService(t),
+		parameterGroup: mocks.NewMockParameterGroupService(t),
+		content:        mocks.NewMockContentService(t),
 	}
 
 	configure := func(ctx context.Context, d *schema.ResourceData) (any, diag.Diagnostics) {
 		datastore.svc = services.datastore
+		datastore.contentSvc = services.content
 		vpc.svc = services.vpc
 		parameterGroup.svc = services.parameterGroup
 
