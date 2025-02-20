@@ -22,7 +22,7 @@ terraform {
   required_providers {
     ccx = {
       source  = "severalnines/ccx"
-      version = "~> 0.4.4"
+      version = "~> 0.4.5"
     }
   }
 }
@@ -188,7 +188,7 @@ Clone, build and place the plugin in the right folder.
 1. Clone: `git clone https://github.com/severalnines/terraform-provider-ccx`
 2. Build: `go build -o ./bin/terraform-provider-ccx.exe ./cmd/terraform-provider-ccx`
 3. Place: `./bin/terraform-provider-ccx.exe`
-   as `%APPDATA%/terraform.d/plugins/registry.terraform.io/severalnines/ccx/0.4.4/windows_amd64/terraform-provider-ccx.exe`
+   as `%APPDATA%/terraform.d/plugins/registry.terraform.io/severalnines/ccx/0.4.5/windows_amd64/terraform-provider-ccx.exe`
 
 ## Using the provider
 
@@ -203,7 +203,7 @@ terraform {
   required_providers {
     ccx = {
       source  = "severalnines/ccx"
-      version = "~> 0.4.4"
+      version = "~> 0.4.5"
     }
   }
 }
