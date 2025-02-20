@@ -160,6 +160,7 @@ type ParameterGroup struct {
 	DatabaseVendor  string            `json:"database_vendor"`
 	DatabaseVersion string            `json:"database_version"`
 	DatabaseType    string            `json:"database_type"`
+	Description     string            `json:"description"`
 	DbParameters    map[string]string `json:"db_parameters"`
 }
 
