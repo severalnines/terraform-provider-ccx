@@ -31,6 +31,7 @@ type createParameterGroupRequest struct {
 	DatabaseVendor  string `json:"database_vendor"`
 	DatabaseVersion string `json:"database_version"`
 	DatabaseType    string `json:"database_type"`
+	Description     string `json:"description"`
 
 	Parameters map[string]string `json:"parameters"`
 }
@@ -46,6 +47,7 @@ func (svc *ParameterGroupService) Create(ctx context.Context, p ccx.ParameterGro
 		DatabaseVersion: p.DatabaseVersion,
 		DatabaseType:    p.DatabaseType,
 		Parameters:      p.DbParameters,
+		Description:     p.Description,
 	}
 
 	res, err := svc.client.Do(ctx, http.MethodPost, "/api/db-configuration/v1/parameter-groups", req)
@@ -76,15 +78,19 @@ func (svc *ParameterGroupService) Read(ctx context.Context, id string) (*ccx.Par
 }
 
 type updateParameterGroupRequest struct {
-	Parameters map[string]string `json:"parameters"`
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	Parameters  map[string]string `json:"parameters"`
 }
 
 func (svc *ParameterGroupService) Update(ctx context.Context, p ccx.ParameterGroup) error {
 	req := updateParameterGroupRequest{
-		Parameters: p.DbParameters,
+		Name:        p.Name,
+		Description: p.Description,
+		Parameters:  p.DbParameters,
 	}
 
-	_, err := svc.client.Do(ctx, http.MethodPatch, "/api/db-configuration/v1/parameter-groups/"+p.ID+"sync=true", req)
+	_, err := svc.client.Do(ctx, http.MethodPut, "/api/db-configuration/v1/parameter-groups/"+p.ID+"?sync=true", req)
 	if err != nil {
 		return err
 	}

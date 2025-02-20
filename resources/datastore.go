@@ -317,7 +317,21 @@ func validateMaintenanceSettings(m *ccx.MaintenanceSettings) error {
 		return fmt.Errorf("maintenance_end_hour must be between 0 and 23: %d", m.EndHour)
 	}
 
-	if m.EndHour != m.StartHour+2 {
+	if (m.StartHour-m.EndHour) == 2 || (m.EndHour-m.StartHour) == 2 {
+		return nil
+	}
+
+	s := m.StartHour
+	if s == 0 {
+		s = 24
+	}
+
+	e := m.EndHour
+	if e == 0 {
+		e = 24
+	}
+
+	if (e-s) != 2 && (s-e) != -2 {
 		return fmt.Errorf("maintenance_end_hour must be start hour + 2: %d - %d", m.StartHour, m.EndHour)
 	}
 

@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -1286,4 +1287,126 @@ resource "ccx_datastore" "luna" {
 
 		m.AssertExpectations(t)
 	})
+}
+
+func Test_validateMaintenanceSettings(t *testing.T) {
+	tests := []struct {
+		name    string
+		m       *ccx.MaintenanceSettings
+		wantErr bool
+	}{
+		{
+			name:    "maintenance is nil",
+			wantErr: false,
+		},
+		{
+			name: "day < 1",
+			m: &ccx.MaintenanceSettings{
+				DayOfWeek: -1,
+				StartHour: 0,
+				EndHour:   2,
+			},
+			wantErr: true,
+		},
+		{
+			name: "day > 7",
+			m: &ccx.MaintenanceSettings{
+				DayOfWeek: 8,
+				StartHour: 0,
+				EndHour:   2,
+			},
+			wantErr: true,
+		},
+		{
+			name: "start < 0",
+			m: &ccx.MaintenanceSettings{
+				DayOfWeek: 1,
+				StartHour: -1,
+				EndHour:   3,
+			},
+			wantErr: true,
+		},
+		{
+			name: "start > 23",
+			m: &ccx.MaintenanceSettings{
+				DayOfWeek: 1,
+				StartHour: 25,
+				EndHour:   27,
+			},
+			wantErr: true,
+		},
+		{
+			name: "end < 0",
+			m: &ccx.MaintenanceSettings{
+				DayOfWeek: 1,
+				StartHour: -3,
+				EndHour:   -1,
+			},
+			wantErr: true,
+		},
+		{
+			name: "end > 23",
+			m: &ccx.MaintenanceSettings{
+				DayOfWeek: 1,
+				StartHour: 23,
+				EndHour:   25,
+			},
+			wantErr: true,
+		},
+		{
+			name: "0-2",
+			m: &ccx.MaintenanceSettings{
+				DayOfWeek: 1,
+				StartHour: 0,
+				EndHour:   2,
+			},
+			wantErr: false,
+		},
+		{
+			name: "22-0",
+			m: &ccx.MaintenanceSettings{
+				DayOfWeek: 3,
+				StartHour: 22,
+				EndHour:   0,
+			},
+			wantErr: false,
+		},
+		{
+			name: "2-22",
+			m: &ccx.MaintenanceSettings{
+				DayOfWeek: 1,
+				StartHour: 2,
+				EndHour:   22,
+			},
+			wantErr: true,
+		},
+		{
+			name: "2-2",
+			m: &ccx.MaintenanceSettings{
+				DayOfWeek: 4,
+				StartHour: 2,
+				EndHour:   2,
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid",
+			m: &ccx.MaintenanceSettings{
+				DayOfWeek: 1,
+				StartHour: 2,
+				EndHour:   4,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateMaintenanceSettings(tt.m)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
 }

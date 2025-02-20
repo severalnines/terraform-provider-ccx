@@ -41,6 +41,11 @@ func (r *ParameterGroup) Schema() *schema.Resource {
 				Required:    true,
 				Description: "Database type for which this parameter group is applicable",
 			},
+			"description": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Description of this parameter group",
+			},
 			"parameters": {
 				Type:        schema.TypeMap,
 				Required:    true,
@@ -151,6 +156,10 @@ func schemaFromParameterGroup(p ccx.ParameterGroup, d *schema.ResourceData) erro
 		return fmt.Errorf("setting parameters: %w", err)
 	}
 
+	if err := d.Set("description", p.Description); err != nil {
+		return fmt.Errorf("setting description: %w", err)
+	}
+
 	return nil
 }
 
@@ -161,6 +170,7 @@ func schemaToParameterGroup(d *schema.ResourceData) (ccx.ParameterGroup, error) 
 		DatabaseVendor:  getString(d, "database_vendor"),
 		DatabaseVersion: getString(d, "database_version"),
 		DatabaseType:    getString(d, "database_type"),
+		Description:     getString(d, "description"),
 	}
 
 	if v, err := getDbParameters(d); err == nil {
