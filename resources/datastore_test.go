@@ -2,13 +2,16 @@ package resources
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
+	"github.com/severalnines/terraform-provider-ccx/internal/ccx/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func expectDefaultContent(m mockServices) {
@@ -1406,6 +1409,201 @@ func Test_validateMaintenanceSettings(t *testing.T) {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func Test_validateParameterGroup(t *testing.T) {
+	const groupId = "parameter-group-id"
+
+	tests := []struct {
+		name    string
+		c       ccx.Datastore
+		mock    func(pgSvc *mocks.MockParameterGroupService)
+		wantErr bool
+	}{
+		{
+			name: "no group",
+			c: ccx.Datastore{
+				ParameterGroupID: "",
+				DBVendor:         "mariadb",
+				DBVersion:        "10.11",
+				Type:             "replication",
+			},
+		},
+		{
+			name: "group not found",
+			c: ccx.Datastore{
+				ParameterGroupID: groupId,
+				DBVendor:         "mariadb",
+				DBVersion:        "10.11",
+				Type:             "replication",
+			},
+			mock: func(pgSvc *mocks.MockParameterGroupService) {
+				pgSvc.EXPECT().Read(mock.Anything, groupId).Return(nil, errors.New("not found"))
+			},
+			wantErr: true,
+		},
+		{
+			name: "db_vendor does not match",
+			c: ccx.Datastore{
+				ParameterGroupID: groupId,
+				DBVendor:         "mariadb",
+				DBVersion:        "10.11",
+				Type:             "replication",
+			},
+			mock: func(pgSvc *mocks.MockParameterGroupService) {
+				pgSvc.EXPECT().Read(mock.Anything, groupId).Return(&ccx.ParameterGroup{
+					ID:              groupId,
+					DatabaseVendor:  "mysql",
+					DatabaseVersion: "8",
+					DatabaseType:    "replication",
+				}, nil)
+			},
+			wantErr: true,
+		},
+		{
+			name: "db_version does not match",
+			c: ccx.Datastore{
+				ParameterGroupID: groupId,
+				DBVendor:         "mariadb",
+				DBVersion:        "10.11",
+				Type:             "replication",
+			},
+			mock: func(pgSvc *mocks.MockParameterGroupService) {
+				pgSvc.EXPECT().Read(mock.Anything, groupId).Return(&ccx.ParameterGroup{
+					ID:              groupId,
+					DatabaseVendor:  "mariadb",
+					DatabaseVersion: "9.10",
+					DatabaseType:    "replication",
+				}, nil)
+			},
+			wantErr: true,
+		},
+		{
+			name: "db_type does not match",
+			c: ccx.Datastore{
+				ParameterGroupID: groupId,
+				DBVendor:         "mariadb",
+				DBVersion:        "10.11",
+				Type:             "replication",
+			},
+			mock: func(pgSvc *mocks.MockParameterGroupService) {
+				pgSvc.EXPECT().Read(mock.Anything, groupId).Return(&ccx.ParameterGroup{
+					ID:              groupId,
+					DatabaseVendor:  "mariadb",
+					DatabaseVersion: "10.11",
+					DatabaseType:    "single",
+				}, nil)
+			},
+			wantErr: true,
+		},
+		{
+			name: "db_type different cases",
+			c: ccx.Datastore{
+				ParameterGroupID: groupId,
+				DBVendor:         "mariadb",
+				DBVersion:        "10.11",
+				Type:             "replication",
+			},
+			mock: func(pgSvc *mocks.MockParameterGroupService) {
+				pgSvc.EXPECT().Read(mock.Anything, groupId).Return(&ccx.ParameterGroup{
+					ID:              groupId,
+					DatabaseVendor:  "mariadb",
+					DatabaseVersion: "10.11",
+					DatabaseType:    "Replication",
+				}, nil)
+			},
+			wantErr: false,
+		},
+		{
+			name: "db alias",
+			c: ccx.Datastore{
+				ParameterGroupID: groupId,
+				DBVendor:         "mysql",
+				DBVersion:        "10.11",
+				Type:             "replication",
+			},
+			mock: func(pgSvc *mocks.MockParameterGroupService) {
+				pgSvc.EXPECT().Read(mock.Anything, groupId).Return(&ccx.ParameterGroup{
+					ID:              groupId,
+					DatabaseVendor:  "percona",
+					DatabaseVersion: "10.11",
+					DatabaseType:    "replication",
+				}, nil)
+			},
+			wantErr: false,
+		},
+		{
+			name: "db alias 2",
+			c: ccx.Datastore{
+				ParameterGroupID: groupId,
+				DBVendor:         "percona",
+				DBVersion:        "10.11",
+				Type:             "replication",
+			},
+			mock: func(pgSvc *mocks.MockParameterGroupService) {
+				pgSvc.EXPECT().Read(mock.Anything, groupId).Return(&ccx.ParameterGroup{
+					ID:              groupId,
+					DatabaseVendor:  "mysql",
+					DatabaseVersion: "10.11",
+					DatabaseType:    "replication",
+				}, nil)
+			},
+			wantErr: false,
+		},
+		{
+			name: "no db type set in datastore",
+			c: ccx.Datastore{
+				ParameterGroupID: groupId,
+				DBVendor:         "mariadb",
+				DBVersion:        "10.11",
+			},
+			mock: func(pgSvc *mocks.MockParameterGroupService) {
+				pgSvc.EXPECT().Read(mock.Anything, groupId).Return(&ccx.ParameterGroup{
+					ID:              groupId,
+					DatabaseVendor:  "mariadb",
+					DatabaseVersion: "10.11",
+					DatabaseType:    "replication",
+				}, nil)
+			},
+			wantErr: false,
+		},
+		{
+			name: "all ok",
+			c: ccx.Datastore{
+				ParameterGroupID: groupId,
+				DBVendor:         "mariadb",
+				DBVersion:        "10.11",
+				Type:             "replication",
+			},
+			mock: func(pgSvc *mocks.MockParameterGroupService) {
+				pgSvc.EXPECT().Read(mock.Anything, groupId).Return(&ccx.ParameterGroup{
+					ID:              groupId,
+					DatabaseVendor:  "mariadb",
+					DatabaseVersion: "10.11",
+					DatabaseType:    "replication",
+				}, nil)
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			pgSvc := mocks.NewMockParameterGroupService(t)
+
+			if tt.mock != nil {
+				tt.mock(pgSvc)
+			}
+
+			err := validateParameterGroup(ctx, pgSvc, tt.c, groupId)
+
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
 			}
 		})
 	}
