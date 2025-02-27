@@ -11,7 +11,8 @@ import (
 )
 
 type ParameterGroup struct {
-	svc ccx.ParameterGroupService
+	svc        ccx.ParameterGroupService
+	contentSvc ccx.ContentService
 }
 
 func (r *ParameterGroup) Schema() *schema.Resource {
@@ -27,19 +28,22 @@ func (r *ParameterGroup) Schema() *schema.Resource {
 				Description: "Name of this parameter group",
 			},
 			"database_vendor": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Database vendor for which this parameter group is applicable",
+				Type:             schema.TypeString,
+				Required:         true,
+				Description:      "Database vendor for which this parameter group is applicable",
+				DiffSuppressFunc: vendorSuppressor,
 			},
 			"database_version": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Database version for which this parameter group is applicable",
+				Type:             schema.TypeString,
+				Required:         true,
+				Description:      "Database version for which this parameter group is applicable",
+				DiffSuppressFunc: caseInsensitiveSuppressor,
 			},
 			"database_type": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Database type for which this parameter group is applicable",
+				Type:             schema.TypeString,
+				Required:         true,
+				Description:      "Database type for which this parameter group is applicable",
+				DiffSuppressFunc: caseInsensitiveSuppressor,
 			},
 			"description": {
 				Type:        schema.TypeString,
@@ -69,6 +73,15 @@ func (r *ParameterGroup) Create(ctx context.Context, d *schema.ResourceData, _ a
 	p, err := schemaToParameterGroup(d)
 	if err != nil {
 		return diag.FromErr(err)
+	}
+
+	vendors, err := r.contentSvc.DBVendors(ctx)
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("loading db vendor information: %w", err))
+	}
+
+	if err := validateDb(vendors, p.DatabaseVendor, p.DatabaseVersion, p.DatabaseType); err != nil {
+		return diag.FromErr(fmt.Errorf("validating db vendor: %w", err))
 	}
 
 	n, err := r.svc.Create(ctx, p)
@@ -102,16 +115,22 @@ func (r *ParameterGroup) Read(ctx context.Context, d *schema.ResourceData, _ any
 }
 
 func (r *ParameterGroup) Update(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
+	id := d.Id()
+
 	c, err := schemaToParameterGroup(d)
 	if err != nil {
 		return diag.FromErr(err)
+	}
+
+	if d.HasChanges("database_vendor", "database_version", "database_type") {
+		return diag.FromErr(errors.New("database_vendor, database_version, database_type update is not supported"))
 	}
 
 	if err := r.svc.Update(ctx, c); err != nil {
 		return diag.FromErr(err)
 	}
 
-	p, err := r.svc.Read(ctx, d.Id())
+	p, err := r.svc.Read(ctx, id)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -172,6 +191,8 @@ func schemaToParameterGroup(d *schema.ResourceData) (ccx.ParameterGroup, error) 
 		DatabaseType:    getString(d, "database_type"),
 		Description:     getString(d, "description"),
 	}
+
+	g.DatabaseVendor = vendorFromAlias(g.DatabaseVendor)
 
 	if v, err := getDbParameters(d); err == nil {
 		g.DbParameters = v

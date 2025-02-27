@@ -36,6 +36,13 @@ func Provider() *schema.Provider {
 			return nil, diag.FromErr(err)
 		}
 
+		vpcSvc := api.Vpcs(httpClient)
+		vpc.svc = vpcSvc
+
+		parameterGroupSvc := api.ParameterGroups(httpClient)
+		parameterGroup.svc = parameterGroupSvc
+		parameterGroup.contentSvc = contentSvc
+
 		datastoreSvc, err := api.Datastores(httpClient, cfg.Timeout, contentSvc)
 		if err != nil {
 			return nil, diag.FromErr(err)
@@ -43,12 +50,7 @@ func Provider() *schema.Provider {
 
 		datastore.svc = datastoreSvc
 		datastore.contentSvc = contentSvc
-
-		vpcSvc := api.Vpcs(httpClient)
-		vpc.svc = vpcSvc
-
-		parameterGroupSvc := api.ParameterGroups(httpClient)
-		parameterGroup.svc = parameterGroupSvc
+		datastore.pgSvc = parameterGroupSvc
 
 		return nil, nil
 	}

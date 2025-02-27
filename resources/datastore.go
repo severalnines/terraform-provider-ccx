@@ -15,6 +15,7 @@ import (
 type Datastore struct {
 	svc        ccx.DatastoreService
 	contentSvc ccx.ContentService
+	pgSvc      ccx.ParameterGroupService
 }
 
 func (r *Datastore) Schema() *schema.Resource {
@@ -242,33 +243,33 @@ func validateCloud(cloudInstances map[string][]ccx.InstanceSize, c ccx.Datastore
 	return nil
 }
 
-func validateDBVendor(vendors []ccx.DBVendorInfo, c ccx.Datastore) error {
+func validateDb(vendors []ccx.DBVendorInfo, dbVendor, dbVersion, dbType string) error {
 	var vendor ccx.DBVendorInfo
 
 	if i := slices.IndexFunc(vendors, func(info ccx.DBVendorInfo) bool {
-		return info.Code == c.DBVendor
+		return info.Code == dbVendor
 	}); i == -1 {
 		ls := make([]string, 0, len(vendors))
 		for _, v := range vendors {
 			ls = append(ls, fmt.Sprintf("%q (%s)", v.Code, v.Name))
 		}
 
-		return fmt.Errorf("database vendor %q not found. available vendors: %s", c.DBVendor, strings.Join(ls, ", "))
+		return fmt.Errorf("database vendor %q not found. available vendors: %s", dbVendor, strings.Join(ls, ", "))
 	} else {
 		vendor = vendors[i]
 	}
 
-	if c.DBVersion != "" {
+	if dbVersion != "" {
 		if i := slices.IndexFunc(vendor.Versions, func(v string) bool {
-			return v == c.DBVersion
+			return v == dbVersion
 		}); i == -1 {
-			return fmt.Errorf("database version %q not found for vendor %q. available versions: %s", c.DBVersion, c.DBVendor, strings.Join(vendor.Versions, ", "))
+			return fmt.Errorf("database version %q not found for vendor %q. available versions: %s", dbVersion, dbVendor, strings.Join(vendor.Versions, ", "))
 		}
 	}
 
-	if c.Type != "" {
+	if dbType != "" {
 		ok := slices.ContainsFunc(vendor.Types, func(t ccx.DBVendorInfoType) bool {
-			return t.Code == c.Type
+			return t.Code == dbType
 		})
 
 		ls := make([]string, 0, len(vendor.Types))
@@ -277,7 +278,7 @@ func validateDBVendor(vendors []ccx.DBVendorInfo, c ccx.Datastore) error {
 		}
 
 		if !ok {
-			return fmt.Errorf("database type %q not found for vendor %q. available types: %s", c.Type, c.DBVendor, strings.Join(ls, ", "))
+			return fmt.Errorf("database type %q not found for vendor %q. available types: %s", dbType, dbVendor, strings.Join(ls, ", "))
 		}
 	}
 
@@ -338,6 +339,36 @@ func validateMaintenanceSettings(m *ccx.MaintenanceSettings) error {
 	return nil
 }
 
+func validateParameterGroup(ctx context.Context, svc ccx.ParameterGroupService, c ccx.Datastore, groupId string) error {
+	if c.ParameterGroupID == "" {
+		return nil
+	}
+
+	p, err := svc.Read(ctx, c.ParameterGroupID)
+	if err != nil {
+		return fmt.Errorf("loading parameter group %q: %w", groupId, err)
+	}
+
+	dbType := c.Type
+	if dbType == "" {
+		dbType = defaultType(c.DBVendor, c.Type)
+	}
+
+	v1 := vendorFromAlias(c.DBVendor)
+	v2 := vendorFromAlias(p.DatabaseVendor)
+
+	ok := v1 == v2 && c.DBVersion == p.DatabaseVersion && strings.EqualFold(dbType, p.DatabaseType)
+
+	if !ok {
+		return fmt.Errorf(
+			"parameter_group %q with (db_vendor=%q, db_version=%q, db_type=%q) does not match the datastore %q (db_vendor=%q, db_version=%q, db_type=%q)",
+			groupId, p.DatabaseVendor, p.DatabaseVersion, p.DatabaseType, c.ID, c.DBVendor, c.DBVersion, dbType,
+		)
+	}
+
+	return nil
+}
+
 func (r *Datastore) Create(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
 	c, err := schemaToDatastore(d)
 
@@ -363,7 +394,7 @@ func (r *Datastore) Create(ctx context.Context, d *schema.ResourceData, _ any) d
 		return diag.FromErr(fmt.Errorf("loading db vendor information: %w", err))
 	}
 
-	if err := validateDBVendor(vendors, c); err != nil {
+	if err := validateDb(vendors, c.DBVendor, c.DBVersion, c.Type); err != nil {
 		return diag.FromErr(fmt.Errorf("validating db vendor: %w", err))
 	}
 
@@ -376,16 +407,24 @@ func (r *Datastore) Create(ctx context.Context, d *schema.ResourceData, _ any) d
 		return diag.FromErr(fmt.Errorf("validating volume type: %w", err))
 	}
 
+	if c.ParameterGroupID != "" {
+		if err := validateParameterGroup(ctx, r.pgSvc, c, c.ParameterGroupID); err != nil {
+			return diag.FromErr(fmt.Errorf("validating parameter group: %w", err))
+		}
+	}
+
+	var errs []error
+
 	n, err := r.svc.Create(ctx, c)
 	if errors.Is(err, ccx.CreateFailedReadErr) && n != nil {
 		d.SetId(n.ID)
 		return diag.Errorf("creating stores: %s", err)
+	} else if errors.Is(err, ccx.ApplyDbParametersFailedErr) {
+		errs = append(errs, fmt.Errorf("applying database parameters %q failed: %w", c.ParameterGroupID, err))
 	} else if err != nil {
 		d.SetId("")
 		return diag.Errorf("creating stores: %s", err)
 	}
-
-	var errs []error
 
 	if c.MaintenanceSettings != nil {
 		if err := r.svc.SetMaintenanceSettings(ctx, n.ID, *c.MaintenanceSettings); err != nil {
@@ -404,7 +443,7 @@ func (r *Datastore) Create(ctx context.Context, d *schema.ResourceData, _ any) d
 	}
 
 	if err := schemaFromDatastore(*n, d); err != nil {
-		errs = append(errs, fmt.Errorf("setting schema: %w", err))
+		return diag.FromErr(fmt.Errorf("setting schema: %w", err))
 	}
 
 	if len(errs) != 0 {
@@ -444,11 +483,6 @@ func (r *Datastore) Update(ctx context.Context, d *schema.ResourceData, _ any) d
 	}
 
 	n := &c
-	if d.HasChangesExcept("firewall") {
-		if n, err = r.svc.Update(ctx, *old, c); err != nil {
-			return diag.FromErr(err)
-		}
-	}
 
 	if d.HasChanges("maintenance_day_of_week", "maintenance_start_hour", "maintenance_end_hour") {
 		n.MaintenanceSettings = getMaintenanceSettings(d)
@@ -458,7 +492,19 @@ func (r *Datastore) Update(ctx context.Context, d *schema.ResourceData, _ any) d
 		}
 	}
 
+	if old.VolumeSize > c.VolumeSize {
+		return diag.Errorf("decreasing volume_size is not supported, from %dGB to %dGB", old.VolumeSize, c.VolumeSize)
+	} else if old.VolumeSize != c.VolumeSize && (old.VolumeSize+10) >= c.VolumeSize {
+		return diag.Errorf("when increasing volume_size , the new volume_size must be at least old.volume_size+10GB. current volume_size is %dGB, new volume_size is %dGB. new volume_size must be atleast %dGB", old.VolumeSize, c.VolumeSize, old.VolumeSize+10)
+	}
+
 	var errs []error
+
+	if d.HasChangesExcept("firewall") {
+		if n, err = r.svc.Update(ctx, *old, c); err != nil {
+			return diag.FromErr(err)
+		}
+	}
 
 	if d.HasChange("firewall") {
 		if err := r.svc.SetFirewallRules(ctx, n.ID, c.FirewallRules); err != nil {

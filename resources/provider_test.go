@@ -36,10 +36,12 @@ func mockProvider(t *testing.T) (mockServices, *schema.Provider) {
 	}
 
 	configure := func(ctx context.Context, d *schema.ResourceData) (any, diag.Diagnostics) {
-		datastore.svc = services.datastore
-		datastore.contentSvc = services.content
 		vpc.svc = services.vpc
 		parameterGroup.svc = services.parameterGroup
+		parameterGroup.contentSvc = services.content
+		datastore.svc = services.datastore
+		datastore.contentSvc = services.content
+		datastore.pgSvc = services.parameterGroup
 
 		return nil, nil
 	}

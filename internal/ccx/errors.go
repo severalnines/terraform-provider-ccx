@@ -42,6 +42,9 @@ var (
 	// CreateFailedReadErr indicates failure to read a newly created resource. The resource may exist, but we have the id and terraform can possibly read it on next apply.
 	CreateFailedReadErr = errors.New("reading newly created resource failed")
 
+	// ApplyDbParametersFailedErr indicates failure to apply database parameter group
+	ApplyDbParametersFailedErr = errors.New("failed to apply database parameter group")
+
 	// FirewallRulesErr indicates failure to configure firewall rules
 	FirewallRulesErr = errors.New("failed to configure firewall rules")
 
