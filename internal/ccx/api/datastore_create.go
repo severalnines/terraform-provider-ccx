@@ -189,7 +189,7 @@ func (svc *DatastoreService) Create(ctx context.Context, c ccx.Datastore) (*ccx.
 	if c.ParameterGroupID != "" {
 		err = svc.ApplyParameterGroup(ctx, rs.UUID, c.ParameterGroupID)
 		if err != nil {
-			return newDatastore, fmt.Errorf("%w: %w", ccx.CreateFailedReadErr, err)
+			return newDatastore, fmt.Errorf("%w: %w", ccx.ApplyDbParametersFailedErr, err)
 		}
 	}
 
