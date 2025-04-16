@@ -167,6 +167,15 @@ maintenance_end_hour = 4
 
 Scaling the cluster can be done by changing the `size` parameter in the `ccx_datastore` block. When downscaling, the oldest non-primary node will be removed.
 
+### Scaling volume size and changing volume type
+Change the `volume_size` and the `volume_type` and apply the changes. A job will be started that carries out the change and the terraform client will return immediately once the job has started on the CCX backend.
+
+Note! You cannot lower the volume_size.
+
+## Limitations
+- Changing instance_size is not supported.
+- Changing availability zones of instances are not supported
+
 ## Installing the provider from source
 
 ### Requirements
