@@ -53,7 +53,6 @@ func (svc *DatastoreService) Update(ctx context.Context, old, next ccx.Datastore
 	out := &old
 
 	updated, err := svc.update(ctx, old, next)
-	log.Printf("Updating datastore %d", updated)
 	if err != nil {
 		return nil, fmt.Errorf("updating datastore: %s", err)
 	}
