@@ -3,19 +3,26 @@ package api
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"slices"
-
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 )
 
 type updateRequest struct {
-	NewName       string         `json:"cluster_name"`
-	NewVolumeSize uint           `json:"new_volume_size"`
-	Remove        *removeHosts   `json:"remove_nodes"`
-	Add           *addHosts      `json:"add_nodes"`
-	Notifications *notifications `json:"notifications"`
-	Maintenance   *maintenance   `json:"maintenance_settings"`
+	NewName        string         `json:"cluster_name"`
+	NewVolumeSize  uint           `json:"new_volume_size"`
+	Remove         *removeHosts   `json:"remove_nodes"`
+	Add            *addHosts      `json:"add_nodes"`
+	Notifications  *notifications `json:"notifications"`
+	Maintenance    *maintenance   `json:"maintenance_settings"`
+	NewVolumeType  *changeVolume   `json:"change_volume"`
+}
+
+type changeVolume struct {
+	NewVolumeType string `json:"new_volume_type"`
+	NewVolumeIOPS uint `json:"new_volume_iops"`
+	NewVolumeSize uint `json:"new_volume_size"`
 }
 
 type removeHosts struct {
@@ -46,8 +53,9 @@ func (svc *DatastoreService) Update(ctx context.Context, old, next ccx.Datastore
 	out := &old
 
 	updated, err := svc.update(ctx, old, next)
+	log.Printf("Updating datastore %d", updated)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("updating datastore: %s", err)
 	}
 
 	resized, err := svc.resize(ctx, old, next)
@@ -78,6 +86,8 @@ func (svc *DatastoreService) update(ctx context.Context, old, next ccx.Datastore
 		return false, nil
 	}
 
+        log.Printf("UR2: %#v", ur)
+	
 	_, err := svc.client.Do(ctx, http.MethodPatch, "/api/prov/api/v2/cluster/"+next.ID, ur)
 	if err != nil {
 		return false, fmt.Errorf("updating datastore: %w", err)
@@ -189,18 +199,33 @@ func (svc *DatastoreService) updateRequest(old, next ccx.Datastore) (updateReque
 	var (
 		ur updateRequest
 		ok bool
+		cv changeVolume
+		changedVolume bool
 	)
-
+	
 	if old.Name != next.Name {
 		ur.NewName = next.Name
 		ok = true
 	}
 
 	if old.VolumeSize != next.VolumeSize {
-		ur.NewVolumeSize = uint(next.VolumeSize)
+		cv.NewVolumeSize = uint(next.VolumeSize)
+		changedVolume = true
+		//		ur.NewVolumeSize = uint(next.VolumeSize)
 		ok = true
 	}
 
+	if old.VolumeType != next.VolumeType {
+		cv.NewVolumeType =  next.VolumeType
+		changedVolume = true
+		ok = true
+	}
+	if changedVolume {
+		ur.NewVolumeType = &cv
+	}
+	   
+        log.Printf("UR2: %#v", ur)
+	
 	if old.Notifications.Enabled != next.Notifications.Enabled || !slices.Equal(old.Notifications.Emails, next.Notifications.Emails) {
 		ur.Notifications = &notifications{
 			Enabled: next.Notifications.Enabled,
