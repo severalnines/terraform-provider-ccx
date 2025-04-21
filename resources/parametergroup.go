@@ -100,7 +100,7 @@ func (r *ParameterGroup) Read(ctx context.Context, d *schema.ResourceData, _ any
 	id := d.Id()
 
 	p, err := r.svc.Read(ctx, id)
-	if errors.Is(err, ccx.ResourceNotFoundErr) {
+	if errors.Is(err, ccx.ErrResourceNotFound) {
 		d.SetId("")
 		return nil
 	} else if err != nil {

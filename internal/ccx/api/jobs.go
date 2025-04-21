@@ -51,7 +51,6 @@ func (svc JobsService) Await(ctx context.Context, storeID string, job ccx.JobTyp
 			}
 			return ccx.JobStatusUnknown, errors.New("context cancelled")
 		default:
-			break
 		}
 
 		status, err = svc.GetStatus(ctx, storeID, job)

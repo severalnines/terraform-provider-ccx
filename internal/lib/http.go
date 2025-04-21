@@ -83,12 +83,12 @@ func DecodeJsonInto(body io.ReadCloser, target any) error {
 
 	raw, err := io.ReadAll(body)
 	if err != nil {
-		return errors.Join(ccx.ResponseReadFailedErr, err)
+		return errors.Join(ccx.ErrResponseReadFailed, err)
 	}
 
 	err = json.Unmarshal(raw, target)
 	if err != nil {
-		return errors.Join(ccx.ResponseDecodingErr, err)
+		return errors.Join(ccx.ErrResponseDecoding, err)
 	}
 
 	return nil
@@ -139,32 +139,32 @@ type HttpClient struct {
 
 // Do sends a request to the ccx api
 // errors returned are:
-// - ccx.RequestEncodingErr (if body encoding fails)
-// - ccx.RequestInitializationErr (if request creation fails)
-// - ccx.RequestSendingErr (if request sending fails)
-// - ccx.ResourceNotFoundErr (if API returns 404)
-// - ccx.ApiErr (if API returns 4xx or 5xx)
+// - ccx.ErrRequestEncoding (if body encoding fails)
+// - ccx.ErrRequestInitialization (if request creation fails)
+// - ccx.ErrRequestSending (if request sending fails)
+// - ccx.ErrResourceNotFound (if API returns 404)
+// - ccx.ErrApi (if API returns 4xx or 5xx)
 func (h *HttpClient) Do(ctx context.Context, method, path string, body any) (*http.Response, error) {
 	var b bytes.Buffer
 	if body != nil {
 		if err := json.NewEncoder(&b).Encode(body); err != nil {
-			return nil, errors.Join(ccx.RequestEncodingErr, err)
+			return nil, errors.Join(ccx.ErrRequestEncoding, err)
 		}
 	}
 
 	req, err := http.NewRequestWithContext(ctx, method, h.baseURL+path, &b)
 	if err != nil {
-		return nil, errors.Join(ccx.RequestInitializationErr, err)
+		return nil, errors.Join(ccx.ErrRequestInitialization, err)
 	}
 
 	rs, err := h.cli.Do(req)
 
 	if err != nil {
-		return nil, errors.Join(ccx.RequestSendingErr, err)
+		return nil, errors.Join(ccx.ErrRequestSending, err)
 	} else if rs.StatusCode == http.StatusNotFound {
-		return nil, ccx.ResourceNotFoundErr
+		return nil, ccx.ErrResourceNotFound
 	} else if rs.StatusCode >= http.StatusBadRequest {
-		return nil, fmt.Errorf("%w: %w", ccx.ApiErr, ErrorFromResponse(rs))
+		return nil, fmt.Errorf("%w: %w", ccx.ErrApi, ErrorFromResponse(rs))
 	}
 
 	return rs, nil
@@ -172,24 +172,24 @@ func (h *HttpClient) Do(ctx context.Context, method, path string, body any) (*ht
 
 // Get sends a GET request to the ccx api
 // errors returned are:
-// - ccx.RequestInitializationErr (if request creation fails)
-// - ccx.RequestSendingErr (if request sending fails)
-// - ccx.ResourceNotFoundErr (if API returns 404)
-// - ccx.ApiErr (if API returns 4xx or 5xx)
+// - ccx.ErrRequestInitialization (if request creation fails)
+// - ccx.ErrRequestSending (if request sending fails)
+// - ccx.ErrResourceNotFound (if API returns 404)
+// - ccx.ErrApi (if API returns 4xx or 5xx)
 func (h *HttpClient) Get(ctx context.Context, path string, target any) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, h.baseURL+path, nil)
 	if err != nil {
-		return errors.Join(ccx.RequestInitializationErr, err)
+		return errors.Join(ccx.ErrRequestInitialization, err)
 	}
 
 	rs, err := h.cli.Do(req)
 
 	if err != nil {
-		return errors.Join(ccx.RequestSendingErr, err)
+		return errors.Join(ccx.ErrRequestSending, err)
 	} else if rs.StatusCode == http.StatusNotFound {
-		return ccx.ResourceNotFoundErr
+		return ccx.ErrResourceNotFound
 	} else if rs.StatusCode >= http.StatusBadRequest {
-		return fmt.Errorf("%w: %w", ccx.ApiErr, ErrorFromResponse(rs))
+		return fmt.Errorf("%w: %w", ccx.ErrApi, ErrorFromResponse(rs))
 	}
 
 	defer func() {
@@ -200,11 +200,11 @@ func (h *HttpClient) Get(ctx context.Context, path string, target any) error {
 
 	b, err := io.ReadAll(rs.Body)
 	if err != nil {
-		return errors.Join(ccx.ResponseReadFailedErr, err)
+		return errors.Join(ccx.ErrResponseReadFailed, err)
 	}
 
 	if err := json.Unmarshal(b, target); err != nil {
-		return errors.Join(ccx.ResponseDecodingErr, err)
+		return errors.Join(ccx.ErrResponseDecoding, err)
 	}
 
 	return nil

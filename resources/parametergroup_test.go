@@ -25,6 +25,17 @@ func TestParameterGroup_Create(t *testing.T) {
 			},
 		}
 
+		m.content.EXPECT().DBVendors(mock.Anything).Return([]ccx.DBVendorInfo{
+			{
+				Name:           "mariadb",
+				Code:           "mariadb",
+				DefaultVersion: "10.11",
+				Versions:       []string{"10.11"},
+				Types:          []ccx.DBVendorInfoType{{Name: "galera", Code: "galera"}},
+				NumNodes:       []int{1, 2, 3, 5},
+			},
+		}, nil)
+
 		m.parameterGroup.EXPECT().Create(mock.Anything, ccx.ParameterGroup{
 			Name:            "asteroid",
 			DatabaseVendor:  "mariadb",

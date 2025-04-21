@@ -97,7 +97,7 @@ func (svc *DatastoreService) Read(ctx context.Context, id string) (*ccx.Datastor
 		"DELETING",
 		"DELETE_FAILED",
 		"DELETED":
-		return nil, ccx.ResourceNotFoundErr
+		return nil, ccx.ErrResourceNotFound
 	}
 
 	c := ccx.Datastore{
@@ -132,13 +132,13 @@ func (svc *DatastoreService) Read(ctx context.Context, id string) (*ccx.Datastor
 
 	if fw, err := svc.GetFirewallRules(ctx, id); err == nil {
 		c.FirewallRules = fw
-	} else if !errors.Is(err, ccx.ResourceNotFoundErr) {
+	} else if !errors.Is(err, ccx.ErrResourceNotFound) {
 		return nil, fmt.Errorf("getting firewall rules: %w", err)
 	}
 
 	if h, err := svc.GetHosts(ctx, id); err == nil {
 		c.Hosts = h
-	} else if !errors.Is(err, ccx.ResourceNotFoundErr) {
+	} else if !errors.Is(err, ccx.ErrResourceNotFound) {
 		return nil, fmt.Errorf("getting hosts: %w", err)
 	}
 

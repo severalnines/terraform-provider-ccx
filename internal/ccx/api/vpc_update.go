@@ -7,5 +7,5 @@ import (
 )
 
 func (svc *VpcService) Update(_ context.Context, _ ccx.VPC) (*ccx.VPC, error) {
-	return nil, ccx.UpdateNotSupportedErr
+	return nil, ccx.ErrUpdateNotSupported
 }

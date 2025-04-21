@@ -416,10 +416,10 @@ func (r *Datastore) Create(ctx context.Context, d *schema.ResourceData, _ any) d
 	var errs []error
 
 	n, err := r.svc.Create(ctx, c)
-	if errors.Is(err, ccx.CreateFailedReadErr) && n != nil {
+	if errors.Is(err, ccx.ErrCreateFailedRead) && n != nil {
 		d.SetId(n.ID)
 		return diag.Errorf("creating stores: %s", err)
-	} else if errors.Is(err, ccx.ApplyDbParametersFailedErr) {
+	} else if errors.Is(err, ccx.ErrApplyDbParametersFailed) {
 		errs = append(errs, fmt.Errorf("applying database parameters %q failed: %w", c.ParameterGroupID, err))
 	} else if err != nil {
 		d.SetId("")
@@ -428,7 +428,7 @@ func (r *Datastore) Create(ctx context.Context, d *schema.ResourceData, _ any) d
 
 	if c.MaintenanceSettings != nil {
 		if err := r.svc.SetMaintenanceSettings(ctx, n.ID, *c.MaintenanceSettings); err != nil {
-			errs = append(errs, fmt.Errorf("%w setting: %w", ccx.MaintenanceSettingsErr, err))
+			errs = append(errs, fmt.Errorf("%w setting: %w", ccx.ErrMaintenanceSettings, err))
 		} else {
 			n.MaintenanceSettings = c.MaintenanceSettings
 		}
@@ -436,7 +436,7 @@ func (r *Datastore) Create(ctx context.Context, d *schema.ResourceData, _ any) d
 
 	if len(c.FirewallRules) != 0 {
 		if err := r.svc.SetFirewallRules(ctx, n.ID, c.FirewallRules); err != nil {
-			errs = append(errs, fmt.Errorf("%w: setting: %w", ccx.FirewallRulesErr, err))
+			errs = append(errs, fmt.Errorf("%w: setting: %w", ccx.ErrFirewallRules, err))
 		} else {
 			n.FirewallRules = c.FirewallRules
 		}
@@ -461,7 +461,7 @@ func (r *Datastore) Read(ctx context.Context, d *schema.ResourceData, _ any) dia
 	}
 
 	n, err := r.svc.Read(ctx, c.ID)
-	if errors.Is(err, ccx.ResourceNotFoundErr) {
+	if errors.Is(err, ccx.ErrResourceNotFound) {
 		d.SetId("")
 		return nil
 	} else if err != nil {
@@ -508,7 +508,7 @@ func (r *Datastore) Update(ctx context.Context, d *schema.ResourceData, _ any) d
 
 	if d.HasChange("firewall") {
 		if err := r.svc.SetFirewallRules(ctx, n.ID, c.FirewallRules); err != nil {
-			errs = append(errs, fmt.Errorf("%w: setting: %w", ccx.FirewallRulesErr, err))
+			errs = append(errs, fmt.Errorf("%w: setting: %w", ccx.ErrFirewallRules, err))
 		} else {
 			n.FirewallRules = c.FirewallRules
 		}
@@ -535,7 +535,7 @@ func (r *Datastore) Delete(ctx context.Context, d *schema.ResourceData, _ any) d
 	}
 
 	err = r.svc.Delete(ctx, c.ID)
-	if err != nil && !errors.Is(err, ccx.ResourceNotFoundErr) {
+	if err != nil && !errors.Is(err, ccx.ErrResourceNotFound) {
 		return diag.FromErr(err)
 	}
 
