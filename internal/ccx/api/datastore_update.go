@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
-	"log"
 	"net/http"
 	"slices"
 )
