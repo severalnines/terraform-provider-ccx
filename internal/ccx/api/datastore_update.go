@@ -85,8 +85,6 @@ func (svc *DatastoreService) update(ctx context.Context, old, next ccx.Datastore
 		return false, nil
 	}
 
-	log.Printf("UR2: %#v", ur)
-
 	_, err := svc.client.Do(ctx, http.MethodPatch, "/api/prov/api/v2/cluster/"+next.ID, ur)
 	if err != nil {
 		return false, fmt.Errorf("updating datastore: %w", err)
@@ -207,23 +205,23 @@ func (svc *DatastoreService) updateRequest(old, next ccx.Datastore) (updateReque
 		ok = true
 	}
 
-	if old.VolumeSize != next.VolumeSize {
-		cv.NewVolumeSize = uint(next.VolumeSize)
-		changedVolume = true
-		//		ur.NewVolumeSize = uint(next.VolumeSize)
+	if old.VolumeSize != next.VolumeSize && old.VolumeType == next.VolumeType {
+		ur.NewVolumeSize = uint(next.VolumeSize)
 		ok = true
 	}
-
+	
 	if old.VolumeType != next.VolumeType {
-		cv.NewVolumeType = next.VolumeType
+		if old.VolumeSize != next.VolumeSize{
+			cv.NewVolumeSize = uint(next.VolumeSize)
+			ur.NewVolumeSize = 0
+		}
+		cv.NewVolumeType =  next.VolumeType
 		changedVolume = true
 		ok = true
 	}
 	if changedVolume {
 		ur.NewVolumeType = &cv
 	}
-
-	log.Printf("UR2: %#v", ur)
 
 	if old.Notifications.Enabled != next.Notifications.Enabled || !slices.Equal(old.Notifications.Emails, next.Notifications.Emails) {
 		ur.Notifications = &notifications{
