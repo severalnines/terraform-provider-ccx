@@ -3,10 +3,9 @@ package api
 import (
 	"context"
 	"fmt"
+	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 	"net/http"
 	"slices"
-
-	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 )
 
 type updateRequest struct {
@@ -16,6 +15,13 @@ type updateRequest struct {
 	Add           *addHosts      `json:"add_nodes"`
 	Notifications *notifications `json:"notifications"`
 	Maintenance   *maintenance   `json:"maintenance_settings"`
+	NewVolumeType *changeVolume  `json:"change_volume"`
+}
+
+type changeVolume struct {
+	NewVolumeType string `json:"new_volume_type"`
+	NewVolumeIOPS uint   `json:"new_volume_iops"`
+	NewVolumeSize uint   `json:"new_volume_size"`
 }
 
 type removeHosts struct {
@@ -47,7 +53,7 @@ func (svc *DatastoreService) Update(ctx context.Context, old, next ccx.Datastore
 
 	updated, err := svc.update(ctx, old, next)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("updating datastore: %s", err)
 	}
 
 	resized, err := svc.resize(ctx, old, next)
@@ -101,7 +107,7 @@ func (svc *DatastoreService) resize(ctx context.Context, old, next ccx.Datastore
 		if next.VpcUUID == "" && missing > 0 { // allocate AZs if public and need is less than have
 			allAzs, err := svc.contentSvc.AvailabilityZones(ctx, next.CloudProvider, next.CloudRegion)
 			if err != nil {
-				return false, fmt.Errorf("%w: %w", ccx.AllocatingAZsErr, err)
+				return false, fmt.Errorf("%w: %w", ccx.ErrAllocatingAZs, err)
 			}
 
 			existing := make([]string, 0, len(old.Hosts))
@@ -161,7 +167,7 @@ func (svc *DatastoreService) updateSizeRequest(ctx context.Context, old, next cc
 	if old.VpcUUID == "" && missing > 0 { // allocate AZs if public and need is less than have
 		allAzs, err := svc.contentSvc.AvailabilityZones(ctx, next.CloudProvider, next.CloudRegion)
 		if err != nil {
-			return ur, fmt.Errorf("%w: %w", ccx.AllocatingAZsErr, err)
+			return ur, fmt.Errorf("%w: %w", ccx.ErrAllocatingAZs, err)
 		}
 
 		existing := make([]string, 0, len(old.Hosts))
@@ -187,8 +193,10 @@ func (svc *DatastoreService) updateSizeRequest(ctx context.Context, old, next cc
 
 func (svc *DatastoreService) updateRequest(old, next ccx.Datastore) (updateRequest, bool) {
 	var (
-		ur updateRequest
-		ok bool
+		ur            updateRequest
+		ok            bool
+		cv            changeVolume
+		changedVolume bool
 	)
 
 	if old.Name != next.Name {
@@ -196,9 +204,22 @@ func (svc *DatastoreService) updateRequest(old, next ccx.Datastore) (updateReque
 		ok = true
 	}
 
-	if old.VolumeSize != next.VolumeSize {
+	if old.VolumeSize != next.VolumeSize && old.VolumeType == next.VolumeType {
 		ur.NewVolumeSize = uint(next.VolumeSize)
 		ok = true
+	}
+	
+	if old.VolumeType != next.VolumeType {
+		if old.VolumeSize != next.VolumeSize{
+			cv.NewVolumeSize = uint(next.VolumeSize)
+			ur.NewVolumeSize = 0
+		}
+		cv.NewVolumeType =  next.VolumeType
+		changedVolume = true
+		ok = true
+	}
+	if changedVolume {
+		ur.NewVolumeType = &cv
 	}
 
 	if old.Notifications.Enabled != next.Notifications.Enabled || !slices.Equal(old.Notifications.Emails, next.Notifications.Emails) {

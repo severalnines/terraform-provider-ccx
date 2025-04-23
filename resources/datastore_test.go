@@ -778,6 +778,7 @@ resource "ccx_datastore" "luna" {
 			Name:              "luna",
 			Size:              1,
 			DBVendor:          "mariadb",
+			DBVersion:         "10.11",
 			Type:              "replication",
 			Tags:              []string{"new", "test"},
 			CloudProvider:     "aws",
@@ -888,6 +889,7 @@ resource "ccx_datastore" "luna" {
   name            = "luna"
   size            = 1
   db_vendor       = "mariadb"
+  db_version      = "10.11"
   tags            = ["new", "test"]
   cloud_provider  = "aws"
   cloud_region    = "eu-north-1"

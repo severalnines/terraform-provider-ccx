@@ -6,48 +6,42 @@ import (
 
 var (
 
-	// RequestEncodingErr occurs when a request body cannot be encoded.
-	RequestEncodingErr = errors.New("failed to encode request body")
+	// ErrRequestEncoding occurs when a request body cannot be encoded.
+	ErrRequestEncoding = errors.New("failed to encode request body")
 
-	// RequestInitializationErr occurs when failing to initialize http request object
-	RequestInitializationErr = errors.New("failed to initialize request")
+	// ErrRequestInitialization occurs when failing to initialize http request object
+	ErrRequestInitialization = errors.New("failed to initialize request")
 
-	// RequestSendingErr occurs when failing to send an http request
-	RequestSendingErr = errors.New("failed to send request")
+	// ErrRequestSending occurs when failing to send an http request
+	ErrRequestSending = errors.New("failed to send request")
 
-	// ResponseStatusFailedErr occurs when the server does not respond with an expected status
-	ResponseStatusFailedErr = errors.New("response status failed")
+	// ErrResponseReadFailed occurs when failing to read the response from the server
+	ErrResponseReadFailed = errors.New("failed to read response")
 
-	// ResponseReadFailedErr occurs when failing to read the response from the server
-	ResponseReadFailedErr = errors.New("failed to read response")
+	// ErrResponseDecoding occurs when failing to decode the response body
+	ErrResponseDecoding = errors.New("failed to decode response")
 
-	// ResponseDecodingErr occurs when failing to decode the response body
-	ResponseDecodingErr = errors.New("failed to decode response")
+	// ErrResourceNotFound occurs when trying to get a resource that does not exist
+	ErrResourceNotFound = errors.New("resource not found")
 
-	// ResourceNotFoundErr occurs when trying to get a resource that does not exist
-	ResourceNotFoundErr = errors.New("resource not found")
+	// ErrAllocatingAZs occurs when failing to allocate availability zones
+	ErrAllocatingAZs = errors.New("allocating availability zones")
 
-	// AllocatingAZsErr occurs when failing to allocate availability zones
-	AllocatingAZsErr = errors.New("allocating availability zones")
+	// ErrApi occurs when an error is returned from the api, typically when status code is 4xx or 5xx
+	ErrApi = errors.New("api error")
 
-	// ApiErr occurs when an error is returned from the api, typically when status code is 4xx or 5xx
-	ApiErr = errors.New("api error")
+	// ErrUpdateNotSupported occurs when trying to update a resource which might be destructive if attempted
+	ErrUpdateNotSupported = errors.New("updates for this resource are not supported")
 
-	// UpdateNotSupportedErr occurs when trying to update a resource which might be destructive if attempted
-	UpdateNotSupportedErr = errors.New("updates for this resource are not supported")
+	// ErrCreateFailedRead indicates failure to read a newly created resource. The resource may exist, but we have the id and terraform can possibly read it on next apply.
+	ErrCreateFailedRead = errors.New("reading newly created resource failed")
 
-	// AuthenticationFailedErr indicates failure to authenticate with the api server
-	AuthenticationFailedErr = errors.New("authentication failed")
+	// ErrApplyDbParametersFailed indicates failure to apply database parameter group
+	ErrApplyDbParametersFailed = errors.New("failed to apply database parameter group")
 
-	// CreateFailedReadErr indicates failure to read a newly created resource. The resource may exist, but we have the id and terraform can possibly read it on next apply.
-	CreateFailedReadErr = errors.New("reading newly created resource failed")
+	// ErrFirewallRules indicates failure to configure firewall rules
+	ErrFirewallRules = errors.New("failed to configure firewall rules")
 
-	// ApplyDbParametersFailedErr indicates failure to apply database parameter group
-	ApplyDbParametersFailedErr = errors.New("failed to apply database parameter group")
-
-	// FirewallRulesErr indicates failure to configure firewall rules
-	FirewallRulesErr = errors.New("failed to configure firewall rules")
-
-	// MaintenanceSettingsErr indicates failure to configure maintenance settings
-	MaintenanceSettingsErr = errors.New("failed to configure maintenance settings")
+	// ErrMaintenanceSettings indicates failure to configure maintenance settings
+	ErrMaintenanceSettings = errors.New("failed to configure maintenance settings")
 )

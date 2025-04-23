@@ -156,7 +156,7 @@ func (svc *DatastoreService) Create(ctx context.Context, c ccx.Datastore) (*ccx.
 	if n, h := len(c.AvailabilityZones), int(c.Size); c.VpcUUID == "" && n < h { // allocate AZs if public and need is less than have
 		allAzs, err := svc.contentSvc.AvailabilityZones(ctx, c.CloudProvider, c.CloudRegion)
 		if err != nil {
-			return nil, fmt.Errorf("creating datastore: %w: %w", ccx.AllocatingAZsErr, err)
+			return nil, fmt.Errorf("creating datastore: %w: %w", ccx.ErrAllocatingAZs, err)
 		}
 
 		c.AvailabilityZones = allocateAzs(allAzs, nil, h-n)
@@ -176,20 +176,20 @@ func (svc *DatastoreService) Create(ctx context.Context, c ccx.Datastore) (*ccx.
 
 	status, err := svc.jobs.Await(ctx, rs.UUID, ccx.DeployStoreJob)
 	if err != nil {
-		return partialDatastore, fmt.Errorf("%w: awaiting deploy job: %w", ccx.CreateFailedReadErr, err)
+		return partialDatastore, fmt.Errorf("%w: awaiting deploy job: %w", ccx.ErrCreateFailedRead, err)
 	} else if status != ccx.JobStatusFinished {
-		return partialDatastore, fmt.Errorf("%w: deploy job failed: %s", ccx.CreateFailedReadErr, status)
+		return partialDatastore, fmt.Errorf("%w: deploy job failed: %s", ccx.ErrCreateFailedRead, status)
 	}
 
 	newDatastore, err := svc.Read(ctx, rs.UUID)
 	if err != nil {
-		return partialDatastore, fmt.Errorf("%w: %w", ccx.CreateFailedReadErr, err)
+		return partialDatastore, fmt.Errorf("%w: %w", ccx.ErrCreateFailedRead, err)
 	}
 
 	if c.ParameterGroupID != "" {
 		err = svc.ApplyParameterGroup(ctx, rs.UUID, c.ParameterGroupID)
 		if err != nil {
-			return newDatastore, fmt.Errorf("%w: %w", ccx.ApplyDbParametersFailedErr, err)
+			return newDatastore, fmt.Errorf("%w: %w", ccx.ErrApplyDbParametersFailed, err)
 		}
 	}
 

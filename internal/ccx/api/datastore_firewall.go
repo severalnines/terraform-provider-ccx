@@ -104,7 +104,7 @@ func (svc *DatastoreService) CreateFirewallRules(ctx context.Context, storeID st
 
 func (svc *DatastoreService) DeleteFirewallRule(ctx context.Context, storeID string, firewall ccx.FirewallRule) error {
 	_, err := svc.client.Do(ctx, http.MethodDelete, "/api/firewall/api/v1/firewall/"+storeID, firewall)
-	if errors.Is(err, ccx.ResourceNotFoundErr) {
+	if errors.Is(err, ccx.ErrResourceNotFound) {
 		tflog.Warn(ctx, "deleting firewall rule: not found", map[string]any{
 			"source": firewall.Source, "description": firewall.Description,
 		})

@@ -58,7 +58,7 @@ func (r *VPC) Create(ctx context.Context, d *schema.ResourceData, _ any) diag.Di
 func (r *VPC) Read(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
 	v := schemaToVPC(d)
 	n, err := r.svc.Read(ctx, v.ID)
-	if errors.Is(err, ccx.ResourceNotFoundErr) {
+	if errors.Is(err, ccx.ErrResourceNotFound) {
 		d.SetId("")
 		return nil
 	} else if err != nil {
