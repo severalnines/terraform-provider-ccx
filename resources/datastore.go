@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+ 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 )
@@ -17,6 +17,7 @@ type Datastore struct {
 	contentSvc ccx.ContentService
 	pgSvc      ccx.ParameterGroupService
 }
+
 
 func (r *Datastore) Schema() *schema.Resource {
 	return &schema.Resource{
@@ -294,7 +295,7 @@ func validateVolume(vendor string, volumeTypes []string, volumeType string, volu
 		return fmt.Errorf("volume type %q not found. available types: %s", volumeType, `"`+strings.Join(volumeTypes, `", "`)+`"`)
 	}
 
-	if (vendor == "redis" || vendor == "cache22") && volumeSize != 0 {
+	if (vendor == "redis" || vendor == "cache22" || vendor == "valkey") && volumeSize != 0 {
 		return fmt.Errorf("volume_size is not supported for vendor %q", vendor)
 	}
 
@@ -570,6 +571,8 @@ func defaultType(vendor, dbType string) string {
 		return "postgres_streaming"
 	case "redis":
 		return "redis"
+	case "valkey":
+		return "valkey"
 	case "microsoft":
 		return "mssql_ao_async"
 	}
