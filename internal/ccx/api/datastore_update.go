@@ -6,6 +6,7 @@ import (
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 	"net/http"
 	"slices"
+	"log"
 )
 
 type updateRequest struct {
@@ -16,6 +17,7 @@ type updateRequest struct {
 	Notifications *notifications `json:"notifications"`
 	Maintenance   *maintenance   `json:"maintenance_settings"`
 	NewVolumeType *changeVolume  `json:"change_volume"`
+	Tags          []string       `json:"tags"`
 }
 
 type changeVolume struct {
@@ -201,6 +203,11 @@ func (svc *DatastoreService) updateRequest(old, next ccx.Datastore) (updateReque
 
 	if old.Name != next.Name {
 		ur.NewName = next.Name
+		ok = true
+	}
+
+	if !slices.Equal(old.Tags, next.Tags) {
+		ur.Tags = next.Tags
 		ok = true
 	}
 
