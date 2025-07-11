@@ -6,7 +6,6 @@ import (
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 	"net/http"
 	"slices"
-	"log"
 )
 
 type updateRequest struct {
