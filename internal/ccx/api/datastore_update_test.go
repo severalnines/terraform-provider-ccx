@@ -104,6 +104,18 @@ func TestDatastoreService_Update(t *testing.T) {
 				r := httptest.NewRecorder()
 				r.Body.WriteString("{}")
 
+				// First call: tag update
+				h.EXPECT().Do(mock.Anything, http.MethodPatch, "/api/prov/api/v2/cluster/datastore-id", updateRequest{
+					NewName:       "",
+					NewVolumeSize: 0,
+					Remove:        nil,
+					Add:           nil,
+					Notifications: nil,
+					Maintenance:   nil,
+					Tags:          []string{"new", "test"},
+				}).Return(fakeHttpResponse(http.StatusOK, ""), nil)
+
+				// Second call: resize update
 				h.EXPECT().Do(mock.Anything, http.MethodPatch, "/api/prov/api/v2/cluster/datastore-id", updateRequest{
 					NewName:       "",
 					NewVolumeSize: 0,
