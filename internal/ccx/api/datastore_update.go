@@ -3,20 +3,22 @@ package api
 import (
 	"context"
 	"fmt"
-	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 	"net/http"
 	"slices"
+
+	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 )
 
 type updateRequest struct {
-	NewName       string         `json:"cluster_name"`
-	NewVolumeSize uint           `json:"new_volume_size"`
-	Remove        *removeHosts   `json:"remove_nodes"`
-	Add           *addHosts      `json:"add_nodes"`
-	Notifications *notifications `json:"notifications"`
-	Maintenance   *maintenance   `json:"maintenance_settings"`
-	NewVolumeType *changeVolume  `json:"change_volume"`
-	Tags          []string       `json:"tags"`
+	NewName         string         `json:"cluster_name"`
+	NewVolumeSize   uint           `json:"new_volume_size"`
+	NewInstanceSize string         `json:"new_instance_size"`
+	Remove          *removeHosts   `json:"remove_nodes"`
+	Add             *addHosts      `json:"add_nodes"`
+	Notifications   *notifications `json:"notifications"`
+	Maintenance     *maintenance   `json:"maintenance_settings"`
+	NewVolumeType   *changeVolume  `json:"change_volume"`
+	Tags            []string       `json:"tags"`
 }
 
 type changeVolume struct {
@@ -182,7 +184,7 @@ func (svc *DatastoreService) updateSizeRequest(ctx context.Context, old, next cc
 	}
 
 	// add new hosts based on newest node spec
-	specs, err := newestNodeSpecs(old.Hosts, int(next.Size-old.Size), next.AvailabilityZones)
+	specs, err := newestNodeSpecs(old.Hosts, int(next.Size-old.Size), next.AvailabilityZones, next.InstanceSize)
 	if err != nil {
 		return ur, err
 	}
@@ -210,17 +212,22 @@ func (svc *DatastoreService) updateRequest(old, next ccx.Datastore) (updateReque
 		ok = true
 	}
 
+	if old.InstanceSize != next.InstanceSize {
+		ur.NewInstanceSize = next.InstanceSize
+		ok = true
+	}
+
 	if old.VolumeSize != next.VolumeSize && old.VolumeType == next.VolumeType {
 		ur.NewVolumeSize = uint(next.VolumeSize)
 		ok = true
 	}
-	
+
 	if old.VolumeType != next.VolumeType {
-		if old.VolumeSize != next.VolumeSize{
+		if old.VolumeSize != next.VolumeSize {
 			cv.NewVolumeSize = uint(next.VolumeSize)
 			ur.NewVolumeSize = 0
 		}
-		cv.NewVolumeType =  next.VolumeType
+		cv.NewVolumeType = next.VolumeType
 		changedVolume = true
 		ok = true
 	}
@@ -271,7 +278,7 @@ func oldestRemovableNodeIds(hosts []ccx.Host, count int) ([]string, error) {
 	return ls, nil
 }
 
-func newestNodeSpecs(hosts []ccx.Host, count int, azs []string) ([]hostSpecs, error) {
+func newestNodeSpecs(hosts []ccx.Host, count int, azs []string, instanceSize string) ([]hostSpecs, error) {
 	if len(hosts) == 0 {
 		return nil, fmt.Errorf("no nodes available")
 	}
@@ -280,16 +287,22 @@ func newestNodeSpecs(hosts []ccx.Host, count int, azs []string) ([]hostSpecs, er
 		return nil, fmt.Errorf("not enough azs available")
 	}
 
-	slices.SortStableFunc(hosts, func(a, b ccx.Host) int {
-		return b.CreatedAt.Compare(a.CreatedAt)
-	})
+	// Use provided instance size if specified, otherwise use the newest host's instance type
+	var nodeInstanceSize string
+	if instanceSize != "" {
+		nodeInstanceSize = instanceSize
+	} else {
+		slices.SortStableFunc(hosts, func(a, b ccx.Host) int {
+			return b.CreatedAt.Compare(a.CreatedAt)
+		})
+		nodeInstanceSize = hosts[0].InstanceType
+	}
 
-	h := hosts[0]
 	ls := make([]hostSpecs, 0, count)
 
 	for i := 0; i < count; i++ {
 		ls = append(ls, hostSpecs{
-			InstanceSize: h.InstanceType,
+			InstanceSize: nodeInstanceSize,
 			AZ:           azs[i],
 		})
 	}
