@@ -287,11 +287,9 @@ func newestNodeSpecs(hosts []ccx.Host, count int, azs []string, instanceSize str
 		return nil, fmt.Errorf("not enough azs available")
 	}
 
-	// Use provided instance size if specified, otherwise use the newest host's instance type
-	var nodeInstanceSize string
-	if instanceSize != "" {
-		nodeInstanceSize = instanceSize
-	} else {
+	// Determine the instance size to use
+	nodeInstanceSize := instanceSize
+	if instanceSize == "" {
 		slices.SortStableFunc(hosts, func(a, b ccx.Host) int {
 			return b.CreatedAt.Compare(a.CreatedAt)
 		})
