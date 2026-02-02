@@ -100,7 +100,7 @@ resource "ccx_parameter_group" "asteroid" {
     database_vendor = "mariadb"
     database_version = "10.11"
     database_type = "galera"
-
+    description = "my parameter group"
     parameters = {
       table_open_cache = 8000
       sql_mode = "STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
