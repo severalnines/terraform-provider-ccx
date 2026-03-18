@@ -7,17 +7,16 @@ import (
 	"slices"
 	"strings"
 
- 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 )
 
 type Datastore struct {
-	svc        ccx.DatastoreService
+	svc        ccx.DatastoresService
 	contentSvc ccx.ContentService
-	pgSvc      ccx.ParameterGroupService
+	pgSvc      ccx.ParameterGroupsService
 }
-
 
 func (r *Datastore) Schema() *schema.Resource {
 	return &schema.Resource{
@@ -217,7 +216,7 @@ func (r *Datastore) Schema() *schema.Resource {
 	}
 }
 
-func validateCloud(cloudInstances map[string][]ccx.InstanceSize, c ccx.Datastore) error {
+func validateInstanceSizes(cloudInstances map[string][]ccx.InstanceSize, c ccx.Datastore) error {
 	prov, ok := cloudInstances[c.CloudProvider]
 	if !ok {
 		ls := make([]string, 0, len(cloudInstances))
@@ -244,7 +243,7 @@ func validateCloud(cloudInstances map[string][]ccx.InstanceSize, c ccx.Datastore
 	return nil
 }
 
-func validateDb(vendors []ccx.DBVendorInfo, dbVendor, dbVersion, dbType string) error {
+func validateDB(vendors []ccx.DBVendorInfo, dbVendor, dbVersion, dbType string) error {
 	var vendor ccx.DBVendorInfo
 
 	if i := slices.IndexFunc(vendors, func(info ccx.DBVendorInfo) bool {
@@ -340,7 +339,7 @@ func validateMaintenanceSettings(m *ccx.MaintenanceSettings) error {
 	return nil
 }
 
-func validateParameterGroup(ctx context.Context, svc ccx.ParameterGroupService, c ccx.Datastore, groupId string) error {
+func validateParameterGroupForStore(ctx context.Context, svc ccx.ParameterGroupsService, c ccx.Datastore, groupId string) error {
 	if c.ParameterGroupID == "" {
 		return nil
 	}
@@ -371,8 +370,7 @@ func validateParameterGroup(ctx context.Context, svc ccx.ParameterGroupService, 
 }
 
 func (r *Datastore) Create(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
-	c, err := schemaToDatastore(d)
-
+	c, err := datastoreFromSchema(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -386,7 +384,7 @@ func (r *Datastore) Create(ctx context.Context, d *schema.ResourceData, _ any) d
 		return diag.FromErr(fmt.Errorf("loading instance sizes: %w", err))
 	}
 
-	if err := validateCloud(cloudInstances, c); err != nil {
+	if err := validateInstanceSizes(cloudInstances, c); err != nil {
 		return diag.FromErr(fmt.Errorf("validating cloud provider: %w", err))
 	}
 
@@ -395,7 +393,7 @@ func (r *Datastore) Create(ctx context.Context, d *schema.ResourceData, _ any) d
 		return diag.FromErr(fmt.Errorf("loading db vendor information: %w", err))
 	}
 
-	if err := validateDb(vendors, c.DBVendor, c.DBVersion, c.Type); err != nil {
+	if err := validateDB(vendors, c.DBVendor, c.DBVersion, c.Type); err != nil {
 		return diag.FromErr(fmt.Errorf("validating db vendor: %w", err))
 	}
 
@@ -409,7 +407,7 @@ func (r *Datastore) Create(ctx context.Context, d *schema.ResourceData, _ any) d
 	}
 
 	if c.ParameterGroupID != "" {
-		if err := validateParameterGroup(ctx, r.pgSvc, c, c.ParameterGroupID); err != nil {
+		if err := validateParameterGroupForStore(ctx, r.pgSvc, c, c.ParameterGroupID); err != nil {
 			return diag.FromErr(fmt.Errorf("validating parameter group: %w", err))
 		}
 	}
@@ -443,7 +441,8 @@ func (r *Datastore) Create(ctx context.Context, d *schema.ResourceData, _ any) d
 		}
 	}
 
-	if err := schemaFromDatastore(*n, d); err != nil {
+	err = fillSchemaFromDatastore(*n, d)
+	if err != nil {
 		return diag.FromErr(fmt.Errorf("setting schema: %w", err))
 	}
 
@@ -455,8 +454,7 @@ func (r *Datastore) Create(ctx context.Context, d *schema.ResourceData, _ any) d
 }
 
 func (r *Datastore) Read(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
-	c, err := schemaToDatastore(d)
-
+	c, err := datastoreFromSchema(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -469,11 +467,16 @@ func (r *Datastore) Read(ctx context.Context, d *schema.ResourceData, _ any) dia
 		return diag.FromErr(err)
 	}
 
-	return diag.FromErr(schemaFromDatastore(*n, d))
+	err = fillSchemaFromDatastore(*n, d)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
 }
 
 func (r *Datastore) Update(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
-	c, err := schemaToDatastore(d)
+	c, err := datastoreFromSchema(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -496,7 +499,7 @@ func (r *Datastore) Update(ctx context.Context, d *schema.ResourceData, _ any) d
 	if old.VolumeSize > c.VolumeSize {
 		return diag.Errorf("decreasing volume_size is not supported, from %dGB to %dGB", old.VolumeSize, c.VolumeSize)
 	} else if old.VolumeSize != c.VolumeSize && (old.VolumeSize+10) >= c.VolumeSize {
-		return diag.Errorf("when increasing volume_size , the new volume_size must be at least old.volume_size+10GB. current volume_size is %dGB, new volume_size is %dGB. new volume_size must be atleast %dGB", old.VolumeSize, c.VolumeSize, old.VolumeSize+10)
+		return diag.Errorf("when increasing volume_size, the new volume_size must be at least old.volume_size+10GB. current volume_size is %dGB, new volume_size is %dGB. new volume_size must be atleast %dGB", old.VolumeSize, c.VolumeSize, old.VolumeSize+10)
 	}
 
 	var errs []error
@@ -515,9 +518,11 @@ func (r *Datastore) Update(ctx context.Context, d *schema.ResourceData, _ any) d
 		}
 	}
 
+	// WHY? didn't we already read the whole schema?
 	n.Notifications = getNotifications(d)
 
-	if err := schemaFromDatastore(*n, d); err != nil {
+	err = fillSchemaFromDatastore(*n, d)
+	if err != nil {
 		errs = append(errs, fmt.Errorf("setting schema: %w", err))
 	}
 
@@ -529,8 +534,7 @@ func (r *Datastore) Update(ctx context.Context, d *schema.ResourceData, _ any) d
 }
 
 func (r *Datastore) Delete(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
-	c, err := schemaToDatastore(d)
-
+	c, err := datastoreFromSchema(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -541,6 +545,7 @@ func (r *Datastore) Delete(ctx context.Context, d *schema.ResourceData, _ any) d
 	}
 
 	d.SetId("")
+
 	return nil
 }
 
@@ -593,7 +598,7 @@ func vendorFromAlias(s string) string {
 	return s
 }
 
-func schemaToDatastore(d *schema.ResourceData) (ccx.Datastore, error) {
+func datastoreFromSchema(d *schema.ResourceData) (ccx.Datastore, error) {
 	c := ccx.Datastore{
 		ID:               d.Id(),
 		Name:             getString(d, "name"),
@@ -635,7 +640,7 @@ func schemaToDatastore(d *schema.ResourceData) (ccx.Datastore, error) {
 	return c, nil
 }
 
-func schemaFromDatastore(c ccx.Datastore, d *schema.ResourceData) error {
+func fillSchemaFromDatastore(c ccx.Datastore, d *schema.ResourceData) error {
 	d.SetId(c.ID)
 
 	var err error

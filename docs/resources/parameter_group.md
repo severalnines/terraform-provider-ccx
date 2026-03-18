@@ -23,6 +23,10 @@ description: |-
 - `name` (String) Name of this parameter group
 - `parameters` (Map of String) Parameters for this parameter group
 
+### Optional
+
+- `description` (String) Description of this parameter group
+
 ### Read-Only
 
 - `id` (String) The ID of this resource.

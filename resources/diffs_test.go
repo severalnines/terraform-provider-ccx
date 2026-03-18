@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
-	"github.com/severalnines/terraform-provider-ccx/internal/ccx/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -48,7 +47,7 @@ func Test_checkInstanceSizeEquivalence(t *testing.T) {
 		cloudProvider string
 		oldValue      string
 		newValue      string
-		mock          func(svc *mocks.MockContentService)
+		mock          func(svc *ccx.MockContentService)
 		want          bool
 	}{
 		{
@@ -63,7 +62,7 @@ func Test_checkInstanceSizeEquivalence(t *testing.T) {
 			cloudProvider: "aws",
 			oldValue:      "t2.micro",
 			newValue:      "Tiny",
-			mock: func(svc *mocks.MockContentService) {
+			mock: func(svc *ccx.MockContentService) {
 				svc.EXPECT().InstanceSizes(mock.Anything).Return(instanceSizes, nil)
 			},
 			want: true,
@@ -73,7 +72,7 @@ func Test_checkInstanceSizeEquivalence(t *testing.T) {
 			cloudProvider: "aws",
 			oldValue:      "t2.micro",
 			newValue:      "Small",
-			mock: func(svc *mocks.MockContentService) {
+			mock: func(svc *ccx.MockContentService) {
 				svc.EXPECT().InstanceSizes(mock.Anything).Return(instanceSizes, nil)
 			},
 			want: false,
@@ -90,7 +89,7 @@ func Test_checkInstanceSizeEquivalence(t *testing.T) {
 			cloudProvider: "foo",
 			oldValue:      "t2.micro",
 			newValue:      "Tiny",
-			mock: func(svc *mocks.MockContentService) {
+			mock: func(svc *ccx.MockContentService) {
 				svc.EXPECT().InstanceSizes(mock.Anything).Return(instanceSizes, nil)
 			},
 			want: false,
@@ -100,7 +99,7 @@ func Test_checkInstanceSizeEquivalence(t *testing.T) {
 			cloudProvider: "foo",
 			oldValue:      "t2.micro",
 			newValue:      "Tiny",
-			mock: func(svc *mocks.MockContentService) {
+			mock: func(svc *ccx.MockContentService) {
 				svc.EXPECT().InstanceSizes(mock.Anything).Return(nil, errors.New("something went wrong"))
 			},
 			want: false,
@@ -110,7 +109,7 @@ func Test_checkInstanceSizeEquivalence(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			svc := mocks.NewMockContentService(t)
+			svc := ccx.NewMockContentService(t)
 
 			if tt.mock != nil {
 				tt.mock(svc)

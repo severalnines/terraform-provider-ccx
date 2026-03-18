@@ -1,0 +1,170 @@
+package ccx
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"net/http"
+	"slices"
+	"strings"
+
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"golang.org/x/sync/errgroup"
+)
+
+type getFirewallsResponse []struct {
+	// Source is CIDR of remote
+	Source string `json:"source"`
+	// Description is human readable description of the source
+	Description string `json:"description"`
+	// Ports is all the ports available to the source
+	Ports []struct {
+		// Port is "service" or something
+		Port string `json:"port"`
+		// PortNo is informational - it is the port being used the chosen purpose
+		PortNo int `json:"port_no"`
+	} `json:"ports"`
+}
+
+func (svc *DatastoresClient) GetFirewallRules(ctx context.Context, storeID string) ([]FirewallRule, error) {
+	var rs getFirewallsResponse
+
+	if err := svc.client.Get(ctx, "/api/firewall/api/v1/firewalls/"+storeID, &rs); err != nil {
+		return nil, err
+	}
+
+	ls := make([]FirewallRule, 0, len(rs))
+	for _, r := range rs {
+		ls = append(ls, FirewallRule{
+			Source:      r.Source,
+			Description: r.Description,
+		})
+	}
+
+	slices.SortStableFunc(ls, func(a, b FirewallRule) int {
+		return strings.Compare(a.Source, b.Source)
+	})
+
+	return ls, nil
+}
+
+func firewallsDiff(have, want []FirewallRule) (create, del []FirewallRule) {
+	haveM := make(map[FirewallRule]struct{}, len(have))
+	for _, f := range have {
+		haveM[f] = struct{}{}
+	}
+
+	for _, f := range want {
+		if _, ok := haveM[f]; !ok {
+			create = append(create, f)
+		}
+	}
+
+	wantM := make(map[FirewallRule]struct{}, len(want))
+	for _, f := range want {
+		wantM[f] = struct{}{}
+	}
+
+	for _, f := range have {
+		if _, ok := wantM[f]; !ok {
+			del = append(del, f)
+		}
+	}
+
+	return create, del
+}
+
+func (svc *DatastoresClient) CreateFirewallRule(ctx context.Context, storeID string, firewall FirewallRule) error {
+	_, err := svc.client.Do(ctx, http.MethodPost, "/api/firewall/api/v1/firewall/"+storeID, firewall)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (svc *DatastoresClient) CreateFirewallRules(ctx context.Context, storeID string, firewalls []FirewallRule) error {
+	var errs []error
+
+	for _, f := range firewalls {
+		err := svc.CreateFirewallRule(ctx, storeID, f)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("creating rule (source=%s, description=%s): %w", f.Source, f.Description, err))
+			break
+		}
+	}
+
+	if len(errs) != 0 {
+		return errors.Join(errs...)
+	}
+
+	return nil
+}
+
+func (svc *DatastoresClient) DeleteFirewallRule(ctx context.Context, storeID string, firewall FirewallRule) error {
+	_, err := svc.client.Do(ctx, http.MethodDelete, "/api/firewall/api/v1/firewall/"+storeID, firewall)
+	if errors.Is(err, ErrResourceNotFound) {
+		tflog.Warn(ctx, "deleting firewall rule: not found", map[string]any{
+			"source": firewall.Source, "description": firewall.Description,
+		})
+		return nil
+	} else if err != nil {
+		return fmt.Errorf("deleting rule (source=%s, description=%s): %w", firewall.Source, firewall.Description, err)
+	}
+
+	return nil
+}
+
+func (svc *DatastoresClient) DeleteFirewallRules(ctx context.Context, storeID string, firewalls []FirewallRule) error {
+	limiter := make(chan bool, 10)
+
+	var eg errgroup.Group
+
+	for _, f := range firewalls {
+		limiter <- true
+		f := f
+		eg.Go(func() error {
+			defer func() { <-limiter }()
+			err := svc.DeleteFirewallRule(ctx, storeID, f)
+
+			if err != nil {
+				return fmt.Errorf("deleting rule (source=%s, description=%s): %w", f.Source, f.Description, err)
+			}
+
+			return nil
+		})
+	}
+
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (svc *DatastoresClient) SetFirewallRules(ctx context.Context, storeID string, firewalls []FirewallRule) error {
+	slices.SortStableFunc(firewalls, func(a, b FirewallRule) int {
+		return strings.Compare(a.Source, b.Source)
+	})
+
+	have, err := svc.GetFirewallRules(ctx, storeID)
+	if err != nil {
+		return fmt.Errorf("getting firewalls: %w", err)
+	}
+
+	create, del := firewallsDiff(have, firewalls)
+
+	if len(del) > 0 {
+		if err = svc.DeleteFirewallRules(ctx, storeID, del); err != nil {
+			return fmt.Errorf("deleting rules: %w", err)
+		}
+	}
+
+	if len(create) > 0 {
+		if err = svc.CreateFirewallRules(ctx, storeID, create); err != nil {
+			return fmt.Errorf("creating rules: %w", err)
+		}
+	}
+
+	return nil
+}

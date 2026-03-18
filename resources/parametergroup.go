@@ -11,7 +11,7 @@ import (
 )
 
 type ParameterGroup struct {
-	svc        ccx.ParameterGroupService
+	svc        ccx.ParameterGroupsService
 	contentSvc ccx.ContentService
 }
 
@@ -70,7 +70,7 @@ func (r *ParameterGroup) Schema() *schema.Resource {
 }
 
 func (r *ParameterGroup) Create(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
-	p, err := schemaToParameterGroup(d)
+	p, err := parameterGroupFromSchema(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -80,7 +80,7 @@ func (r *ParameterGroup) Create(ctx context.Context, d *schema.ResourceData, _ a
 		return diag.FromErr(fmt.Errorf("loading db vendor information: %w", err))
 	}
 
-	if err := validateDb(vendors, p.DatabaseVendor, p.DatabaseVersion, p.DatabaseType); err != nil {
+	if err := validateDB(vendors, p.DatabaseVendor, p.DatabaseVersion, p.DatabaseType); err != nil {
 		return diag.FromErr(fmt.Errorf("validating db vendor: %w", err))
 	}
 
@@ -89,7 +89,7 @@ func (r *ParameterGroup) Create(ctx context.Context, d *schema.ResourceData, _ a
 		return diag.FromErr(err)
 	}
 
-	if err := schemaFromParameterGroup(*n, d); err != nil {
+	if err := fillSchemaFromParameterGroup(*n, d); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -107,7 +107,7 @@ func (r *ParameterGroup) Read(ctx context.Context, d *schema.ResourceData, _ any
 		return diag.FromErr(err)
 	}
 
-	if err := schemaFromParameterGroup(*p, d); err != nil {
+	if err := fillSchemaFromParameterGroup(*p, d); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -117,7 +117,7 @@ func (r *ParameterGroup) Read(ctx context.Context, d *schema.ResourceData, _ any
 func (r *ParameterGroup) Update(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
 	id := d.Id()
 
-	c, err := schemaToParameterGroup(d)
+	c, err := parameterGroupFromSchema(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -135,7 +135,7 @@ func (r *ParameterGroup) Update(ctx context.Context, d *schema.ResourceData, _ a
 		return diag.FromErr(err)
 	}
 
-	if err := schemaFromParameterGroup(*p, d); err != nil {
+	if err := fillSchemaFromParameterGroup(*p, d); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -152,7 +152,7 @@ func (r *ParameterGroup) Delete(ctx context.Context, d *schema.ResourceData, _ a
 	return nil
 }
 
-func schemaFromParameterGroup(p ccx.ParameterGroup, d *schema.ResourceData) error {
+func fillSchemaFromParameterGroup(p ccx.ParameterGroup, d *schema.ResourceData) error {
 	d.SetId(p.ID)
 
 	if err := d.Set("name", p.Name); err != nil {
@@ -182,7 +182,7 @@ func schemaFromParameterGroup(p ccx.ParameterGroup, d *schema.ResourceData) erro
 	return nil
 }
 
-func schemaToParameterGroup(d *schema.ResourceData) (ccx.ParameterGroup, error) {
+func parameterGroupFromSchema(d *schema.ResourceData) (ccx.ParameterGroup, error) {
 	g := ccx.ParameterGroup{
 		ID:              d.Id(),
 		Name:            getString(d, "name"),

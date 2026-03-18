@@ -96,8 +96,8 @@ type MaintenanceSettings struct {
 	EndHour   int   `json:"end_hour"`
 }
 
-// DatastoreService is used to manage datastores
-type DatastoreService interface {
+// DatastoresService is used to manage datastores
+type DatastoresService interface {
 	Create(ctx context.Context, c Datastore) (*Datastore, error)
 	Read(ctx context.Context, id string) (*Datastore, error)
 	Update(ctx context.Context, old, next Datastore) (*Datastore, error)
@@ -121,7 +121,7 @@ func (v VPC) String() string {
 	return fmt.Sprintf(`{"id": "%s", "name": "%s"}`, v.ID, v.Name)
 }
 
-type VPCService interface {
+type VPCsService interface {
 	Create(ctx context.Context, vpc VPC) (*VPC, error)
 	Read(ctx context.Context, id string) (*VPC, error)
 	Update(ctx context.Context, vpc VPC) (*VPC, error)
@@ -164,7 +164,7 @@ type ParameterGroup struct {
 	DbParameters    map[string]string `json:"db_parameters"`
 }
 
-type ParameterGroupService interface {
+type ParameterGroupsService interface {
 	Create(ctx context.Context, p ParameterGroup) (*ParameterGroup, error)
 	Read(ctx context.Context, id string) (*ParameterGroup, error)
 	Update(ctx context.Context, p ParameterGroup) error
@@ -190,7 +190,7 @@ const (
 	JobStatusErrored  JobStatus = "JOB_STATUS_ERRORED"
 )
 
-type JobService interface {
+type JobsService interface {
 	Await(ctx context.Context, storeID string, job JobType) (JobStatus, error)
 	GetStatus(_ context.Context, storeID string, job JobType) (JobStatus, error)
 }
