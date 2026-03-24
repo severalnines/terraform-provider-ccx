@@ -62,14 +62,6 @@ func (svc *DatastoresClient) Update(ctx context.Context, old, next Datastore) (*
 		return nil, fmt.Errorf("resizing datastore: %w", err)
 	}
 
-	if old.ParameterGroupID != next.ParameterGroupID {
-		if err := svc.ApplyParameterGroup(ctx, next.ID, next.ParameterGroupID); err != nil {
-			return nil, fmt.Errorf("applying parameter group: %w", err)
-		}
-
-		updated = true
-	}
-
 	if updated || resized {
 		if out, err = svc.Read(ctx, old.ID); err != nil {
 			return nil, err
@@ -269,7 +261,7 @@ func oldestRemovableNodeIds(hosts []Host, count int) ([]string, error) {
 	})
 
 	ls := make([]string, 0, count)
-	for i := 0; i < count; i++ {
+	for i := range count {
 		ls = append(ls, hosts[i].ID)
 	}
 
@@ -296,7 +288,7 @@ func newestNodeSpecs(hosts []Host, count int, azs []string, instanceSize string)
 
 	ls := make([]hostSpecs, 0, count)
 
-	for i := 0; i < count; i++ {
+	for i := range count {
 		ls = append(ls, hostSpecs{
 			InstanceSize: nodeInstanceSize,
 			AZ:           azs[i],

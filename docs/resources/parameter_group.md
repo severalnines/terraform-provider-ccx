@@ -3,12 +3,12 @@
 page_title: "ccx_parameter_group Resource - terraform-provider-ccx"
 subcategory: ""
 description: |-
-  
+  Parameter groups are a CCX resource, and contain a values for configurable settings with the database system. For documentation about which settings are available for each database system, log into a CCX instance and select to create a parameter group. All options and their default values will be shown.
 ---
 
 # ccx_parameter_group (Resource)
 
-
+Parameter groups are a CCX resource, and contain a values for configurable settings with the database system. For documentation about which settings are available for each database system, log into a CCX instance and select to create a parameter group. All options and their default values will be shown.
 
 
 
@@ -17,15 +17,15 @@ description: |-
 
 ### Required
 
-- `database_type` (String) Database type for which this parameter group is applicable
-- `database_vendor` (String) Database vendor for which this parameter group is applicable
-- `database_version` (String) Database version for which this parameter group is applicable
-- `name` (String) Name of this parameter group
-- `parameters` (Map of String) Parameters for this parameter group
+- `database_type` (String) Database type for which this parameter group is applicable.
+- `database_vendor` (String) Database vendor for which this parameter group is applicable - to assign a parameter group to a datastore, they group and store must have the same vendor. Allowed values depend on the CCX instance. Commonly available vendors are `mysql` and `postgres`.
+- `database_version` (String) Database version for which this parameter group is applicable.
+- `name` (String) Name of this parameter group. This is just for your reference, and can be changed later.
+- `parameters` (Map of String) Parameters for this parameter group.
 
 ### Optional
 
-- `description` (String) Description of this parameter group
+- `description` (String) Description of this parameter group. This is just for your reference, and can be changed later.
 
 ### Read-Only
 

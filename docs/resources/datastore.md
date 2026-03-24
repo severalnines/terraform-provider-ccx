@@ -3,12 +3,15 @@
 page_title: "ccx_datastore Resource - terraform-provider-ccx"
 subcategory: ""
 description: |-
-  
+  Datastores are a CCX resource, and represents one or more servers working together to host a database system.
+  For full documenation about CCX see https://docs.severalnines.com/ccx/user/Index/
 ---
 
 # ccx_datastore (Resource)
 
+Datastores are a CCX resource, and represents one or more servers working together to host a database system.
 
+For full documenation about CCX see https://docs.severalnines.com/ccx/user/Index/
 
 
 
@@ -17,53 +20,53 @@ description: |-
 
 ### Required
 
-- `cloud_provider` (String) Cloud provider name
-- `cloud_region` (String) The region to set up the datastore
-- `db_vendor` (String) Database Vendor
-- `instance_size` (String) Instance type/flavor to use
-- `name` (String) The name of the datastore
+- `cloud_provider` (String) Cloud provider name, e.g. `aws`. Refer to the CCX instance to find which clouds are available.
+- `cloud_region` (String) The region to set up the datastore, within the chosen cloud. E.g. `us-east-1` in AWS.
+- `db_vendor` (String) Database vendor. Allowed values depend on the CCX instance. Commonly available vendors are `mysql` and `postgres`.
+- `instance_size` (String) Instance type/flavor to use. Refer to the CCX instance to find which instances types are available in a cloud and region.
+- `name` (String) The name of the datastore. This is just for your reference, and can be changed later.
 
 ### Optional
 
-- `db_version` (String) Database Version
-- `firewall` (Block List) FirewallRule rules to allow (see [below for nested schema](#nestedblock--firewall))
-- `maintenance_day_of_week` (Number) Day of the week to run the maintenance. 1-7, 1 is Monday
-- `maintenance_end_hour` (Number) Hour of the day to end the maintenance. 0-23. Must be start_hour + 2
-- `maintenance_start_hour` (Number) Hour of the day to start the maintenance. 0-23
-- `network_az` (List of String) Network availability zones
-- `network_ha_enabled` (Boolean) High availability enabled or not
-- `network_vpc_uuid` (String) VPC to use
-- `notifications_emails` (List of String) List of email addresses to send notifications to
-- `notifications_enabled` (Boolean) Enable or disable notifications. Default is false
-- `parameter_group` (String) Parameter group ID to use
-- `size` (Number) The size of the datastore ( int64 ). 1 or 3 nodes.
-- `tags` (List of String) An optional list of tags
-- `type` (String) Replication type of the datastore
-- `volume_iops` (Number) Volume IOPS
-- `volume_size` (Number) Volume size
-- `volume_type` (String) Volume type
+- `db_version` (String) Version of the database system. Refer to the CCX instance to find versions available for each vendor.
+- `firewall` (Block List) Firewall rules allow access to the database system from the internet. If there are no rules then all access is blocked. Each rule is a human-readable name and a CIDR, allowing access from a block of IP addresses. (see [below for nested schema](#nestedblock--firewall))
+- `maintenance_day_of_week` (Number) Day of the week when maintenance tasks can be run. 1-7, 1 is Monday.
+- `maintenance_end_hour` (Number) Hour of the day when it is no longer appropriate to run maintenance tasks. 0-23. This must be approximtely maintenance_start_hour + 2.
+- `maintenance_start_hour` (Number) Hour of the day when maintenance tasks can be run, on the chosen day. 0-23.
+- `network_az` (List of String) Network availability zones. This can be 1) omitted for auto-allocation, 2) a single string, for placing all nodes in the same zone, 3) as many strings as the intended size of the cluster, to place each node separately. The values depend on the chosen cloud and region.
+- `network_ha_enabled` (Boolean) This option does nothing directly, but if HA is set to true then CCX will require that availability zones are specified.
+- `network_vpc_uuid` (String) ID of a VPC, in which the cluster will be deployed.
+- `notifications_emails` (List of String) List of email addresses to send notifications to.
+- `notifications_enabled` (Boolean) Enable or disable notifications. Default is false.
+- `parameter_group` (String) Parameter group ID to use. Parameter groups are another CCX resource, and contain a values for configuratable settings with the database system.
+- `size` (Number) The number of nodes in the datastore. While a single node is allowed, there will be no redundancy. For multi-master datastores there must be an odd number of nodes.
+- `tags` (List of String) An optional list of tags to identify the datastore. These are are for your own use, and can be any strings.
+- `type` (String) Replication type of the datastore. This depends on the db_vendor, e.g. `replication` is the default type for MySQL, MariaDB and PostgreSQL.
+- `volume_iops` (Number) Volume IOPS defines the performance of the disks used for data storage. This is not always configurable, and allowable values depend on the volume type.
+- `volume_size` (Number) Volume size, i.e. how much data storage should be initally allocated. This can be changed later, or autoscaled.
+- `volume_type` (String) Volume type, for that will be used as root and data disks as required.
 
 ### Read-Only
 
-- `dbname` (String) Database name
+- `dbname` (String) Name of the default database, which is automatically created when the cluster is created.
 - `id` (String) The ID of this resource.
-- `password` (String) Password to connect to the datastore
-- `primary_dsn` (String) DSN to the primary host(s)
-- `primary_url` (String) URL to the primary host(s)
-- `replica_dsn` (String) DSN to the replica host(s)
-- `replica_url` (String) URL to the replica host(s)
-- `username` (String) Username to connect to the datastore
+- `password` (String) Password to connect to the datastore - this represents the default user which is automatically created, but other users can be created later.
+- `primary_dsn` (String) DSN (data source name) to the primary host(s). This is the information that is needed to connect to the cluster - the format depends on the vendor.
+- `primary_url` (String) URL to the primary host(s). This is a DNS name, which will resolve to one or more hosts.
+- `replica_dsn` (String) DSN (data source name) to the replica host(s). This is the information that is needed to connect to the cluster - the format depends on the vendor.
+- `replica_url` (String) URL to the replica host(s). This is a DNS name, which will resolve to zero or more hosts.
+- `username` (String) Username to connect to the datastore - this represents the default user which is automatically created, but other users can be created later.
 
 <a id="nestedblock--firewall"></a>
 ### Nested Schema for `firewall`
 
 Required:
 
-- `source` (String) CIDR source for the firewall rule
+- `source` (String) CIDR source for the firewall rule, i.e. from where the cluster should be accesible.
 
 Optional:
 
-- `description` (String) Description of this firewall rule
+- `description` (String) Description of this firewall rule.
 
 Read-Only:
 

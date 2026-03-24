@@ -111,4 +111,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-tool github.com/vektra/mockery/v3
+tool (
+	github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
+	github.com/vektra/mockery/v3
+)

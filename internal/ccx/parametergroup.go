@@ -99,7 +99,7 @@ func (svc *ParameterGroupsClient) Update(ctx context.Context, p ParameterGroup) 
 func (svc *ParameterGroupsClient) Delete(ctx context.Context, id string) error {
 	_, err := svc.client.Do(ctx, http.MethodDelete, "/api/db-configuration/v1/parameter-groups/"+id, nil)
 	if errors.Is(err, ErrResourceNotFound) {
-		tflog.Warn(ctx, "deleting parameter group: not found", map[string]interface{}{"id": id})
+		tflog.Warn(ctx, "deleting parameter group: not found", map[string]any{"id": id})
 		return nil
 	} else if err != nil {
 		return fmt.Errorf("deleting parameter group: %w", err)

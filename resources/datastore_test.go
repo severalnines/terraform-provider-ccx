@@ -858,6 +858,8 @@ resource "ccx_datastore" "luna" {
 			DbName:     "mydb",
 		}, nil)
 
+		m.datastore.EXPECT().ApplyParameterGroup(mock.Anything, "datastore-id", "parameter-group-id").Return(nil)
+
 		m.datastore.EXPECT().Delete(mock.Anything, "datastore-id").Return(nil)
 
 		resource.Test(t, resource.TestCase{

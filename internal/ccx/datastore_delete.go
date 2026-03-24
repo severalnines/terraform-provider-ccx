@@ -12,7 +12,7 @@ import (
 func (svc *DatastoresClient) Delete(ctx context.Context, id string) error {
 	_, err := svc.client.Do(ctx, http.MethodDelete, "/api/prov/api/v2/cluster"+"/"+id, nil)
 	if errors.Is(err, ErrResourceNotFound) {
-		tflog.Warn(ctx, "deleting datastore: not found", map[string]interface{}{"id": id})
+		tflog.Warn(ctx, "deleting datastore: not found", map[string]any{"id": id})
 		return nil
 	} else if err != nil {
 		return fmt.Errorf("deleting datastore: %w", err)

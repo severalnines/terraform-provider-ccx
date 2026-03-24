@@ -9,12 +9,15 @@ import (
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 )
 
+const vpcDoc = `A VPC`
+
 type VPC struct {
 	svc ccx.VPCsService
 }
 
 func (r *VPC) Schema() *schema.Resource {
 	return &schema.Resource{
+		Description: vpcDoc,
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,

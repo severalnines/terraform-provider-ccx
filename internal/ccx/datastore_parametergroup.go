@@ -7,12 +7,12 @@ import (
 	"net/http"
 )
 
-func (svc *DatastoresClient) ApplyParameterGroup(ctx context.Context, id, group string) error {
-	if group == "" {
-		return errors.New("group name is required")
+func (svc *DatastoresClient) ApplyParameterGroup(ctx context.Context, id, groupID string) error {
+	if groupID == "" {
+		return errors.New("group ID is required")
 	}
 
-	_, err := svc.client.Do(ctx, http.MethodPut, "/api/db-configuration/v1/parameter-groups/apply/"+group+"/"+id, nil)
+	_, err := svc.client.Do(ctx, http.MethodPut, "/api/db-configuration/v1/parameter-groups/apply/"+groupID+"/"+id, nil)
 	if err != nil {
 		return fmt.Errorf("applying parameter group: %w", err)
 	}

@@ -183,12 +183,5 @@ func (svc *DatastoresClient) Create(ctx context.Context, c Datastore) (*Datastor
 		return partialDatastore, fmt.Errorf("%w: %w", ErrCreateFailedRead, err)
 	}
 
-	if c.ParameterGroupID != "" {
-		err = svc.ApplyParameterGroup(ctx, rs.UUID, c.ParameterGroupID)
-		if err != nil {
-			return newDatastore, fmt.Errorf("%w: %w", ErrApplyDbParametersFailed, err)
-		}
-	}
-
 	return newDatastore, nil
 }

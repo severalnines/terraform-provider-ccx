@@ -12,6 +12,11 @@ import (
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 )
 
+const datastoreDoc = `
+Datastores are a CCX resource, and represents one or more servers working together to host a database system.
+
+For full documenation about CCX see https://docs.severalnines.com/ccx/user/Index/`
+
 type Datastore struct {
 	svc        ccx.DatastoresService
 	contentSvc ccx.ContentService
@@ -20,30 +25,31 @@ type Datastore struct {
 
 func (r *Datastore) Schema() *schema.Resource {
 	return &schema.Resource{
+		Description: datastoreDoc,
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "The name of the datastore",
+				Description: "The name of the datastore. This is just for your reference, and can be changed later.",
 			},
 			"type": {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Computed:         true,
-				Description:      "Replication type of the datastore",
+				Description:      "Replication type of the datastore. This depends on the db_vendor, e.g. `replication` is the default type for MySQL, MariaDB and PostgreSQL.",
 				ForceNew:         true,
 				DiffSuppressFunc: caseInsensitiveSuppressor,
 			},
 			"size": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Description: "The size of the datastore ( int64 ). 1 or 3 nodes.",
+				Description: "The number of nodes in the datastore. While a single node is allowed, there will be no redundancy. For multi-master datastores there must be an odd number of nodes.",
 				Default:     1,
 			},
 			"db_vendor": {
 				Type:             schema.TypeString,
 				Required:         true,
-				Description:      "Database Vendor",
+				Description:      "Database vendor. Allowed values depend on the CCX instance. Commonly available vendors are `mysql` and `postgres`.",
 				ForceNew:         true,
 				DiffSuppressFunc: vendorSuppressor,
 			},
@@ -51,7 +57,7 @@ func (r *Datastore) Schema() *schema.Resource {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Computed:         true,
-				Description:      "Database Version",
+				Description:      "Version of the database system. Refer to the CCX instance to find versions available for each vendor.",
 				ForceNew:         true,
 				DiffSuppressFunc: caseInsensitiveSuppressor,
 			},
@@ -59,7 +65,7 @@ func (r *Datastore) Schema() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				Computed:    true,
-				Description: "An optional list of tags",
+				Description: "An optional list of tags to identify the datastore. These are are for your own use, and can be any strings.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -67,143 +73,143 @@ func (r *Datastore) Schema() *schema.Resource {
 			"cloud_provider": {
 				Type:             schema.TypeString,
 				Required:         true,
-				Description:      "Cloud provider name",
+				Description:      "Cloud provider name, e.g. `aws`. Refer to the CCX instance to find which clouds are available.",
 				ForceNew:         true,
 				DiffSuppressFunc: caseInsensitiveSuppressor,
 			},
 			"cloud_region": {
 				Type:             schema.TypeString,
 				Required:         true,
-				Description:      "The region to set up the datastore",
+				Description:      "The region to set up the datastore, within the chosen cloud. E.g. `us-east-1` in AWS.",
 				ForceNew:         true,
 				DiffSuppressFunc: caseInsensitiveSuppressor,
 			},
 			"instance_size": {
 				Type:             schema.TypeString,
 				Required:         true,
-				Description:      "Instance type/flavor to use",
+				Description:      "Instance type/flavor to use. Refer to the CCX instance to find which instances types are available in a cloud and region.",
 				DiffSuppressFunc: r.instanceSizeDiffSupressor,
 			},
 			"volume_type": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				Description: "Volume type",
+				Description: "Volume type, for that will be used as root and data disks as required.",
 			},
 			"volume_size": {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Computed:    true,
-				Description: "Volume size",
+				Description: "Volume size, i.e. how much data storage should be initally allocated. This can be changed later, or autoscaled.",
 			},
 			"volume_iops": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Description: "Volume IOPS",
+				Description: "Volume IOPS defines the performance of the disks used for data storage. This is not always configurable, and allowable values depend on the volume type.",
 				Default:     0,
 			},
 			"network_ha_enabled": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "High availability enabled or not",
+				Description: "This option does nothing directly, but if HA is set to true then CCX will require that availability zones are specified.",
 				Default:     false,
 			},
 			"network_vpc_uuid": {
 				Type:             schema.TypeString,
 				Optional:         true,
-				Description:      "VPC to use",
+				Description:      "ID of a VPC, in which the cluster will be deployed.",
 				ForceNew:         true,
 				DiffSuppressFunc: caseInsensitiveSuppressor,
 			},
 			"parameter_group": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Parameter group ID to use",
+				Description: "Parameter group ID to use. Parameter groups are another CCX resource, and contain a values for configuratable settings with the database system.",
 			},
 			"network_az": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				Description: "Network availability zones",
+				Description: "Network availability zones. This can be 1) omitted for auto-allocation, 2) a single string, for placing all nodes in the same zone, 3) as many strings as the intended size of the cluster, to place each node separately. The values depend on the chosen cloud and region.",
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 			"firewall": {
 				Type:             schema.TypeList,
 				Optional:         true,
-				Description:      "FirewallRule rules to allow",
+				Description:      "Firewall rules allow access to the database system from the internet. If there are no rules then all access is blocked. Each rule is a human-readable name and a CIDR, allowing access from a block of IP addresses.",
 				Elem:             (firewall{}).Schema(),
 				DiffSuppressFunc: firewallDiffSupressor,
 			},
 			"notifications_enabled": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "Enable or disable notifications. Default is false",
+				Description: "Enable or disable notifications. Default is false.",
 			},
 			"notifications_emails": {
 				Type:        schema.TypeList,
 				Optional:    true,
 				Computed:    true,
-				Description: "List of email addresses to send notifications to",
+				Description: "List of email addresses to send notifications to.",
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 			"maintenance_day_of_week": {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Computed:    true,
-				Description: "Day of the week to run the maintenance. 1-7, 1 is Monday",
+				Description: "Day of the week when maintenance tasks can be run. 1-7, 1 is Monday.",
 			},
 			"maintenance_start_hour": {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Computed:    true,
-				Description: "Hour of the day to start the maintenance. 0-23",
+				Description: "Hour of the day when maintenance tasks can be run, on the chosen day. 0-23.",
 			},
 			"maintenance_end_hour": {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Computed:    true,
-				Description: "Hour of the day to end the maintenance. 0-23. Must be start_hour + 2",
+				Description: "Hour of the day when it is no longer appropriate to run maintenance tasks. 0-23. This must be approximtely maintenance_start_hour + 2.",
 			},
 			"primary_url": {
 				Type:        schema.TypeString,
 				Optional:    false,
 				Computed:    true,
-				Description: "URL to the primary host(s)",
+				Description: "URL to the primary host(s). This is a DNS name, which will resolve to one or more hosts.",
 			},
 			"primary_dsn": {
 				Type:        schema.TypeString,
 				Optional:    false,
 				Computed:    true,
-				Description: "DSN to the primary host(s)",
+				Description: "DSN (data source name) to the primary host(s). This is the information that is needed to connect to the cluster - the format depends on the vendor.",
 			},
 			"replica_url": {
 				Type:        schema.TypeString,
 				Optional:    false,
 				Computed:    true,
-				Description: "URL to the replica host(s)",
+				Description: "URL to the replica host(s). This is a DNS name, which will resolve to zero or more hosts.",
 			},
 			"replica_dsn": {
 				Type:        schema.TypeString,
 				Optional:    false,
 				Computed:    true,
-				Description: "DSN to the replica host(s)",
+				Description: "DSN (data source name) to the replica host(s). This is the information that is needed to connect to the cluster - the format depends on the vendor.",
 			},
 			"username": {
 				Type:        schema.TypeString,
 				Optional:    false,
 				Computed:    true,
-				Description: "Username to connect to the datastore",
+				Description: "Username to connect to the datastore - this represents the default user which is automatically created, but other users can be created later.",
 			},
 			"password": {
 				Type:        schema.TypeString,
 				Optional:    false,
 				Computed:    true,
-				Description: "Password to connect to the datastore",
+				Description: "Password to connect to the datastore - this represents the default user which is automatically created, but other users can be created later.",
 			},
 			"dbname": {
 				Type:        schema.TypeString,
 				Optional:    false,
 				Computed:    true,
-				Description: "Database name",
+				Description: "Name of the default database, which is automatically created when the cluster is created.",
 			},
 		},
 		CreateContext: r.Create,
@@ -418,11 +424,18 @@ func (r *Datastore) Create(ctx context.Context, d *schema.ResourceData, _ any) d
 	if errors.Is(err, ccx.ErrCreateFailedRead) && n != nil {
 		d.SetId(n.ID)
 		return diag.Errorf("creating stores: %s", err)
-	} else if errors.Is(err, ccx.ErrApplyDbParametersFailed) {
-		errs = append(errs, fmt.Errorf("applying database parameters %q failed: %w", c.ParameterGroupID, err))
 	} else if err != nil {
 		d.SetId("")
 		return diag.Errorf("creating stores: %s", err)
+	}
+
+	if c.ParameterGroupID != "" {
+		err = r.svc.ApplyParameterGroup(ctx, n.ID, c.ParameterGroupID)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("applying database parameters %q failed: %w", c.ParameterGroupID, err))
+		} else {
+			n.ParameterGroupID = c.ParameterGroupID
+		}
 	}
 
 	if c.MaintenanceSettings != nil {
@@ -504,22 +517,30 @@ func (r *Datastore) Update(ctx context.Context, d *schema.ResourceData, _ any) d
 
 	var errs []error
 
-	if d.HasChangesExcept("firewall") {
+	if d.HasChangesExcept("firewall", "parameter_group") {
 		if n, err = r.svc.Update(ctx, *old, c); err != nil {
 			return diag.FromErr(err)
 		}
 	}
 
+	if d.HasChange("parameter_group") {
+		if err := r.svc.ApplyParameterGroup(ctx, n.ID, c.ParameterGroupID); err != nil {
+			errs = append(errs, fmt.Errorf("%w: %w", ccx.ErrApplyParameterGroup, err))
+		} else {
+			n.ParameterGroupID = c.ParameterGroupID
+		}
+	}
+
 	if d.HasChange("firewall") {
 		if err := r.svc.SetFirewallRules(ctx, n.ID, c.FirewallRules); err != nil {
-			errs = append(errs, fmt.Errorf("%w: setting: %w", ccx.ErrFirewallRules, err))
+			errs = append(errs, fmt.Errorf("%w: %w", ccx.ErrFirewallRules, err))
 		} else {
 			n.FirewallRules = c.FirewallRules
 		}
 	}
 
 	// WHY? didn't we already read the whole schema?
-	n.Notifications = getNotifications(d)
+	// n.Notifications = getNotifications(d)
 
 	err = fillSchemaFromDatastore(*n, d)
 	if err != nil {

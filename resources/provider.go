@@ -76,21 +76,25 @@ func makeProvider(configure schema.ConfigureContextFunc, datastore *Datastore, v
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("CCX_CLIENT_ID", ""),
+				Description: "OAuth client ID, which can be created in the CCX UI.",
 			},
 			"client_secret": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("CCX_CLIENT_SECRET", ""),
+				Description: "OAuth client secret, which can be created in the CCX UI.",
 			},
 			"base_url": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("CCX_BASE_URL", "https://app.mydbservice.net"),
+				Description: "If you are using a CCX instance other than the public service provided by Severalnines, set this value. It should be as a URL, e.g. `https://ccx.mycloud.com`.",
 			},
 			"timeout": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("CCX_TIMEOUT", "60m"),
+				Description: "Optionally, set a timeout for something. The default is `60m` meaning 60 minutes.",
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
