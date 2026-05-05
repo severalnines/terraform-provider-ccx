@@ -21,12 +21,12 @@ func (f firewall) Schema() *schema.Resource {
 			"source": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "CIDR source for the firewall rule",
+				Description: "CIDR source for the firewall rule, i.e. from where the cluster should be accesible.",
 			},
 			"description": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Description of this firewall rule",
+				Description: "Description of this firewall rule.",
 			},
 		},
 		Importer: &schema.ResourceImporter{

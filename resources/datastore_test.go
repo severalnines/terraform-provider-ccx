@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
-	"github.com/severalnines/terraform-provider-ccx/internal/ccx/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -859,6 +858,8 @@ resource "ccx_datastore" "luna" {
 			DbName:     "mydb",
 		}, nil)
 
+		m.datastore.EXPECT().ApplyParameterGroup(mock.Anything, "datastore-id", "parameter-group-id").Return(nil)
+
 		m.datastore.EXPECT().Delete(mock.Anything, "datastore-id").Return(nil)
 
 		resource.Test(t, resource.TestCase{
@@ -1422,7 +1423,7 @@ func Test_validateParameterGroup(t *testing.T) {
 	tests := []struct {
 		name    string
 		c       ccx.Datastore
-		mock    func(pgSvc *mocks.MockParameterGroupService)
+		mock    func(pgSvc *ccx.MockParameterGroupsService)
 		wantErr bool
 	}{
 		{
@@ -1442,7 +1443,7 @@ func Test_validateParameterGroup(t *testing.T) {
 				DBVersion:        "10.11",
 				Type:             "replication",
 			},
-			mock: func(pgSvc *mocks.MockParameterGroupService) {
+			mock: func(pgSvc *ccx.MockParameterGroupsService) {
 				pgSvc.EXPECT().Read(mock.Anything, groupId).Return(nil, errors.New("not found"))
 			},
 			wantErr: true,
@@ -1455,7 +1456,7 @@ func Test_validateParameterGroup(t *testing.T) {
 				DBVersion:        "10.11",
 				Type:             "replication",
 			},
-			mock: func(pgSvc *mocks.MockParameterGroupService) {
+			mock: func(pgSvc *ccx.MockParameterGroupsService) {
 				pgSvc.EXPECT().Read(mock.Anything, groupId).Return(&ccx.ParameterGroup{
 					ID:              groupId,
 					DatabaseVendor:  "mysql",
@@ -1473,7 +1474,7 @@ func Test_validateParameterGroup(t *testing.T) {
 				DBVersion:        "10.11",
 				Type:             "replication",
 			},
-			mock: func(pgSvc *mocks.MockParameterGroupService) {
+			mock: func(pgSvc *ccx.MockParameterGroupsService) {
 				pgSvc.EXPECT().Read(mock.Anything, groupId).Return(&ccx.ParameterGroup{
 					ID:              groupId,
 					DatabaseVendor:  "mariadb",
@@ -1491,7 +1492,7 @@ func Test_validateParameterGroup(t *testing.T) {
 				DBVersion:        "10.11",
 				Type:             "replication",
 			},
-			mock: func(pgSvc *mocks.MockParameterGroupService) {
+			mock: func(pgSvc *ccx.MockParameterGroupsService) {
 				pgSvc.EXPECT().Read(mock.Anything, groupId).Return(&ccx.ParameterGroup{
 					ID:              groupId,
 					DatabaseVendor:  "mariadb",
@@ -1509,7 +1510,7 @@ func Test_validateParameterGroup(t *testing.T) {
 				DBVersion:        "10.11",
 				Type:             "replication",
 			},
-			mock: func(pgSvc *mocks.MockParameterGroupService) {
+			mock: func(pgSvc *ccx.MockParameterGroupsService) {
 				pgSvc.EXPECT().Read(mock.Anything, groupId).Return(&ccx.ParameterGroup{
 					ID:              groupId,
 					DatabaseVendor:  "mariadb",
@@ -1527,7 +1528,7 @@ func Test_validateParameterGroup(t *testing.T) {
 				DBVersion:        "10.11",
 				Type:             "replication",
 			},
-			mock: func(pgSvc *mocks.MockParameterGroupService) {
+			mock: func(pgSvc *ccx.MockParameterGroupsService) {
 				pgSvc.EXPECT().Read(mock.Anything, groupId).Return(&ccx.ParameterGroup{
 					ID:              groupId,
 					DatabaseVendor:  "percona",
@@ -1545,7 +1546,7 @@ func Test_validateParameterGroup(t *testing.T) {
 				DBVersion:        "10.11",
 				Type:             "replication",
 			},
-			mock: func(pgSvc *mocks.MockParameterGroupService) {
+			mock: func(pgSvc *ccx.MockParameterGroupsService) {
 				pgSvc.EXPECT().Read(mock.Anything, groupId).Return(&ccx.ParameterGroup{
 					ID:              groupId,
 					DatabaseVendor:  "mysql",
@@ -1562,7 +1563,7 @@ func Test_validateParameterGroup(t *testing.T) {
 				DBVendor:         "mariadb",
 				DBVersion:        "10.11",
 			},
-			mock: func(pgSvc *mocks.MockParameterGroupService) {
+			mock: func(pgSvc *ccx.MockParameterGroupsService) {
 				pgSvc.EXPECT().Read(mock.Anything, groupId).Return(&ccx.ParameterGroup{
 					ID:              groupId,
 					DatabaseVendor:  "mariadb",
@@ -1580,7 +1581,7 @@ func Test_validateParameterGroup(t *testing.T) {
 				DBVersion:        "10.11",
 				Type:             "replication",
 			},
-			mock: func(pgSvc *mocks.MockParameterGroupService) {
+			mock: func(pgSvc *ccx.MockParameterGroupsService) {
 				pgSvc.EXPECT().Read(mock.Anything, groupId).Return(&ccx.ParameterGroup{
 					ID:              groupId,
 					DatabaseVendor:  "mariadb",
@@ -1594,13 +1595,13 @@ func Test_validateParameterGroup(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			pgSvc := mocks.NewMockParameterGroupService(t)
+			pgSvc := ccx.NewMockParameterGroupsService(t)
 
 			if tt.mock != nil {
 				tt.mock(pgSvc)
 			}
 
-			err := validateParameterGroup(ctx, pgSvc, tt.c, groupId)
+			err := validateParameterGroupForStore(ctx, pgSvc, tt.c, groupId)
 
 			if tt.wantErr {
 				require.Error(t, err)

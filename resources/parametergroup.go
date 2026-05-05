@@ -10,13 +10,17 @@ import (
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 )
 
+const pgDoc = `
+Parameter groups are a CCX resource, and contain a values for configurable settings with the database system. For documentation about which settings are available for each database system, log into a CCX instance and select to create a parameter group. All options and their default values will be shown.`
+
 type ParameterGroup struct {
-	svc        ccx.ParameterGroupService
+	svc        ccx.ParameterGroupsService
 	contentSvc ccx.ContentService
 }
 
 func (r *ParameterGroup) Schema() *schema.Resource {
 	return &schema.Resource{
+		Description: pgDoc,
 		Schema: map[string]*schema.Schema{
 			"id": {
 				Type:     schema.TypeString,
@@ -25,35 +29,35 @@ func (r *ParameterGroup) Schema() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "Name of this parameter group",
+				Description: "Name of this parameter group. This is just for your reference, and can be changed later.",
 			},
 			"database_vendor": {
 				Type:             schema.TypeString,
 				Required:         true,
-				Description:      "Database vendor for which this parameter group is applicable",
+				Description:      "Database vendor for which this parameter group is applicable - to assign a parameter group to a datastore, they group and store must have the same vendor. Allowed values depend on the CCX instance. Commonly available vendors are `mysql` and `postgres`.",
 				DiffSuppressFunc: vendorSuppressor,
 			},
 			"database_version": {
 				Type:             schema.TypeString,
 				Required:         true,
-				Description:      "Database version for which this parameter group is applicable",
+				Description:      "Database version for which this parameter group is applicable.",
 				DiffSuppressFunc: caseInsensitiveSuppressor,
 			},
 			"database_type": {
 				Type:             schema.TypeString,
 				Required:         true,
-				Description:      "Database type for which this parameter group is applicable",
+				Description:      "Database type for which this parameter group is applicable.",
 				DiffSuppressFunc: caseInsensitiveSuppressor,
 			},
 			"description": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Description of this parameter group",
+				Description: "Description of this parameter group. This is just for your reference, and can be changed later.",
 			},
 			"parameters": {
 				Type:        schema.TypeMap,
 				Required:    true,
-				Description: "Parameters for this parameter group",
+				Description: "Parameters for this parameter group.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -70,7 +74,7 @@ func (r *ParameterGroup) Schema() *schema.Resource {
 }
 
 func (r *ParameterGroup) Create(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
-	p, err := schemaToParameterGroup(d)
+	p, err := parameterGroupFromSchema(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -80,7 +84,7 @@ func (r *ParameterGroup) Create(ctx context.Context, d *schema.ResourceData, _ a
 		return diag.FromErr(fmt.Errorf("loading db vendor information: %w", err))
 	}
 
-	if err := validateDb(vendors, p.DatabaseVendor, p.DatabaseVersion, p.DatabaseType); err != nil {
+	if err := validateDB(vendors, p.DatabaseVendor, p.DatabaseVersion, p.DatabaseType); err != nil {
 		return diag.FromErr(fmt.Errorf("validating db vendor: %w", err))
 	}
 
@@ -89,7 +93,7 @@ func (r *ParameterGroup) Create(ctx context.Context, d *schema.ResourceData, _ a
 		return diag.FromErr(err)
 	}
 
-	if err := schemaFromParameterGroup(*n, d); err != nil {
+	if err := fillSchemaFromParameterGroup(*n, d); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -107,7 +111,7 @@ func (r *ParameterGroup) Read(ctx context.Context, d *schema.ResourceData, _ any
 		return diag.FromErr(err)
 	}
 
-	if err := schemaFromParameterGroup(*p, d); err != nil {
+	if err := fillSchemaFromParameterGroup(*p, d); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -117,7 +121,7 @@ func (r *ParameterGroup) Read(ctx context.Context, d *schema.ResourceData, _ any
 func (r *ParameterGroup) Update(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
 	id := d.Id()
 
-	c, err := schemaToParameterGroup(d)
+	c, err := parameterGroupFromSchema(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -135,7 +139,7 @@ func (r *ParameterGroup) Update(ctx context.Context, d *schema.ResourceData, _ a
 		return diag.FromErr(err)
 	}
 
-	if err := schemaFromParameterGroup(*p, d); err != nil {
+	if err := fillSchemaFromParameterGroup(*p, d); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -152,7 +156,7 @@ func (r *ParameterGroup) Delete(ctx context.Context, d *schema.ResourceData, _ a
 	return nil
 }
 
-func schemaFromParameterGroup(p ccx.ParameterGroup, d *schema.ResourceData) error {
+func fillSchemaFromParameterGroup(p ccx.ParameterGroup, d *schema.ResourceData) error {
 	d.SetId(p.ID)
 
 	if err := d.Set("name", p.Name); err != nil {
@@ -182,7 +186,7 @@ func schemaFromParameterGroup(p ccx.ParameterGroup, d *schema.ResourceData) erro
 	return nil
 }
 
-func schemaToParameterGroup(d *schema.ResourceData) (ccx.ParameterGroup, error) {
+func parameterGroupFromSchema(d *schema.ResourceData) (ccx.ParameterGroup, error) {
 	g := ccx.ParameterGroup{
 		ID:              d.Id(),
 		Name:            getString(d, "name"),

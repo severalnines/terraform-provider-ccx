@@ -9,12 +9,15 @@ import (
 	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 )
 
+const vpcDoc = `A VPC`
+
 type VPC struct {
-	svc ccx.VPCService
+	svc ccx.VPCsService
 }
 
 func (r *VPC) Schema() *schema.Resource {
 	return &schema.Resource{
+		Description: vpcDoc,
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
@@ -45,18 +48,18 @@ func (r *VPC) Schema() *schema.Resource {
 }
 
 func (r *VPC) Create(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
-	v := schemaToVPC(d)
+	v := vpcFromSchema(d)
 	n, err := r.svc.Create(ctx, v)
 	if err != nil {
 		d.SetId("")
 		return diag.FromErr(err)
 	}
 
-	return diag.FromErr(vpcToSchema(*n, d))
+	return diag.FromErr(fillSchemaFromVPC(*n, d))
 }
 
 func (r *VPC) Read(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
-	v := schemaToVPC(d)
+	v := vpcFromSchema(d)
 	n, err := r.svc.Read(ctx, v.ID)
 	if errors.Is(err, ccx.ErrResourceNotFound) {
 		d.SetId("")
@@ -65,25 +68,25 @@ func (r *VPC) Read(ctx context.Context, d *schema.ResourceData, _ any) diag.Diag
 		return diag.FromErr(err)
 	}
 
-	return diag.FromErr(vpcToSchema(*n, d))
+	return diag.FromErr(fillSchemaFromVPC(*n, d))
 }
 
 func (r *VPC) Update(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
-	v := schemaToVPC(d)
+	v := vpcFromSchema(d)
 	n, err := r.svc.Update(ctx, v)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	return diag.FromErr(vpcToSchema(*n, d))
+	return diag.FromErr(fillSchemaFromVPC(*n, d))
 }
 
 func (r *VPC) Delete(ctx context.Context, d *schema.ResourceData, _ any) diag.Diagnostics {
-	v := schemaToVPC(d)
+	v := vpcFromSchema(d)
 	return diag.FromErr(r.svc.Delete(ctx, v.ID))
 }
 
-func schemaToVPC(d *schema.ResourceData) ccx.VPC {
+func vpcFromSchema(d *schema.ResourceData) ccx.VPC {
 	return ccx.VPC{
 		ID:            d.Id(),
 		Name:          getString(d, "name"),
@@ -94,7 +97,7 @@ func schemaToVPC(d *schema.ResourceData) ccx.VPC {
 	}
 }
 
-func vpcToSchema(v ccx.VPC, d *schema.ResourceData) error {
+func fillSchemaFromVPC(v ccx.VPC, d *schema.ResourceData) error {
 	d.SetId(v.ID)
 
 	if err := d.Set("name", v.Name); err != nil {

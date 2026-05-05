@@ -6,15 +6,15 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/severalnines/terraform-provider-ccx/internal/ccx/mocks"
+	"github.com/severalnines/terraform-provider-ccx/internal/ccx"
 	"github.com/stretchr/testify/mock"
 )
 
 type mockServices struct {
-	datastore      *mocks.MockDatastoreService
-	vpc            *mocks.MockVPCService
-	parameterGroup *mocks.MockParameterGroupService
-	content        *mocks.MockContentService
+	datastore      *ccx.MockDatastoresService
+	vpc            *ccx.MockVPCsService
+	parameterGroup *ccx.MockParameterGroupsService
+	content        *ccx.MockContentService
 }
 
 func (m mockServices) AssertExpectations(t mock.TestingT) {
@@ -29,10 +29,10 @@ func mockProvider(t *testing.T) (mockServices, *schema.Provider) {
 	parameterGroup := &ParameterGroup{}
 
 	services := mockServices{
-		datastore:      mocks.NewMockDatastoreService(t),
-		vpc:            mocks.NewMockVPCService(t),
-		parameterGroup: mocks.NewMockParameterGroupService(t),
-		content:        mocks.NewMockContentService(t),
+		datastore:      ccx.NewMockDatastoresService(t),
+		vpc:            ccx.NewMockVPCsService(t),
+		parameterGroup: ccx.NewMockParameterGroupsService(t),
+		content:        ccx.NewMockContentService(t),
 	}
 
 	configure := func(ctx context.Context, d *schema.ResourceData) (any, diag.Diagnostics) {
@@ -46,5 +46,5 @@ func mockProvider(t *testing.T) (mockServices, *schema.Provider) {
 		return nil, nil
 	}
 
-	return services, provider(configure, datastore, vpc, parameterGroup)
+	return services, makeProvider(configure, datastore, vpc, parameterGroup)
 }

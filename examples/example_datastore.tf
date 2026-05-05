@@ -13,7 +13,6 @@ provider "ccx" {
   # base_url = "optionally_use_a_different_base_url"
 }
 
-
 resource "ccx_datastore" "luna" {
   name            = "luna"
   size            = 1
@@ -45,15 +44,15 @@ resource "ccx_datastore" "luna" {
 }
 
 resource "ccx_parameter_group" "asteroid" {
-    name             = "asteroid"
-    database_vendor  = "mariadb"
-    database_version = "10.11"
-    database_type    = "galera"
+  name             = "asteroid"
+  database_vendor  = "mariadb"
+  database_version = "10.11"
+  database_type    = "galera"
 
-    parameters = {
-      table_open_cache = 8000
-      sql_mode         = "STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
-    }
+  parameters = {
+    table_open_cache = 8000
+    sql_mode         = "STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
+  }
 }
 
 output "MOTD" {
@@ -63,4 +62,3 @@ output "MOTD" {
   ### Please visit: https://app.mydbservice.net/ to view the status of its deployment
   EOF
 }
-

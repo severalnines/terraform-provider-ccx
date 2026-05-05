@@ -3,12 +3,12 @@
 page_title: "ccx_vpc Resource - terraform-provider-ccx"
 subcategory: ""
 description: |-
-  
+  A VPC
 ---
 
 # ccx_vpc (Resource)
 
-
+A VPC
 
 
 
