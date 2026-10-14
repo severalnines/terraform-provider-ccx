@@ -499,6 +499,11 @@ func (r *Datastore) Update(ctx context.Context, d *schema.ResourceData, _ any) d
 		return diag.FromErr(err)
 	}
 
+	// the API adds its own tags, so comparing against them would resend (or empty) tags on every update
+	if !d.HasChange("tags") {
+		c.Tags = old.Tags
+	}
+
 	n := &c
 
 	if d.HasChanges("maintenance_day_of_week", "maintenance_start_hour", "maintenance_end_hour") {
