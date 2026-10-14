@@ -34,7 +34,7 @@ For full documenation about CCX see https://docs.severalnines.com/ccx/user/Index
 - `maintenance_end_hour` (Number) Hour of the day when it is no longer appropriate to run maintenance tasks. 0-23. This must be approximtely maintenance_start_hour + 2.
 - `maintenance_start_hour` (Number) Hour of the day when maintenance tasks can be run, on the chosen day. 0-23.
 - `network_az` (List of String) Network availability zones. This can be 1) omitted for auto-allocation, 2) a single string, for placing all nodes in the same zone, 3) as many strings as the intended size of the cluster, to place each node separately. The values depend on the chosen cloud and region.
-- `network_ha_enabled` (Boolean) This option does nothing directly, but if HA is set to true then CCX will require that availability zones are specified.
+- `network_ha_enabled` (Boolean, Deprecated) Has no effect on the datastore. If true, creation requires one zone per node in `network_az`.
 - `network_vpc_uuid` (String) ID of a VPC, in which the cluster will be deployed.
 - `notifications_emails` (List of String) List of email addresses to send notifications to.
 - `notifications_enabled` (Boolean) Enable or disable notifications. Default is false.

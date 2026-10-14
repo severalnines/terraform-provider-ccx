@@ -111,7 +111,8 @@ func (r *Datastore) Schema() *schema.Resource {
 			"network_ha_enabled": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "This option does nothing directly, but if HA is set to true then CCX will require that availability zones are specified.",
+				Description: "Has no effect on the datastore. If true, creation requires one zone per node in `network_az`.",
+				Deprecated:  "network_ha_enabled has no effect on the datastore and will be removed in a future release; remove it from the configuration.",
 				Default:     false,
 			},
 			"network_vpc_uuid": {
@@ -217,9 +218,18 @@ func (r *Datastore) Schema() *schema.Resource {
 		UpdateContext: r.Update,
 		DeleteContext: r.Delete,
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: importDatastore,
 		},
 	}
+}
+
+// importDatastore sets network_ha_enabled to its default, since Read doesn't take it from the API.
+func importDatastore(_ context.Context, d *schema.ResourceData, _ any) ([]*schema.ResourceData, error) {
+	if err := d.Set("network_ha_enabled", false); err != nil {
+		return nil, err
+	}
+
+	return []*schema.ResourceData{d}, nil
 }
 
 func validateInstanceSizes(cloudInstances map[string][]ccx.InstanceSize, c ccx.Datastore) error {
@@ -723,10 +733,6 @@ func fillSchemaFromDatastore(c ccx.Datastore, d *schema.ResourceData) error {
 	}
 
 	if err = d.Set("parameter_group", c.ParameterGroupID); err != nil {
-		return err
-	}
-
-	if err = d.Set("network_ha_enabled", c.HAEnabled); err != nil {
 		return err
 	}
 
