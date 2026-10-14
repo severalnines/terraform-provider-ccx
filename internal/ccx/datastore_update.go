@@ -153,9 +153,9 @@ func (svc *DatastoresClient) updateSizeRequest(ctx context.Context, old, next Da
 		return ur, nil
 	}
 
-	have := len(next.AvailabilityZones)
 	need := int(next.Size - old.Size)
-	missing := need - have
+	next.AvailabilityZones = newNodeAzs(next.AvailabilityZones, old.Hosts, need)
+	missing := need - len(next.AvailabilityZones)
 
 	if old.VpcUUID == "" && missing > 0 { // allocate AZs if public and need is less than have
 		allAzs, err := svc.contentSvc.AvailabilityZones(ctx, next.CloudProvider, next.CloudRegion)
@@ -274,7 +274,7 @@ func newestNodeSpecs(hosts []Host, count int, azs []string, instanceSize string)
 	}
 
 	if len(azs) != count {
-		return nil, fmt.Errorf("not enough azs available")
+		return nil, fmt.Errorf("expected %d availability zones for new nodes, got %d", count, len(azs))
 	}
 
 	// Determine the instance size to use
@@ -296,4 +296,34 @@ func newestNodeSpecs(hosts []Host, count int, azs []string, instanceSize string)
 	}
 
 	return ls, nil
+}
+
+// newNodeAzs picks zones for the new nodes. network_az lists a zone per node of the whole
+// cluster, so zones already taken by existing nodes are removed one-for-one first.
+func newNodeAzs(azs []string, hosts []Host, need int) []string {
+	if len(azs) <= need {
+		return azs
+	}
+
+	taken := make(map[string]int, len(hosts))
+	for _, h := range hosts {
+		taken[h.AZ]++
+	}
+
+	ls := make([]string, 0, need)
+
+	for _, az := range azs {
+		if len(ls) == need {
+			break
+		}
+
+		if taken[az] > 0 {
+			taken[az]--
+			continue
+		}
+
+		ls = append(ls, az)
+	}
+
+	return ls
 }
