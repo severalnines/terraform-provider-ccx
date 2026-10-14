@@ -298,8 +298,8 @@ func newestNodeSpecs(hosts []Host, count int, azs []string, instanceSize string)
 	return ls, nil
 }
 
-// newNodeAzs picks zones for the new nodes. network_az lists a zone per node of the whole
-// cluster, so zones already taken by existing nodes are removed one-for-one first.
+// newNodeAzs picks zones for the new nodes. `network_az` lists a zone per node of the whole
+// cluster, so it first drops the zones existing nodes already use, one per node.
 func newNodeAzs(azs []string, hosts []Host, need int) []string {
 	if len(azs) <= need {
 		return azs
