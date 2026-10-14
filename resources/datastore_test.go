@@ -267,7 +267,6 @@ resource "ccx_datastore" "luna" {
 
 		updated := created
 		updated.Name = "lunar"
-		updated.Tags = create.Tags
 		updated.PrimaryUrl = ""
 		updated.PrimaryDsn = ""
 		updated.ReplicaUrl = ""
@@ -336,6 +335,196 @@ resource "ccx_datastore" "luna" {
 		})
 	})
 
+	t.Run("update name without tags in config", func(t *testing.T) {
+		m, p := mockProvider(t)
+
+		expectDefaultContent(m)
+
+		create := ccx.Datastore{
+			Name:              "luna",
+			Size:              1,
+			DBVendor:          "postgres",
+			Type:              "postgres_streaming",
+			Tags:              []string{},
+			CloudProvider:     "aws",
+			CloudRegion:       "eu-north-1",
+			InstanceSize:      "m5.large",
+			VolumeType:        "gp2",
+			VolumeSize:        80,
+			AvailabilityZones: nil,
+			FirewallRules:     []ccx.FirewallRule{},
+			Notifications: ccx.Notifications{
+				Enabled: false,
+				Emails:  []string{},
+			},
+		}
+
+		created := create
+
+		created.ID = "datastore-1"
+		created.DBVersion = "1.2"
+		created.Tags = []string{"postgres", "1.2", "postgres_streaming", "aws", "eu-north-1"}
+		created.MaintenanceSettings = &ccx.MaintenanceSettings{
+			DayOfWeek: 1,
+			StartHour: 0,
+			EndHour:   2,
+		}
+
+		// tags are not in the config, so the datastore's own tags must be passed through unchanged
+		updated := created
+		updated.Name = "lunar"
+
+		latest := created
+
+		m.datastore.EXPECT().Create(mock.Anything, create).Return(&created, nil)
+		m.datastore.EXPECT().Update(mock.Anything, created, updated).RunAndReturn(func(_ context.Context, _ ccx.Datastore, n ccx.Datastore) (*ccx.Datastore, error) {
+			latest = n
+			return &latest, nil
+		})
+
+		m.datastore.EXPECT().Read(mock.Anything, "datastore-1").RunAndReturn(func(_ context.Context, _ string) (*ccx.Datastore, error) {
+			return &latest, nil
+		})
+
+		m.datastore.EXPECT().Delete(mock.Anything, "datastore-1").Return(nil)
+
+		resource.Test(t, resource.TestCase{
+			IsUnitTest: true,
+			ProviderFactories: map[string]func() (*schema.Provider, error){
+				"ccx": func() (*schema.Provider, error) {
+					return p, nil
+				},
+			},
+			Steps: []resource.TestStep{
+				{
+					Config: `
+resource "ccx_datastore" "luna" {
+  name           = "luna"
+  size           = 1
+  db_vendor      = "postgres"
+  cloud_provider = "aws"
+  cloud_region   = "eu-north-1"
+  instance_size  = "m5.large"
+  volume_size    = 80
+  volume_type    = "gp2"
+}
+`,
+				},
+				{
+					Config: `
+resource "ccx_datastore" "luna" {
+  name           = "lunar"
+  size           = 1
+  db_vendor      = "postgres"
+  cloud_provider = "aws"
+  cloud_region   = "eu-north-1"
+  instance_size  = "m5.large"
+  volume_size    = 80
+  volume_type    = "gp2"
+}
+`,
+					Check: resource.TestCheckResourceAttr("ccx_datastore.luna", "name", "lunar"),
+				},
+			},
+		})
+	})
+
+	t.Run("update tags", func(t *testing.T) {
+		m, p := mockProvider(t)
+
+		expectDefaultContent(m)
+
+		create := ccx.Datastore{
+			Name:              "luna",
+			Size:              1,
+			DBVendor:          "postgres",
+			Type:              "postgres_streaming",
+			Tags:              []string{"a"},
+			CloudProvider:     "aws",
+			CloudRegion:       "eu-north-1",
+			InstanceSize:      "m5.large",
+			VolumeType:        "gp2",
+			VolumeSize:        80,
+			AvailabilityZones: nil,
+			FirewallRules:     []ccx.FirewallRule{},
+			Notifications: ccx.Notifications{
+				Enabled: false,
+				Emails:  []string{},
+			},
+		}
+
+		created := create
+
+		created.ID = "datastore-1"
+		created.DBVersion = "1.2"
+		created.Tags = []string{"a", "postgres", "1.2", "postgres_streaming", "aws", "eu-north-1"}
+		created.MaintenanceSettings = &ccx.MaintenanceSettings{
+			DayOfWeek: 1,
+			StartHour: 0,
+			EndHour:   2,
+		}
+
+		// tags changed in the config, so they must be sent as configured
+		updated := created
+		updated.Tags = []string{"a", "b"}
+
+		latest := created
+
+		m.datastore.EXPECT().Create(mock.Anything, create).Return(&created, nil)
+		m.datastore.EXPECT().Update(mock.Anything, created, updated).RunAndReturn(func(_ context.Context, _ ccx.Datastore, n ccx.Datastore) (*ccx.Datastore, error) {
+			latest = n
+			return &latest, nil
+		})
+
+		m.datastore.EXPECT().Read(mock.Anything, "datastore-1").RunAndReturn(func(_ context.Context, _ string) (*ccx.Datastore, error) {
+			return &latest, nil
+		})
+
+		m.datastore.EXPECT().Delete(mock.Anything, "datastore-1").Return(nil)
+
+		resource.Test(t, resource.TestCase{
+			IsUnitTest: true,
+			ProviderFactories: map[string]func() (*schema.Provider, error){
+				"ccx": func() (*schema.Provider, error) {
+					return p, nil
+				},
+			},
+			Steps: []resource.TestStep{
+				{
+					Config: `
+resource "ccx_datastore" "luna" {
+  name           = "luna"
+  size           = 1
+  db_vendor      = "postgres"
+  tags           = ["a"]
+  cloud_provider = "aws"
+  cloud_region   = "eu-north-1"
+  instance_size  = "m5.large"
+  volume_size    = 80
+  volume_type    = "gp2"
+}
+`,
+				},
+				{
+					Config: `
+resource "ccx_datastore" "luna" {
+  name           = "luna"
+  size           = 1
+  db_vendor      = "postgres"
+  tags           = ["a", "b"]
+  cloud_provider = "aws"
+  cloud_region   = "eu-north-1"
+  instance_size  = "m5.large"
+  volume_size    = 80
+  volume_type    = "gp2"
+}
+`,
+					Check: resource.TestCheckResourceAttr("ccx_datastore.luna", "tags.#", "2"),
+				},
+			},
+		})
+	})
+
 	t.Run("basic: update maintenance settings", func(t *testing.T) {
 		m, p := mockProvider(t)
 
@@ -381,7 +570,6 @@ resource "ccx_datastore" "luna" {
 
 		updated := created
 		updated.Name = "luna"
-		updated.Tags = create.Tags
 		updated.PrimaryUrl = ""
 		updated.PrimaryDsn = ""
 		updated.ReplicaUrl = ""
@@ -604,7 +792,7 @@ resource "ccx_datastore" "luna" {
 				DBVendor:      "percona",
 				DBVersion:     "8",
 				Type:          "Replication",
-				Tags:          []string{"new", "test"},
+				Tags:          []string{"new", "test", "percona", "8", "replication", "aws", "eu-north-1"},
 				CloudProvider: "aws",
 				CloudRegion:   "eu-north-1",
 				InstanceSize:  "m5.large",
