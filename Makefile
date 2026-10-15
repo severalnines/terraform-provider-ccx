@@ -14,6 +14,7 @@ install: bin/terraform-provider-ccx
 	mkdir -p ~/.terraform.d/plugins/registry.terraform.io/severalnines/ccx/${VERSION}/linux_amd64
 	cp ./bin/terraform-provider-ccx ~/.terraform.d/plugins/registry.terraform.io/severalnines/ccx/${VERSION}/linux_amd64/
 
+# the name is otherwise taken from the directory, which breaks in clones and worktrees with another name
 docs:
-	go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
+	go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs generate --provider-name terraform-provider-ccx
 

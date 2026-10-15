@@ -88,10 +88,6 @@ func checkTFDatastore(name string, d ccx.Datastore) resource.TestCheckFunc {
 			return err
 		}
 
-		if err := testMapElementEqual(ds.Primary.Attributes, "network_ha_enabled", strconv.FormatBool(d.HAEnabled)); err != nil {
-			return err
-		}
-
 		if err := testMapElementEqual(ds.Primary.Attributes, "notifications_enabled", strconv.FormatBool(d.Notifications.Enabled)); err != nil {
 			return err
 		}

@@ -525,6 +525,81 @@ resource "ccx_datastore" "luna" {
 		})
 	})
 
+	t.Run("network_az without network_ha_enabled in config", func(t *testing.T) {
+		m, p := mockProvider(t)
+
+		expectDefaultContent(m)
+
+		create := ccx.Datastore{
+			Name:              "luna",
+			Size:              2,
+			DBVendor:          "postgres",
+			Type:              "postgres_streaming",
+			Tags:              []string{},
+			CloudProvider:     "aws",
+			CloudRegion:       "eu-north-1",
+			InstanceSize:      "m5.large",
+			VolumeType:        "gp2",
+			VolumeSize:        80,
+			AvailabilityZones: []string{"eu-north-1a", "eu-north-1b"},
+			FirewallRules:     []ccx.FirewallRule{},
+			Notifications: ccx.Notifications{
+				Enabled: false,
+				Emails:  []string{},
+			},
+		}
+
+		created := create
+
+		created.ID = "datastore-1"
+		created.DBVersion = "1.2"
+		created.Tags = []string{"postgres", "1.2", "postgres_streaming", "aws", "eu-north-1"}
+		created.HAEnabled = true // the API marks a datastore as HA when it has a zone per node
+		created.MaintenanceSettings = &ccx.MaintenanceSettings{
+			DayOfWeek: 1,
+			StartHour: 0,
+			EndHour:   2,
+		}
+
+		m.datastore.EXPECT().Create(mock.Anything, create).Return(&created, nil)
+		m.datastore.EXPECT().Read(mock.Anything, "datastore-1").Return(&created, nil)
+		m.datastore.EXPECT().Delete(mock.Anything, "datastore-1").Return(nil)
+
+		resource.Test(t, resource.TestCase{
+			IsUnitTest: true,
+			ProviderFactories: map[string]func() (*schema.Provider, error){
+				"ccx": func() (*schema.Provider, error) {
+					return p, nil
+				},
+			},
+			Steps: []resource.TestStep{
+				{
+					Config: `
+resource "ccx_datastore" "luna" {
+  name           = "luna"
+  size           = 2
+  db_vendor      = "postgres"
+  cloud_provider = "aws"
+  cloud_region   = "eu-north-1"
+  instance_size  = "m5.large"
+  volume_size    = 80
+  volume_type    = "gp2"
+  network_az     = ["eu-north-1a", "eu-north-1b"]
+}
+`,
+					Check: resource.TestCheckResourceAttr("ccx_datastore.luna", "network_ha_enabled", "false"),
+				},
+				{
+					ResourceName:      "ccx_datastore.luna",
+					ImportState:       true,
+					ImportStateVerify: true,
+					// Read keeps network_az from the config, so an import can't restore it
+					ImportStateVerifyIgnore: []string{"network_az"},
+				},
+			},
+		})
+	})
+
 	t.Run("basic: update maintenance settings", func(t *testing.T) {
 		m, p := mockProvider(t)
 

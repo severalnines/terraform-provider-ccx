@@ -565,3 +565,92 @@ func TestDatastoreService_Update(t *testing.T) {
 		})
 	}
 }
+
+func TestDatastoreService_updateSizeRequest_AZs(t *testing.T) {
+	host := func(id, az string, day int) Host {
+		return Host{
+			ID:           id,
+			AZ:           az,
+			InstanceType: "m5.large",
+			CreatedAt:    time.Date(2021, 1, day, 0, 0, 0, 0, time.UTC),
+		}
+	}
+
+	tests := []struct {
+		name    string
+		hosts   []Host
+		oldSize int64
+		newSize int64
+		azs     []string
+		allAzs  []string
+		want    []string
+	}{
+		{
+			name:    "2 -> 3, zone appended to network_az",
+			hosts:   []Host{host("h1", "a", 1), host("h2", "b", 2)},
+			oldSize: 2,
+			newSize: 3,
+			azs:     []string{"a", "b", "c"},
+			want:    []string{"c"},
+		},
+		{
+			name:    "1 -> 3, zones listed in any order",
+			hosts:   []Host{host("h1", "b", 1)},
+			oldSize: 1,
+			newSize: 3,
+			azs:     []string{"a", "b", "c"},
+			want:    []string{"a", "c"},
+		},
+		{
+			name:    "1 -> 3, repeated zones are counted per node",
+			hosts:   []Host{host("h1", "a", 1)},
+			oldSize: 1,
+			newSize: 3,
+			azs:     []string{"b", "a", "b"},
+			want:    []string{"b", "b"},
+		},
+		{
+			name:    "2 -> 3, network_az does not match existing nodes",
+			hosts:   []Host{host("h1", "a", 1), host("h2", "b", 2)},
+			oldSize: 2,
+			newSize: 3,
+			azs:     []string{"c", "d", "e"},
+			want:    []string{"c"},
+		},
+		{
+			name:    "1 -> 2, network_az unset allocates least used zone",
+			hosts:   []Host{host("h1", "a", 1)},
+			oldSize: 1,
+			newSize: 2,
+			allAzs:  []string{"a", "b"},
+			want:    []string{"b"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			contentSvc := NewMockContentService(t)
+			if tt.allAzs != nil {
+				contentSvc.EXPECT().AvailabilityZones(mock.Anything, "aws", "eu-north-1").Return(tt.allAzs, nil)
+			}
+
+			svc := &DatastoresClient{contentSvc: contentSvc}
+
+			old := Datastore{Size: tt.oldSize, CloudProvider: "aws", CloudRegion: "eu-north-1", Hosts: tt.hosts}
+			next := old
+			next.Size = tt.newSize
+			next.AvailabilityZones = tt.azs
+
+			ur, err := svc.updateSizeRequest(context.Background(), old, next)
+			require.NoError(t, err)
+			require.NotNil(t, ur.Add)
+
+			got := make([]string, 0, len(ur.Add.Specs))
+			for _, s := range ur.Add.Specs {
+				got = append(got, s.AZ)
+			}
+
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
